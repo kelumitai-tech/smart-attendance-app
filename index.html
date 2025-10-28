@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="si">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Attendance Tracker</title> <link rel="manifest" href="manifest.json">
+    <title>Smart Attendance Tracker</title>
+
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#005A9C">
     <style>
         /* ==== Global Styles ==== */
@@ -148,10 +150,11 @@
         /* Button colors */
         #addClassBtn { background-color: #2196F3; }
         #addSubjectBtn { background-color: #00796B; } /* Teal */
+        #addTeacherBtn { background-color: #8E24AA; } /* Purple */
         #addStudentBtn { background-color: #ff9800; }
         #updateDatesBtn { background-color: #00796B; }
         #generateReportBtn { background-color: #512DA8; }
-        #printReportBtn { background-color: var(--print-btn-color); } /* NEW */
+        #printReportBtn { background-color: var(--print-btn-color); }
         #saveBtn { background-color: var(--secondary-color); }
         #calculateBtn { background-color: #673AB7; }
         #clearWeekBtn { background-color: var(--warning-color); }
@@ -209,9 +212,7 @@
             font-weight: 500;
         }
 
-        /* ======================================================= */
         /* ==== 7. Mobile Responsive "Card" View (PORTRAIT) ==== */
-        /* ======================================================= */
         @media screen and (max-width: 767px) {
             
             .table-responsive-wrapper {
@@ -219,7 +220,7 @@
                 border: none;
             }
             #attendanceTable {
-                min-width: 0 !important; /* THE FIX */
+                min-width: 0 !important;
             }
 
             #attendanceTable, 
@@ -301,29 +302,24 @@
             }
         }
         
-        /* ======================================================= */
-        /* ==== 8. NEW: Print-to-PDF Styles ==== */
-        /* ======================================================= */
+        /* ==== 8. Print-to-PDF Styles ==== */
         @media print {
             body {
                 background-color: #fff;
                 color: #000;
-                font-size: 10pt; /* Smaller font for print */
+                font-size: 10pt;
             }
             
-            /* Hide ALL elements by default */
             body * {
                 display: none !important;
                 visibility: hidden !important;
             }
             
-            /* Show ONLY the report output area and its contents */
             #reportOutput, #reportOutput * {
                 display: block !important;
                 visibility: visible !important;
             }
             
-            /* Position the report at the top-left */
             #reportOutput {
                 position: absolute;
                 left: 0;
@@ -353,11 +349,10 @@
             #reportOutput th {
                 background-color: #ddd !important;
                 color: #000 !important;
-                -webkit-print-color-adjust: exact; /* Force background color in print */
+                -webkit-print-color-adjust: exact;
                 color-adjust: exact;
             }
             
-            /* Set A4 page size and margins */
             @page {
                 size: A4 portrait;
                 margin: 20mm;
@@ -417,14 +412,30 @@
                 </select>
             </div>
         </div>
+        
+        <div class="card" id="teacher-manager-card">
+            <h2>Teacher Management</h2>
+            <div class="form-group">
+                <label for="inputTeacherName">New Teacher Name</label>
+                <input type="text" id="inputTeacherName" placeholder="e.g., Kelum Konara">
+            </div>
+            <button id="addTeacherBtn">Add New Teacher</button>
+            <hr class="card-divider">
+            <div class="form-group">
+                <label for="selectTeacher">Select Active Teacher</label>
+                <select id="selectTeacher">
+                    <option value="">-- Please add a teacher first --</option>
+                </select>
+            </div>
+        </div>
 
         <div class="card" id="date-manager-card">
             <h2>Date Selector</h2>
             <div class="form-group">
-                <label for="startDate">Select Week Start Date</label>
+                <label for="startDate">Select Any Day of the Week</label>
                 <input type="date" id="startDate">
             </div>
-            <button id="updateDatesBtn">Update Week Dates</button>
+            <button id="updateDatesBtn">Update Week (Mon-Fri)</button>
         </div>
 
         <div class="card" id="student-manager-card">
@@ -444,11 +455,11 @@
                     <thead>
                         <tr>
                             <th>Student Name</th>
-                            <th>Day 1</th>
-                            <th>Day 2</th>
-                            <th>Day 3</th>
-                            <th>Day 4</th>
-                            <th>Day 5</th>
+                            <th>Day 1 (Mon)</th>
+                            <th>Day 2 (Tue)</th>
+                            <th>Day 3 (Wed)</th>
+                            <th>Day 4 (Thu)</th>
+                            <th>Day 5 (Fri)</th>
                             <th>Total Present (Week)</th>
                         </tr>
                     </thead>
@@ -468,7 +479,7 @@
         
         <div class="card" id="report-card">
             <h2>Monthly Report</h2>
-            <p>Select class, subject, and month to generate the summary.</p>
+            <p>Select class, subject, teacher, and month for the summary.</p>
             
             <div class="form-group">
                 <label for="reportSubject">Select Subject for Report</label>
@@ -477,12 +488,17 @@
                 </select>
             </div>
             <div class="form-group">
+                <label for="reportTeacher">Select Teacher for Report</label>
+                <select id="reportTeacher">
+                    <option value="">-- Select a teacher --</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="reportMonth">Select Month</label>
                 <input type="month" id="reportMonth">
             </div>
             
             <button id="generateReportBtn">Generate Report</button>
-            
             <button id="printReportBtn" style="margin-top: 10px;">Save Report as PDF</button>
 
             <div id="reportOutput" class="table-responsive-wrapper" style="margin-top: 20px;">
@@ -491,7 +507,7 @@
         
         <div class="card danger-zone" id="danger-zone-card">
             <h2>Danger Zone</h2>
-            <p>This will permanently delete ALL saved classes, subjects, students, and attendance records.</p>
+            <p>This will permanently delete ALL saved classes, subjects, teachers, students, and attendance records.</p>
             <button id="resetAllBtn">RESET ALL DATA</button>
         </div>
     </main>
@@ -501,6 +517,7 @@
         SmartSoft | The Mobile Apps Developer <br>
         0714469232
     </footer>
+
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -514,30 +531,37 @@
             });
         }
     </script>
-
+    
     <script>
         // Global database object
         let db = {
-            rosters: {},    // { "Grade10-A": ["Kamal", "Nimali"] }
-            subjects: [],   // ["Mathematics", "Science"]
-            attendance: {}  // { "Grade10-A": { "2025-10-27": { "Mathematics": ["Kamal"] } } }
+            rosters: {},    // { "Grade10-A": ["Kamal"] }
+            subjects: [],   // ["Mathematics"]
+            teachers: [],   // ["Kelum Konara"]
+            attendance: {}  // { "Grade10-A": { "2025-10-27": { "Mathematics": { "Kelum Konara": ["Kamal"] } } } }
         };
 
         // --- Date helper arrays ---
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const DB_KEY = 'schoolAttendanceDB_v3'; // NEW VERSION KEY
+        const DB_KEY = 'schoolAttendanceDB_v4'; // NEW VERSION KEY
 
         // --- DOM Elements ---
         const selectGrade = document.getElementById('selectGrade');
         const inputClassName = document.getElementById('inputClassName');
         const addClassBtn = document.getElementById('addClassBtn');
         const selectClass = document.getElementById('selectClass');
-        // NEW Subject elements
+        
         const inputSubjectName = document.getElementById('inputSubjectName');
         const addSubjectBtn = document.getElementById('addSubjectBtn');
         const selectSubject = document.getElementById('selectSubject');
         const reportSubject = document.getElementById('reportSubject');
+        
+        // NEW Teacher elements
+        const inputTeacherName = document.getElementById('inputTeacherName');
+        const addTeacherBtn = document.getElementById('addTeacherBtn');
+        const selectTeacher = document.getElementById('selectTeacher');
+        const reportTeacher = document.getElementById('reportTeacher');
         
         const startDateInput = document.getElementById('startDate');
         const updateDatesBtn = document.getElementById('updateDatesBtn');
@@ -551,7 +575,7 @@
         const clearWeekBtn = document.getElementById('clearWeekBtn');
         const reportMonthInput = document.getElementById('reportMonth');
         const generateReportBtn = document.getElementById('generateReportBtn');
-        const printReportBtn = document.getElementById('printReportBtn'); // NEW
+        const printReportBtn = document.getElementById('printReportBtn');
         const reportOutput = document.getElementById('reportOutput');
         const resetAllBtn = document.getElementById('resetAllBtn');
 
@@ -561,7 +585,8 @@
             if (data) {
                 const parsedData = JSON.parse(data);
                 db.rosters = parsedData.rosters || {};
-                db.subjects = parsedData.subjects || []; // NEW
+                db.subjects = parsedData.subjects || [];
+                db.teachers = parsedData.teachers || []; // NEW
                 db.attendance = parsedData.attendance || {};
             }
         }
@@ -569,7 +594,7 @@
             localStorage.setItem(DB_KEY, JSON.stringify(db));
         }
 
-        // ==== 2. Class & Subject Management ====
+        // ==== 2. Class, Subject & Teacher Management ====
         function generateClassId(grade, className) {
             return `${grade.replace(' ', '')}-${className.trim().toUpperCase()}`;
         }
@@ -608,10 +633,9 @@
             });
         }
         function handleClassChange() {
-            renderStudentTable(); // Re-render table on class change
+            renderStudentTable();
         }
         
-        // NEW Subject Functions
         function addNewSubject() {
             const subjectName = inputSubjectName.value.trim();
             if (!subjectName) { alert('Please enter a subject name.'); return; }
@@ -622,7 +646,7 @@
             db.subjects.sort();
             saveData();
             populateSubjectSelectors();
-            selectSubject.value = subjectName; // Auto-select new subject
+            selectSubject.value = subjectName;
             renderStudentTable();
             alert(`Subject '${subjectName}' added successfully!`);
             inputSubjectName.value = '';
@@ -651,7 +675,50 @@
         }
         
         function handleSubjectChange() {
-            renderStudentTable(); // Re-render table on subject change
+            renderStudentTable();
+        }
+        
+        // NEW Teacher Functions
+        function addNewTeacher() {
+            const teacherName = inputTeacherName.value.trim();
+            if (!teacherName) { alert('Please enter a teacher name.'); return; }
+            if (db.teachers.includes(teacherName)) {
+                alert('This teacher already exists.'); return;
+            }
+            db.teachers.push(teacherName);
+            db.teachers.sort();
+            saveData();
+            populateTeacherSelectors();
+            selectTeacher.value = teacherName;
+            renderStudentTable();
+            alert(`Teacher '${teacherName}' added successfully!`);
+            inputTeacherName.value = '';
+        }
+
+        function populateTeacherSelectors() {
+            selectTeacher.innerHTML = '';
+            reportTeacher.innerHTML = '';
+            if (db.teachers.length === 0) {
+                selectTeacher.innerHTML = '<option value="">-- Add a teacher first --</option>';
+                reportTeacher.innerHTML = '<option value="">-- Add a teacher first --</option>';
+                return;
+            }
+            
+            db.teachers.forEach(teacher => {
+                const option1 = document.createElement('option');
+                option1.value = teacher;
+                option1.textContent = teacher;
+                selectTeacher.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = teacher;
+                option2.textContent = teacher;
+                reportTeacher.appendChild(option2);
+            });
+        }
+
+        function handleTeacherChange() {
+            renderStudentTable();
         }
 
         // ==== 3. Student Management ====
@@ -665,36 +732,30 @@
             db.rosters[selectedClassId].push(studentName);
             db.rosters[selectedClassId].sort();
             saveData();
-            renderStudentTable(); // Re-render
+            renderStudentTable();
             studentNameInput.value = '';
             studentNameInput.focus();
         }
 
-        /**
-         * Renders the student table based on ACTIVE class and subject
-         */
         function renderStudentTable() {
             const classId = selectClass.value;
             const subject = selectSubject.value;
+            const teacher = selectTeacher.value; // NEW
             
-            // Show info message if class or subject not selected
-            if (!classId || !subject) {
-                tableBody.innerHTML = ''; // Clear table
+            if (!classId || !subject || !teacher) { // MODIFIED
+                tableBody.innerHTML = '';
                 attendanceInfo.style.display = 'block';
-                if (!classId && !subject) {
-                    attendanceInfo.textContent = 'Please select a Class and Subject to begin.';
-                } else if (!classId) {
-                    attendanceInfo.textContent = 'Please select an Active Class.';
-                } else {
-                    attendanceInfo.textContent = 'Please select an Active Subject.';
-                }
+                let missing = [];
+                if (!classId) missing.push("Class");
+                if (!subject) missing.push("Subject");
+                if (!teacher) missing.push("Teacher");
+                attendanceInfo.textContent = `Please select an Active ${missing.join(' and ')} to begin.`;
                 return;
             }
-            attendanceInfo.style.display = 'none'; // Hide message
+            attendanceInfo.style.display = 'none';
             
-            // Update title
             const classText = selectClass.options[selectClass.selectedIndex].textContent;
-            attendanceSheetTitle.textContent = `Attendance: ${classText} (${subject})`;
+            attendanceSheetTitle.textContent = `Attendance: ${classText} (${subject} / ${teacher})`; // MODIFIED
 
             tableBody.innerHTML = '';
             const students = db.rosters[classId] || [];
@@ -731,8 +792,7 @@
                     checkbox.type = 'checkbox';
                     checkCell.dataset.label = header.label; 
                     if (header.date) {
-                        // MODIFIED: Check attendance with subject
-                        checkbox.checked = checkAttendance(classId, subject, header.date, studentName);
+                        checkbox.checked = checkAttendance(classId, subject, teacher, header.date, studentName); // MODIFIED
                     }
                     checkCell.appendChild(checkbox);
                     row.appendChild(checkCell);
@@ -751,26 +811,41 @@
         }
 
         // ==== 4. Date & Attendance Functions ====
+        
         function updateTableHeaders() {
             const selectedDateStr = startDateInput.value;
             if (!selectedDateStr) return;
-            const parts = selectedDateStr.split('-');
-            const startDate = new Date(parts[0], parts[1] - 1, parts[2]);
+
+            const startDate = new Date(selectedDateStr + "T12:00:00");
+            const dayOfWeek = startDate.getDay();
+            const offsetToMonday = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek;
+            
+            const monday = new Date(startDate.getTime());
+            monday.setDate(monday.getDate() + offsetToMonday);
+            
+            startDateInput.value = monday.toISOString().split('T')[0];
+
             const headers = document.querySelectorAll('#attendanceTable thead th');
             const dayColumnCount = headers.length - 2;
-            let currentDate = new Date(startDate.getTime());
+            
+            let currentDate = new Date(monday.getTime());
 
             for (let i = 0; i < dayColumnCount; i++) {
                 const day = dayNames[currentDate.getDay()];
                 const dateNum = currentDate.getDate();
                 const month = monthNames[currentDate.getMonth()];
-                const headerText = `${month} ${dateNum} (${day})`;
+                
+                const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+                const headerText = `${month} ${dateNum} (${dayLabels[i]})`;
+                
                 const headerCell = headers[i + 1];
                 headerCell.textContent = headerText;
                 headerCell.dataset.date = currentDate.toISOString().split('T')[0];
+                
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-            renderStudentTable(); // Re-render table to load data
+            
+            renderStudentTable();
         }
         
         function setDefaultDate() {
@@ -779,19 +854,21 @@
             reportMonthInput.value = today.toISOString().slice(0, 7);
         }
 
-        // MODIFIED: Functions now require a 'subject'
-        function checkAttendance(classId, subject, date, studentName) {
-            const presentList = db.attendance[classId]?.[date]?.[subject];
+        // MODIFIED SIGNATURE
+        function checkAttendance(classId, subject, teacher, date, studentName) {
+            const presentList = db.attendance[classId]?.[date]?.[subject]?.[teacher];
             if (!presentList) return false;
             return presentList.includes(studentName);
         }
         
-        function updateAttendanceRecord(classId, subject, date, studentName, isPresent) {
+        // MODIFIED SIGNATURE
+        function updateAttendanceRecord(classId, subject, teacher, date, studentName, isPresent) {
             if (!db.attendance[classId]) db.attendance[classId] = {};
             if (!db.attendance[classId][date]) db.attendance[classId][date] = {};
-            if (!db.attendance[classId][date][subject]) db.attendance[classId][date][subject] = [];
+            if (!db.attendance[classId][date][subject]) db.attendance[classId][date][subject] = {};
+            if (!db.attendance[classId][date][subject][teacher]) db.attendance[classId][date][subject][teacher] = [];
             
-            const presentList = db.attendance[classId][date][subject];
+            const presentList = db.attendance[classId][date][subject][teacher];
             const studentIndex = presentList.indexOf(studentName);
             if (isPresent && studentIndex === -1) {
                 presentList.push(studentName);
@@ -802,9 +879,10 @@
 
         function saveAttendanceData() {
             const selectedClassId = selectClass.value;
-            const selectedSubject = selectSubject.value; // NEW
-            if (!selectedClassId || !selectedSubject) {
-                alert('Please select a class and a subject first.'); return;
+            const selectedSubject = selectSubject.value;
+            const selectedTeacher = selectTeacher.value; // NEW
+            if (!selectedClassId || !selectedSubject || !selectedTeacher) { // MODIFIED
+                alert('Please select a class, subject, and teacher first.'); return;
             }
             
             const headers = document.querySelectorAll('#attendanceTable thead th');
@@ -816,8 +894,7 @@
                 checkboxes.forEach((checkbox, index) => {
                     const date = headers[index + 1].dataset.date;
                     if (date) {
-                        // MODIFIED: Save with subject
-                        updateAttendanceRecord(selectedClassId, selectedSubject, date, studentName, checkbox.checked);
+                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, checkbox.checked); // MODIFIED
                     }
                 });
             });
@@ -828,8 +905,9 @@
         function clearWeekData() {
             if (!confirm("Are you sure you want to clear all marks for this week?")) return;
             const selectedClassId = selectClass.value;
-            const selectedSubject = selectSubject.value; // NEW
-            if (!selectedClassId || !selectedSubject) return;
+            const selectedSubject = selectSubject.value;
+            const selectedTeacher = selectTeacher.value; // NEW
+            if (!selectedClassId || !selectedSubject || !selectedTeacher) return; // MODIFIED
             
             const headers = document.querySelectorAll('#attendanceTable thead th');
             const rows = document.querySelectorAll('#attendanceTable tr.student-row');
@@ -841,8 +919,7 @@
                     const date = headers[index + 1].dataset.date;
                     if (date) {
                         checkbox.checked = false;
-                        // MODIFIED: Clear with subject
-                        updateAttendanceRecord(selectedClassId, selectedSubject, date, studentName, false);
+                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, false); // MODIFIED
                     }
                 });
             });
@@ -860,14 +937,15 @@
             });
         }
         
-        // MODIFIED: Report now requires a subject
         function generateMonthlyReport() {
-            const selectedClassId = selectClass.value; // Use active class
-            const selectedSubject = reportSubject.value; // Use report subject
+            const selectedClassId = selectClass.value;
+            const selectedSubject = reportSubject.value;
+            const selectedTeacher = reportTeacher.value; // NEW
             const selectedMonth = reportMonthInput.value;
             
             if (!selectedClassId) { alert('Please select an active class first.'); return; }
             if (!selectedSubject) { alert('Please select a subject for the report.'); return; }
+            if (!selectedTeacher) { alert('Please select a teacher for the report.'); return; } // NEW
             if (!selectedMonth) { alert('Please select a month.'); return; }
             
             const students = db.rosters[selectedClassId] || [];
@@ -878,8 +956,7 @@
             const monthDates = Object.keys(classAttendance).filter(date => date.startsWith(selectedMonth));
             
             monthDates.forEach(date => {
-                // MODIFIED: Get present list for the specific subject
-                const presentList = classAttendance[date]?.[selectedSubject] || [];
+                const presentList = classAttendance[date]?.[selectedSubject]?.[selectedTeacher] || []; // MODIFIED
                 presentList.forEach(studentName => {
                     if (report.hasOwnProperty(studentName)) {
                         report[studentName]++;
@@ -893,11 +970,11 @@
             
             const classText = selectClass.options[selectClass.selectedIndex].textContent;
             
-            // NEW: Add titles for printing
             let tableHtml = `
                 <h2>Monthly Attendance Report</h2>
                 <h3>Class: ${classText}</h3>
                 <h3>Subject: ${selectedSubject}</h3>
+                <h3>Teacher: ${selectedTeacher}</h3>
                 <h3>Month: ${selectedMonth}</h3>
                 <table class="report-table"><thead><tr>
                 <th>Student Name</th><th>Total Days Present</th>
@@ -911,20 +988,19 @@
             reportOutput.innerHTML = tableHtml;
         }
         
-        // NEW: Print Function
         function printReport() {
             const reportContent = reportOutput.innerHTML;
-            if (!reportContent.includes("<table>")) {
+            if (!reportContent.includes("<table")) {
                 alert("Please generate a report first before printing.");
                 return;
             }
-            window.print(); // This will trigger the @media print styles
+            window.print();
         }
         
         function resetAllData() {
             if (confirm("DANGER! This will permanently delete ALL data. Are you sure?")) {
                 localStorage.removeItem(DB_KEY);
-                db = { rosters: {}, subjects: [], attendance: {} };
+                db = { rosters: {}, subjects: [], teachers: [], attendance: {} }; // MODIFIED
                 location.reload();
             }
         }
@@ -933,25 +1009,30 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
             populateClassSelector();
-            populateSubjectSelectors(); // NEW
+            populateSubjectSelectors();
+            populateTeacherSelectors(); // NEW
             setDefaultDate();
             updateTableHeaders();
             
             // Event listeners
             addClassBtn.addEventListener('click', addNewClass);
-            addSubjectBtn.addEventListener('click', addNewSubject); // NEW
+            addSubjectBtn.addEventListener('click', addNewSubject);
+            addTeacherBtn.addEventListener('click', addNewTeacher); // NEW
+            
             selectClass.addEventListener('change', handleClassChange);
-            selectSubject.addEventListener('change', handleSubjectChange); // NEW
+            selectSubject.addEventListener('change', handleSubjectChange);
+            selectTeacher.addEventListener('change', handleTeacherChange); // NEW
+            
             addStudentBtn.addEventListener('click', addStudent);
             updateDatesBtn.addEventListener('click', updateTableHeaders);
             saveBtn.addEventListener('click', saveAttendanceData);
             calculateBtn.addEventListener('click', calculateTotals);
             clearWeekBtn.addEventListener('click', clearWeekData);
             generateReportBtn.addEventListener('click', generateMonthlyReport);
-            printReportBtn.addEventListener('click', printReport); // NEW
+            printReportBtn.addEventListener('click', printReport);
             resetAllBtn.addEventListener('click', resetAllData);
             
-            renderStudentTable(); // Initial render
+            renderStudentTable();
         });
     </script>
 
