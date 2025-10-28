@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="si">
 <head>
-    <meta charset="UTF8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
 
@@ -302,62 +302,9 @@
             }
         }
         
-        /* ==== 8. Print-to-PDF Styles ==== */
-        @media print {
-            body {
-                background-color: #fff;
-                color: #000;
-                font-size: 10pt;
-            }
-            
-            body * {
-                display: none !important;
-                visibility: hidden !important;
-            }
-            
-            #reportOutput, #reportOutput * {
-                display: block !important;
-                visibility: visible !important;
-            }
-            
-            #reportOutput {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                padding: 0;
-                margin: 0;
-                border: none !important;
-                box-shadow: none !important;
-            }
-            
-            #reportOutput table {
-                width: 100%;
-                min-width: 0 !important;
-                border-collapse: collapse;
-            }
-            
-            #reportOutput h2, #reportOutput h3 {
-                text-align: center;
-                color: #000;
-            }
-            
-            #reportOutput th, #reportOutput td {
-                border: 1px solid #666 !important;
-                padding: 8px;
-            }
-            #reportOutput th {
-                background-color: #ddd !important;
-                color: #000 !important;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }
-            
-            @page {
-                size: A4 portrait;
-                margin: 20mm;
-            }
-        }
+        /* ======================================================= */
+        /* ==== 8. (REMOVED) @media print styles are gone ==== */
+        /* ======================================================= */
         
     </style>
 </head>
@@ -535,34 +482,30 @@
     <script>
         // Global database object
         let db = {
-            rosters: {},    // { "Grade10-A": ["Kamal"] }
-            subjects: [],   // ["Mathematics"]
-            teachers: [],   // ["Kelum Konara"]
-            attendance: {}  // { "Grade10-A": { "2025-10-27": { "Mathematics": { "Kelum Konara": ["Kamal"] } } } }
+            rosters: {},
+            subjects: [],
+            teachers: [],
+            attendance: {}
         };
 
         // --- Date helper arrays ---
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const DB_KEY = 'schoolAttendanceDB_v4'; // NEW VERSION KEY
+        const DB_KEY = 'schoolAttendanceDB_v4';
 
         // --- DOM Elements ---
         const selectGrade = document.getElementById('selectGrade');
         const inputClassName = document.getElementById('inputClassName');
         const addClassBtn = document.getElementById('addClassBtn');
         const selectClass = document.getElementById('selectClass');
-        
         const inputSubjectName = document.getElementById('inputSubjectName');
         const addSubjectBtn = document.getElementById('addSubjectBtn');
         const selectSubject = document.getElementById('selectSubject');
         const reportSubject = document.getElementById('reportSubject');
-        
-        // NEW Teacher elements
         const inputTeacherName = document.getElementById('inputTeacherName');
         const addTeacherBtn = document.getElementById('addTeacherBtn');
         const selectTeacher = document.getElementById('selectTeacher');
         const reportTeacher = document.getElementById('reportTeacher');
-        
         const startDateInput = document.getElementById('startDate');
         const updateDatesBtn = document.getElementById('updateDatesBtn');
         const studentNameInput = document.getElementById('studentNameInput');
@@ -586,7 +529,7 @@
                 const parsedData = JSON.parse(data);
                 db.rosters = parsedData.rosters || {};
                 db.subjects = parsedData.subjects || [];
-                db.teachers = parsedData.teachers || []; // NEW
+                db.teachers = parsedData.teachers || [];
                 db.attendance = parsedData.attendance || {};
             }
         }
@@ -678,7 +621,6 @@
             renderStudentTable();
         }
         
-        // NEW Teacher Functions
         function addNewTeacher() {
             const teacherName = inputTeacherName.value.trim();
             if (!teacherName) { alert('Please enter a teacher name.'); return; }
@@ -740,9 +682,9 @@
         function renderStudentTable() {
             const classId = selectClass.value;
             const subject = selectSubject.value;
-            const teacher = selectTeacher.value; // NEW
+            const teacher = selectTeacher.value;
             
-            if (!classId || !subject || !teacher) { // MODIFIED
+            if (!classId || !subject || !teacher) {
                 tableBody.innerHTML = '';
                 attendanceInfo.style.display = 'block';
                 let missing = [];
@@ -755,7 +697,7 @@
             attendanceInfo.style.display = 'none';
             
             const classText = selectClass.options[selectClass.selectedIndex].textContent;
-            attendanceSheetTitle.textContent = `Attendance: ${classText} (${subject} / ${teacher})`; // MODIFIED
+            attendanceSheetTitle.textContent = `Attendance: ${classText} (${subject} / ${teacher})`;
 
             tableBody.innerHTML = '';
             const students = db.rosters[classId] || [];
@@ -792,7 +734,7 @@
                     checkbox.type = 'checkbox';
                     checkCell.dataset.label = header.label; 
                     if (header.date) {
-                        checkbox.checked = checkAttendance(classId, subject, teacher, header.date, studentName); // MODIFIED
+                        checkbox.checked = checkAttendance(classId, subject, teacher, header.date, studentName);
                     }
                     checkCell.appendChild(checkbox);
                     row.appendChild(checkCell);
@@ -831,11 +773,9 @@
             let currentDate = new Date(monday.getTime());
 
             for (let i = 0; i < dayColumnCount; i++) {
-                const day = dayNames[currentDate.getDay()];
+                const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
                 const dateNum = currentDate.getDate();
                 const month = monthNames[currentDate.getMonth()];
-                
-                const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
                 const headerText = `${month} ${dateNum} (${dayLabels[i]})`;
                 
                 const headerCell = headers[i + 1];
@@ -854,14 +794,12 @@
             reportMonthInput.value = today.toISOString().slice(0, 7);
         }
 
-        // MODIFIED SIGNATURE
         function checkAttendance(classId, subject, teacher, date, studentName) {
             const presentList = db.attendance[classId]?.[date]?.[subject]?.[teacher];
             if (!presentList) return false;
             return presentList.includes(studentName);
         }
         
-        // MODIFIED SIGNATURE
         function updateAttendanceRecord(classId, subject, teacher, date, studentName, isPresent) {
             if (!db.attendance[classId]) db.attendance[classId] = {};
             if (!db.attendance[classId][date]) db.attendance[classId][date] = {};
@@ -880,8 +818,8 @@
         function saveAttendanceData() {
             const selectedClassId = selectClass.value;
             const selectedSubject = selectSubject.value;
-            const selectedTeacher = selectTeacher.value; // NEW
-            if (!selectedClassId || !selectedSubject || !selectedTeacher) { // MODIFIED
+            const selectedTeacher = selectTeacher.value;
+            if (!selectedClassId || !selectedSubject || !selectedTeacher) {
                 alert('Please select a class, subject, and teacher first.'); return;
             }
             
@@ -894,7 +832,7 @@
                 checkboxes.forEach((checkbox, index) => {
                     const date = headers[index + 1].dataset.date;
                     if (date) {
-                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, checkbox.checked); // MODIFIED
+                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, checkbox.checked);
                     }
                 });
             });
@@ -906,8 +844,8 @@
             if (!confirm("Are you sure you want to clear all marks for this week?")) return;
             const selectedClassId = selectClass.value;
             const selectedSubject = selectSubject.value;
-            const selectedTeacher = selectTeacher.value; // NEW
-            if (!selectedClassId || !selectedSubject || !selectedTeacher) return; // MODIFIED
+            const selectedTeacher = selectTeacher.value;
+            if (!selectedClassId || !selectedSubject || !selectedTeacher) return;
             
             const headers = document.querySelectorAll('#attendanceTable thead th');
             const rows = document.querySelectorAll('#attendanceTable tr.student-row');
@@ -919,7 +857,7 @@
                     const date = headers[index + 1].dataset.date;
                     if (date) {
                         checkbox.checked = false;
-                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, false); // MODIFIED
+                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, false);
                     }
                 });
             });
@@ -940,12 +878,12 @@
         function generateMonthlyReport() {
             const selectedClassId = selectClass.value;
             const selectedSubject = reportSubject.value;
-            const selectedTeacher = reportTeacher.value; // NEW
+            const selectedTeacher = reportTeacher.value;
             const selectedMonth = reportMonthInput.value;
             
             if (!selectedClassId) { alert('Please select an active class first.'); return; }
             if (!selectedSubject) { alert('Please select a subject for the report.'); return; }
-            if (!selectedTeacher) { alert('Please select a teacher for the report.'); return; } // NEW
+            if (!selectedTeacher) { alert('Please select a teacher for the report.'); return; }
             if (!selectedMonth) { alert('Please select a month.'); return; }
             
             const students = db.rosters[selectedClassId] || [];
@@ -956,7 +894,7 @@
             const monthDates = Object.keys(classAttendance).filter(date => date.startsWith(selectedMonth));
             
             monthDates.forEach(date => {
-                const presentList = classAttendance[date]?.[selectedSubject]?.[selectedTeacher] || []; // MODIFIED
+                const presentList = classAttendance[date]?.[selectedSubject]?.[selectedTeacher] || [];
                 presentList.forEach(studentName => {
                     if (report.hasOwnProperty(studentName)) {
                         report[studentName]++;
@@ -988,19 +926,48 @@
             reportOutput.innerHTML = tableHtml;
         }
         
+        // ==================================
+        // ==== NEW PRINT FUNCTION (THE FIX) ====
+        // ==================================
         function printReport() {
             const reportContent = reportOutput.innerHTML;
             if (!reportContent.includes("<table")) {
                 alert("Please generate a report first before printing.");
                 return;
             }
-            window.print();
+
+            // Create a new window
+            const printWindow = window.open('', '_blank', 'height=800,width=800');
+            
+            // Write the content and styles to the new window
+            printWindow.document.write('<html><head><title>Print Report</title>');
+            printWindow.document.write(`
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border: 1px solid #333; padding: 8px; text-align: center; }
+                    th { background-color: #f0f0f0; }
+                    td:first-child { text-align: left; }
+                    h2, h3 { text-align: center; color: #000; }
+                </style>
+            `);
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(reportContent); // Write the generated report
+            printWindow.document.write('</body></html>');
+            
+            printWindow.document.close(); // Important!
+            
+            // Use a timeout to ensure content is rendered before printing
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
         }
         
         function resetAllData() {
             if (confirm("DANGER! This will permanently delete ALL data. Are you sure?")) {
                 localStorage.removeItem(DB_KEY);
-                db = { rosters: {}, subjects: [], teachers: [], attendance: {} }; // MODIFIED
+                db = { rosters: {}, subjects: [], teachers: [], attendance: {} };
                 location.reload();
             }
         }
@@ -1010,18 +977,18 @@
             loadData();
             populateClassSelector();
             populateSubjectSelectors();
-            populateTeacherSelectors(); // NEW
+            populateTeacherSelectors();
             setDefaultDate();
             updateTableHeaders();
             
             // Event listeners
             addClassBtn.addEventListener('click', addNewClass);
             addSubjectBtn.addEventListener('click', addNewSubject);
-            addTeacherBtn.addEventListener('click', addNewTeacher); // NEW
+            addTeacherBtn.addEventListener('click', addNewTeacher);
             
             selectClass.addEventListener('change', handleClassChange);
             selectSubject.addEventListener('change', handleSubjectChange);
-            selectTeacher.addEventListener('change', handleTeacherChange); // NEW
+            selectTeacher.addEventListener('change', handleTeacherChange);
             
             addStudentBtn.addEventListener('click', addStudent);
             updateDatesBtn.addEventListener('click', updateTableHeaders);
@@ -1030,7 +997,7 @@
             clearWeekBtn.addEventListener('click', clearWeekData);
             generateReportBtn.addEventListener('click', generateMonthlyReport);
             printReportBtn.addEventListener('click', printReport);
-            resetAllBtn.addEventListener('click', resetAllData);
+            resetAllBtn.addEventListener('click', resetAllBtn);
             
             renderStudentTable();
         });
