@@ -12,7 +12,7 @@
     </style>
 </head>
 <body>
-
+    
     <div id="loadingIndicator"><span id="loadingText">Loading Application...</span></div>
 
     <div id="loginScreen" class="card" style="display: none; max-width: 400px; margin: 50px auto;">
@@ -138,7 +138,7 @@
       let currentUser = null;
       let currentUserRole = null;
       let FieldValue;
-      let firebaseInitialized = false;
+      let firebaseInitialized = false; // Flag
 
       function initializeFirebase() {
            console.log("DEBUG: Attempting Firebase Initialization...");
