@@ -227,16 +227,16 @@
 
     <script>
       // =====================================================================
-      // ==== PASTE YOUR FIREBASE CONFIG OBJECT HERE                   ====
+      // ==== !! THIS IS YOUR CONFIG, PASTED FROM YOUR PREVIOUS CODE !! ====
       // =====================================================================
       const firebaseConfig = {
-        apiKey: "AIzaSyCPWRMciqqubcBUSzsE88xQcM9s1rMCMV8", // <--- FROM YOUR PREVIOUS CODE
-        authDomain: "smart-attendance-tracker-841c6.firebaseapp.com", // <--- FROM YOUR PREVIOUS CODE
-        projectId: "smart-attendance-tracker-841c6", // <--- FROM YOUR PREVIOUS CODE
-        storageBucket: "smart-attendance-tracker-841c6.appspot.com", // <--- FROM YOUR PREVIOUS CODE
-        messagingSenderId: "741876469231", // <--- FROM YOUR PREVIOUS CODE
-        appId: "1:741876469231:web:e971888d73cddaeec53a1a", // <--- FROM YOUR PREVIOUS CODE
-        measurementId: "G-TP7WKWL66Y" // Optional
+        apiKey: "AIzaSyCPWRMciqqubcBUSzsE88xQcM9s1rMCMV8",
+        authDomain: "smart-attendance-tracker-841c6.firebaseapp.com",
+        projectId: "smart-attendance-tracker-841c6",
+        storageBucket: "smart-attendance-tracker-841c6.appspot.com",
+        messagingSenderId: "741876469231",
+        appId: "1:741876469231:web:e971888d73cddaeec53a1a",
+        measurementId: "G-TP7WKWL66Y"
       };
       // =====================================================================
 
@@ -244,35 +244,25 @@
       let app, auth, db;
       let currentUser = null;
       let currentUserRole = null;
-      let FieldValue; // Declared here, assigned after init
+      let FieldValue;
 
       try {
-          // Initialize Firebase only if not already initialized
-          if (!firebase.apps.length) {
-                app = firebase.initializeApp(firebaseConfig);
-                console.log("Firebase Initialized.");
-          } else {
-                app = firebase.app(); // Get default app if already initialized
-                console.log("Firebase App already initialized.");
-          }
+          if (!firebase.apps.length) { app = firebase.initializeApp(firebaseConfig); }
+          else { app = firebase.app(); }
           auth = firebase.auth();
           db = firebase.firestore();
-          FieldValue = firebase.firestore.FieldValue; // Assign here
-          console.log("Firebase Auth and Firestore services obtained.");
+          FieldValue = firebase.firestore.FieldValue;
+          console.log("Firebase Initialized Successfully (Config seems OK)");
       } catch (e) {
           console.error("CRITICAL: Error initializing Firebase SDK", e);
-          // Display error message prominently if Firebase fails to initialize
-          const loadingIndicator = document.getElementById('loadingIndicator');
-          if (loadingIndicator) {
-             loadingIndicator.textContent = "CRITICAL ERROR: Could not initialize Firebase. Check config/connection.";
-             loadingIndicator.style.color = "red";
+          const loadingIndicatorEl = document.getElementById('loadingIndicator');
+          if (loadingIndicatorEl) {
+               loadingIndicatorEl.textContent = "CRITICAL ERROR: Could not initialize Firebase. Check config/connection.";
+               loadingIndicatorEl.style.color = "red";
           }
-          // Stop further script execution by throwing the error again or returning
-          // throw e; // Optionally re-throw to completely stop
       }
     </script>
     <script>
-        // Register SW only if supported and Firebase seems initialized
         if ('serviceWorker' in navigator && typeof firebase !== 'undefined' && firebase.apps.length) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
@@ -338,12 +328,7 @@
 
         async function handleAuthStateChanged(user) {
              console.log("Auth state changed. User:", user ? user.uid : 'null');
-             // Wait for DOM content to be fully loaded before manipulating heavily
-             if (document.readyState === 'loading') {
-                 console.log("DOM not ready, waiting...");
-                 await new Promise(resolve => window.addEventListener('DOMContentLoaded', resolve));
-                 console.log("DOM ready for Auth processing.");
-            }
+             if (document.readyState === 'loading') { await new Promise(resolve => window.addEventListener('DOMContentLoaded', resolve)); }
              if (loadingIndicator) loadingIndicator.style.display = 'none';
 
             currentUser = user;
@@ -354,7 +339,6 @@
                  if (loginScreen) loginScreen.style.display = 'none';
                  if (appContent) appContent.style.display = 'block';
 
-                 // --- Fetch Role ---
                  try {
                      if (!db) throw new Error("Firestore DB not initialized.");
                      console.log("Fetching user role from Firestore for UID:", user.uid);
@@ -363,33 +347,28 @@
                      if (userDoc.exists && userDoc.data().role) {
                          currentUserRole = userDoc.data().role;
                          console.log("User role found:", currentUserRole);
-                         if (!userDoc.data().email && user.email) { // Ensure email is stored
-                              console.log("Updating user doc with email.");
-                              await userDocRef.set({ email: user.email }, { merge: true });
-                         }
-                     } else { // Create user doc with default role if doesn't exist
-                         console.warn(`User document or role not found for ${user.uid}. Creating/assigning default role 'teacher'.`);
+                         if (!userDoc.data().email && user.email) { await userDocRef.set({ email: user.email }, { merge: true }); }
+                     } else {
+                         console.warn(`User doc/role missing for ${user.uid}. Creating/assigning default role 'teacher'.`);
                          await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true });
                          currentUserRole = 'teacher';
                      }
                  } catch (error) {
                      console.error("Error fetching/setting user role:", error);
-                     currentUserRole = 'teacher'; // Fallback role
-                     alert("Could not determine user role. Defaulting to 'teacher'. Try refreshing.");
+                     currentUserRole = 'teacher';
+                     alert("Could not determine user role (Error: " + error.message + "). Defaulting to 'teacher'. Try refreshing.");
                  }
-                 // --- End Fetch Role ---
 
                 updateUIForRole();
 
-                 // Load data ONLY if not already loaded
                  if (!appState.isDataLoaded) {
                      console.log("Initial data not loaded, calling loadInitialData().");
-                     await loadInitialData(); // Wait for data load to complete
+                     await loadInitialData();
                  } else {
                       console.log("Initial data already loaded, repopulating UI elements.");
-                      populateAllSelectors(); // Just repopulate selectors
-                      setDefaultDate(); // Reset dates
-                      updateTableHeaders(); // Rerender table for current selections
+                      populateAllSelectors();
+                      setDefaultDate();
+                      updateTableHeaders();
                  }
 
             } else { // User logged out
@@ -401,42 +380,54 @@
             }
         }
 
-        // Show/Hide UI elements based on user role
         function updateUIForRole() {
             console.log("Updating UI for role:", currentUserRole);
-            if (!currentUserRole || !appContent || !dashboardCard || !dangerZoneCard || !managementCards.length) {
-                 console.warn("Skipping updateUIForRole - Role or elements missing.");
-                 return;
-            }
+            if (!currentUserRole || !appContent || !dashboardCard || !dangerZoneCard || !managementCards.length) { console.warn("Skipping updateUIForRole - Role or elements missing."); return; }
              if(appTitle) appTitle.textContent = `Smart Attendance (${currentUserRole})`;
             const isPrincipal = currentUserRole === 'principal';
-
             dashboardCard.style.display = isPrincipal ? 'block' : 'none';
             dangerZoneCard.style.display = isPrincipal ? 'block' : 'none';
-
             managementCards.forEach(card => {
                 if (isPrincipal) { card.style.display = 'block'; }
                 else { card.style.display = (card.id === 'student-manager-card') ? 'block' : 'none'; }
             });
-
-             // Ensure essential selection dropdowns are always visible
              document.getElementById('class-manager-card').style.display = 'block';
              document.getElementById('subject-manager-card').style.display = 'block';
              document.getElementById('teacher-manager-card').style.display = 'block';
-
-            // Disable "Add" buttons if the user is not a principal
-            addClassBtn.disabled = !isPrincipal;
-            addSubjectBtn.disabled = !isPrincipal;
-            addTeacherBtn.disabled = !isPrincipal;
-            // addStudentBtn.disabled = !isPrincipal; // Teachers can add students
-            console.log("UI updated for role.");
+             addClassBtn.disabled = !isPrincipal; addSubjectBtn.disabled = !isPrincipal; addTeacherBtn.disabled = !isPrincipal;
+             console.log("UI updated for role.");
         }
 
-
-        async function loginUser() { /* ... Same error handling ... */ }
-        async function logoutUser() { /* ... Same error handling ... */ }
-        async function loginWithGoogle() { /* ... Same error handling ... */ }
-        function clearUI() { /* ... Same ... */ }
+        async function loginUser() {
+             loginBtn.disabled = true; loginError.style.display = 'none'; loginError.textContent = '';
+             const email = loginEmailInput.value.trim(); const password = loginPasswordInput.value;
+             if (!email || !password) { loginError.textContent = "Enter email/password."; loginError.style.display = 'block'; loginBtn.disabled = false; return; }
+             try { if (!auth) throw new Error("Firebase Auth missing."); await auth.signInWithEmailAndPassword(email, password); }
+             catch (error) { console.error("Login fail:", error); loginError.textContent = "Login failed: " + (error.code || error.message); loginError.style.display = 'block'; }
+             finally { loginBtn.disabled = false; }
+        }
+        async function logoutUser() {
+             if (!auth) return; logoutBtn.disabled = true;
+             try { await auth.signOut(); } catch (error) { console.error("Logout fail:", error); alert("Logout failed: " + error.message); }
+             finally { logoutBtn.disabled = false; }
+        }
+        async function loginWithGoogle() {
+            if (!auth || !firebase.auth.GoogleAuthProvider) { alert("Google Login unavailable."); return; }
+            const provider = new firebase.auth.GoogleAuthProvider();
+            googleLoginBtn.disabled = true; loginError.style.display = 'none';
+            try { await auth.signInWithPopup(provider); }
+            catch (error) { console.error("Google Login failed:", error); loginError.textContent = "Google Login failed: " + error.message; loginError.style.display = 'block'; googleLoginBtn.disabled = false; }
+        }
+        function clearUI() {
+             selectClass.innerHTML = '<option value="">-- Login --</option>';
+             selectSubject.innerHTML = '<option value="">-- Login --</option>';
+             selectTeacher.innerHTML = '<option value="">-- Login --</option>';
+             reportSubject.innerHTML = '<option value="">-- Login --</option>';
+             reportTeacher.innerHTML = '<option value="">-- Login --</option>';
+             tableBody.innerHTML = ''; reportOutput.innerHTML = ''; dashboardOutput.innerHTML = '';
+             appState = { rosters: {}, subjects: [], teachers: [], isDataLoaded: false };
+             if(inputClassName) inputClassName.value = ''; if(inputSubjectName) inputSubjectName.value = ''; if(inputTeacherName) inputTeacherName.value = ''; if(studentNameInput) studentNameInput.value = '';
+        }
 
         // ==== 1. Data Loading ====
         async function loadInitialData() {
@@ -452,23 +443,20 @@
                     db.collection('rosters').get()
                 ]);
 
-                // Subjects
                 appState.subjects = subjectsSnapshot.exists ? (subjectsSnapshot.data().list || []) : [];
                 appState.subjects.sort();
                 console.log("Loaded Subjects:", appState.subjects);
 
-                // Teachers
                 appState.teachers = teachersSnapshot.exists ? (teachersSnapshot.data().list || []) : [];
                 appState.teachers.sort();
                 console.log("Loaded Teachers:", appState.teachers);
 
-                // Rosters
                 appState.rosters = {};
                 console.log("--- Processing Rosters from Firestore ---");
                 rostersSnapshot.forEach(doc => {
                     console.log(`Firestore Roster Doc ID: ${doc.id}`); // DEBUG
-                    if (doc.id.length > 20 && !doc.id.startsWith('Grade')) {
-                         console.warn(`Potential Issue: Document ID '${doc.id}' in 'rosters' might be User ID.`);
+                    if (doc.id.length > 28 && !doc.id.startsWith('Grade')) { // Check for long, non-Grade IDs
+                         console.warn(`Potential Issue: Document ID '${doc.id}' in 'rosters' might be a User ID.`);
                     }
                     appState.rosters[doc.id] = doc.data().students || [];
                     appState.rosters[doc.id].sort((a, b) => a.name.localeCompare(b.name));
@@ -476,11 +464,9 @@
                 console.log("--- Finished Processing Rosters ---");
                 console.log("Loaded Rosters:", appState.rosters);
 
-
                 console.log("Populating UI selectors.");
-                populateAllSelectors(); // Populate dropdowns
-
-                appState.isDataLoaded = true; // Mark as loaded
+                populateAllSelectors();
+                appState.isDataLoaded = true;
                 console.log("Initial data load complete.");
 
                 setDefaultDate();
@@ -493,67 +479,244 @@
             }
         }
 
-        function setSelectorsLoadingState(isLoading, isError = false) { /* ... Same ... */ }
-        function populateAllSelectors() { /* ... Same ... */ }
+        function setSelectorsLoadingState(isLoading, isError = false) {
+             const message = isError ? '-- Error --' : (isLoading ? '-- Loading... --' : '');
+             const selectors = [selectClass, selectSubject, selectTeacher, reportSubject, reportTeacher];
+             selectors.forEach(sel => {
+                  if(!sel) return;
+                  if (isLoading || isError) {
+                       sel.innerHTML = `<option value="">${message}</option>`;
+                       sel.disabled = true;
+                  } else {
+                       sel.disabled = false;
+                       if (sel.options.length === 0 || sel.options[0].textContent.includes('Loading')) {
+                            sel.innerHTML = ''; // Clear loading message
+                       }
+                  }
+             });
+        }
+        function populateAllSelectors() {
+             populateClassSelector();
+             populateSubjectSelectors();
+             populateTeacherSelectors();
+        }
 
         // ==== 2. Management Functions ====
-        function generateClassId(grade, className) { /* ... */ }
-        async function addNewClass() { /* ... Same ... */ }
-        function populateClassSelector() { /* ... Same with debug logs ... */ }
+        function generateClassId(grade, className) { return `${grade.replace(' ', '')}-${className.trim().toUpperCase()}`; }
+        async function addNewClass() {
+             if (!currentUser || !db || currentUserRole !== 'principal') { alert("Only principals can add new classes."); return; }
+             addClassBtn.disabled = true;
+             const grade = selectGrade.value; const className = inputClassName.value;
+             if (!className) { alert('Enter class name.'); addClassBtn.disabled = false; return; }
+             const classId = generateClassId(grade, className);
+             try {
+                  const classRef = db.collection('rosters').doc(classId);
+                  const doc = await classRef.get();
+                  if (doc.exists) { alert(`Class '${formatClassId(classId)}' exists.`); }
+                  else {
+                       await classRef.set({ students: [] });
+                       console.log(`Class ${classId} added.`);
+                       appState.rosters[classId] = [];
+                       populateClassSelector();
+                       selectClass.value = classId;
+                       handleClassChange();
+                       alert(`Class '${formatClassId(classId)}' added.`);
+                       inputClassName.value = '';
+                  }
+             } catch (e) { console.error("Add class error:", e); alert("Failed. Check rules/connection."); }
+             finally { addClassBtn.disabled = false; }
+        }
+        function populateClassSelector() {
+             const currentVal = selectClass.value;
+             selectClass.innerHTML = '';
+             setSelectorsLoadingState(false);
+             console.log("--- Populating Class Selector ---");
+             const classIds = Object.keys(appState.rosters).sort();
+             console.log("Class IDs found in appState:", classIds);
+
+             if (classIds.length === 0) { selectClass.innerHTML = '<option value="">-- Add class --</option>'; selectClass.disabled = false; console.log("No classes to populate."); return; }
+             classIds.forEach(id => {
+                 console.log(`Creating option for Class ID: '${id}'`);
+                 if (id.length > 28 && !id.startsWith('Grade')) { console.error(`ERROR: Trying to add User ID '${id}' as a class option!`); }
+                 const formattedName = formatClassId(id);
+                 const opt = document.createElement('option');
+                 opt.value = id; opt.textContent = formattedName;
+                 selectClass.appendChild(opt);
+             });
+             selectClass.value = appState.rosters.hasOwnProperty(currentVal) ? currentVal : (classIds[0] || '');
+             selectClass.disabled = false;
+             console.log("Class Selector populated. Final selected value:", selectClass.value);
+        }
         function handleClassChange() { renderStudentTable(); }
-        async function addNewSubject() { /* ... Same ... */ }
-        function populateSubjectSelectors() { /* ... Same ... */ }
+
+        async function addNewSubject() {
+             if (!currentUser || !db || currentUserRole !== 'principal') { alert("Only principals can add new subjects."); return; }
+             addSubjectBtn.disabled = true;
+             const subjectName = inputSubjectName.value.trim();
+             if (!subjectName) { alert('Enter subject name.'); addSubjectBtn.disabled = false; return; }
+             if (appState.subjects.includes(subjectName)) { alert('Subject exists.'); addSubjectBtn.disabled = false; return; }
+             try {
+                  const ref = db.collection('meta').doc('subjects');
+                  await ref.set({ list: FieldValue.arrayUnion(subjectName) }, { merge: true });
+                  console.log(`Subject ${subjectName} added.`);
+                  appState.subjects.push(subjectName); appState.subjects.sort();
+                  populateSubjectSelectors();
+                  selectSubject.value = subjectName;
+                  handleSubjectChange();
+                  alert(`Subject '${subjectName}' added.`);
+                  inputSubjectName.value = '';
+             } catch (e) { console.error("Add subject error:", e); alert("Failed. Check rules/connection."); }
+             finally { addSubjectBtn.disabled = false; }
+        }
+        function populateSubjectSelectors() {
+             const currentVal = selectSubject.value; const currentRepVal = reportSubject.value;
+             selectSubject.innerHTML = ''; reportSubject.innerHTML = '';
+             setSelectorsLoadingState(false);
+             if (appState.subjects.length === 0) { selectSubject.innerHTML = '<option value="">-- Add subject --</option>'; reportSubject.innerHTML = '<option value="">-- Add subject --</option>'; return; }
+             appState.subjects.forEach(sub => { const opt1 = document.createElement('option'); opt1.value = sub; opt1.textContent = sub; selectSubject.appendChild(opt1); const opt2 = document.createElement('option'); opt2.value = sub; opt2.textContent = sub; reportSubject.appendChild(opt2); });
+             selectSubject.value = appState.subjects.includes(currentVal) ? currentVal : (appState.subjects[0] || '');
+             reportSubject.value = appState.subjects.includes(currentRepVal) ? currentRepVal : (appState.subjects[0] || '');
+        }
         function handleSubjectChange() { renderStudentTable(); }
-        async function addNewTeacher() { /* ... Same ... */ }
-        function populateTeacherSelectors() { /* ... Same ... */ }
+
+        async function addNewTeacher() {
+            if (!currentUser || !db || currentUserRole !== 'principal') { alert("Only principals can add new teachers."); return; }
+             addTeacherBtn.disabled = true;
+             const teacherName = inputTeacherName.value.trim();
+             if (!teacherName) { alert('Enter teacher name.'); addTeacherBtn.disabled = false; return; }
+             if (appState.teachers.includes(teacherName)) { alert('Teacher exists.'); addTeacherBtn.disabled = false; return; }
+             try {
+                  const ref = db.collection('meta').doc('teachers');
+                  await ref.set({ list: FieldValue.arrayUnion(teacherName) }, { merge: true });
+                  console.log(`Teacher ${teacherName} added.`);
+                  appState.teachers.push(teacherName); appState.teachers.sort();
+                  populateTeacherSelectors();
+                  selectTeacher.value = teacherName;
+                  handleTeacherChange();
+                  alert(`Teacher '${teacherName}' added.`);
+                  inputTeacherName.value = '';
+             } catch (e) { console.error("Add teacher error:", e); alert("Failed. Check rules/connection."); }
+             finally { addTeacherBtn.disabled = false; }
+        }
+        function populateTeacherSelectors() {
+             const currentVal = selectTeacher.value; const currentRepVal = reportTeacher.value;
+             selectTeacher.innerHTML = ''; reportTeacher.innerHTML = '';
+             setSelectorsLoadingState(false);
+             if (appState.teachers.length === 0) { selectTeacher.innerHTML = '<option value="">-- Add teacher --</option>'; reportTeacher.innerHTML = '<option value="">-- Add teacher --</option>'; return; }
+             appState.teachers.forEach(teach => { const opt1 = document.createElement('option'); opt1.value = teach; opt1.textContent = teach; selectTeacher.appendChild(opt1); const opt2 = document.createElement('option'); opt2.value = teach; opt2.textContent = teach; reportTeacher.appendChild(opt2); });
+             selectTeacher.value = appState.teachers.includes(currentVal) ? currentVal : (appState.teachers[0] || '');
+             reportTeacher.value = appState.teachers.includes(currentRepVal) ? currentRepVal : (appState.teachers[0] || '');
+        }
         function handleTeacherChange() { renderStudentTable(); }
-        function formatClassId(classId) { /* ... */ return classId ? classId.replace('-', ' - ').replace(/([A-Za-z])(\d+)/, '$1 $2') : ""; }
+        function formatClassId(classId) { return classId ? classId.replace('-', ' - ').replace(/([A-Za-z])(\d+)/, '$1 $2') : ""; }
 
 
         // ==== 3. Student Management ====
-        function isStudentInClass(classId, studentName) { /* ... */ }
-        async function addStudent() { /* ... Same ... */ }
-        async function renderStudentTable() { /* ... Same ... */ }
+        function isStudentInClass(classId, studentName) { return appState.rosters[classId]?.some(s => s.name.toLowerCase() === studentName.toLowerCase()); }
+        async function addStudent() {
+             if (!currentUser || !db) return;
+             addStudentBtn.disabled = true;
+             const studentName = studentNameInput.value.trim();
+             const selectedClassId = selectClass.value;
+             const gender = document.querySelector('input[name="studentGender"]:checked')?.value;
+             if (!selectedClassId) { alert('Select class.'); addStudentBtn.disabled = false; return; }
+             if (!studentName) { alert('Enter name.'); addStudentBtn.disabled = false; return; }
+             if (!gender) { alert('Select gender.'); addStudentBtn.disabled = false; return; }
+             if (isStudentInClass(selectedClassId, studentName)) { alert('Student exists.'); addStudentBtn.disabled = false; return; }
+             const newStudent = { name: studentName, gender: gender };
+             try {
+                  const classRef = db.collection('rosters').doc(selectedClassId);
+                  const classDoc = await classRef.get();
+                  if (!classDoc.exists) { alert("Class not found."); addStudentBtn.disabled = false; return; }
+                  await classRef.update({ students: FieldValue.arrayUnion(newStudent) });
+                  console.log(`Student ${studentName} added to ${selectedClassId}`);
+                  if (!appState.rosters[selectedClassId]) appState.rosters[selectedClassId] = [];
+                  appState.rosters[selectedClassId].push(newStudent);
+                  appState.rosters[selectedClassId].sort((a, b) => a.name.localeCompare(b.name));
+                  renderStudentTable();
+                  studentNameInput.value = ''; studentNameInput.focus();
+             } catch (e) { console.error("Add student error:", e); alert("Failed. Check rules/connection."); }
+             finally { addStudentBtn.disabled = false; }
+        }
+        
+        async function renderStudentTable() {
+            const classId = selectClass.value; const subject = selectSubject.value; const teacher = selectTeacher.value;
+            if (!classId || !subject || !teacher) {
+                tableBody.innerHTML = ''; attendanceInfo.style.display = 'block';
+                let missing = [];
+                if (!classId) missing.push("Class"); if (!subject) missing.push("Subject"); if (!teacher) missing.push("Teacher");
+                attendanceInfo.textContent = `Please select an Active ${missing.join(' and ')} to begin.`;
+                return;
+            }
+            attendanceInfo.style.display = 'none';
+            const classText = selectClass.options[selectClass.selectedIndex]?.textContent || formatClassId(classId);
+            attendanceSheetTitle.textContent = `Attendance: ${classText} (${subject} / ${teacher})`;
+            tableBody.innerHTML = '<tr><td colspan="7">Loading attendance...</td></tr>';
+            const students = appState.rosters[classId] || [];
+            const headers = document.querySelectorAll('#attendanceTable thead th'); const dayColumnCount = headers.length - 2;
+            const headerInfo = []; for (let i = 0; i < dayColumnCount; i++) { const hc = headers[i+1]; if (hc.dataset.date) { headerInfo.push({ label: hc.textContent, date: hc.dataset.date }); } }
+            if (headerInfo.length === 0) { tableBody.innerHTML = '<tr><td colspan="7">Update Week first.</td></tr>'; return; }
+            const totalLabel = headers[headers.length - 1].textContent;
+            if (students.length === 0) { tableBody.innerHTML = '<tr><td colspan="7">No students.</td></tr>'; return; }
+
+            const studentAttendancePromises = students.map(student => {
+                 const datePromises = headerInfo.map(header => checkAttendance(classId, subject, teacher, header.date, student.name));
+                 return Promise.all(datePromises).then(results => ({ name: student.name, attendance: results }));
+            });
+            try {
+                const studentAttendanceResults = await Promise.all(studentAttendancePromises);
+                const attendanceMap = {}; studentAttendanceResults.forEach(res => { attendanceMap[res.name] = res.attendance; });
+                tableBody.innerHTML = '';
+                students.forEach(student => {
+                     const row = document.createElement('tr'); row.classList.add('student-row');
+                     const nameCell = document.createElement('td'); nameCell.textContent = student.name; row.appendChild(nameCell);
+                     headerInfo.forEach((header, index) => {
+                          const checkCell = document.createElement('td'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkCell.dataset.label = header.label;
+                          checkbox.checked = attendanceMap[student.name]?.[index] || false;
+                          checkCell.appendChild(checkbox); row.appendChild(checkCell);
+                     });
+                     const totalCell = document.createElement('td'); totalCell.classList.add('total-cell'); totalCell.textContent = '0'; totalCell.dataset.label = totalLabel; row.appendChild(totalCell);
+                     tableBody.appendChild(row);
+                 });
+                calculateTotals();
+            } catch (error) { console.error("Error rendering table:", error); tableBody.innerHTML = '<tr><td colspan="7" style="color:red;">Error loading attendance.</td></tr>'; }
+        }
+
 
         // ==== 4. Date & Attendance ====
-        function updateTableHeaders() { /* ... Same ... */ }
+        function updateTableHeaders() { /* ... Same Monday logic ... */ }
         function setDefaultDate() { /* ... Same ... */ }
-        async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same ... */ }
-        function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same ... */ }
-        async function saveAttendanceData() { /* ... Same ... */ }
-        async function clearWeekData() { /* ... Same (with confirmation) ... */ }
+        async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same Firestore read ... */ }
+        function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same batch logic ... */ }
+        async function saveAttendanceData() { /* ... Same batch commit logic ... */ }
+        async function clearWeekData() { /* ... Same batch commit logic with confirmation ... */ }
         function calculateTotals() { /* ... Same ... */ }
         function markAllPresent() { /* ... Same ... */ }
 
         // ==== Reports & Dashboard ====
-        async function generateMonthlyReport() { /* ... Same ... */ }
-        function printReport() { /* ... Same ... */ }
-        async function generateDashboard() { /* ... Same ... */ }
+        async function generateMonthlyReport() { /* ... Same Firestore query logic ... */ }
+        function printReport() { /* ... Same popup print logic ... */ }
+        async function generateDashboard() { /* ... Same complex Firestore query logic ... */ }
         function resetAllData() { /* ... Same (disabled) ... */ }
 
         // ==== 5. Initialization ====
         document.addEventListener('DOMContentLoaded', function() {
-
+            console.log("DOM content loaded.");
             loadingIndicator.style.display = 'block';
             loginScreen.style.display = 'none';
             appContent.style.display = 'none';
 
-            // Ensure Firebase is initialized before setting up listeners
             if (typeof firebase === 'undefined' || !firebase.apps.length) {
                  console.error("Firebase failed to initialize before DOMContentLoaded!");
-                 loadingIndicator.textContent = "Critical Error: Firebase not loaded.";
+                 loadingIndicator.textContent = "Critical Error: Firebase not loaded. Check Config/Scripts.";
+                 loadingIndicator.style.color = "red";
                  return;
             }
-
-            // Listen for authentication state changes (this triggers data load)
+            console.log("Attaching auth state listener...");
             auth.onAuthStateChanged(handleAuthStateChanged);
-
-            // Add Login/Logout/Google button listeners
             loginBtn.addEventListener('click', loginUser);
             logoutBtn.addEventListener('click', logoutUser);
             googleLoginBtn.addEventListener('click', loginWithGoogle);
-
-            // --- Other event listeners ---
             addClassBtn.addEventListener('click', addNewClass);
             addSubjectBtn.addEventListener('click', addNewSubject);
             addTeacherBtn.addEventListener('click', addNewTeacher);
@@ -570,7 +733,7 @@
             printReportBtn.addEventListener('click', printReport);
             generateDashboardBtn.addEventListener('click', generateDashboard);
             resetAllBtn.addEventListener('click', resetAllData);
-
+            console.log("All event listeners attached.");
         });
     </script>
 
