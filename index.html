@@ -83,7 +83,7 @@
             <div class="card principal-only" id="dashboard-card" style="display: none;">
                 <h2>Principal's Dashboard</h2>
                 <p>Select date for daily summary.</p>
-                <div class="form-group"> <label for="dashboardDate">Date</label> <input type="date" id="dashboardDate"> </div>
+                <div class="form-group"> <label for  for="dashboardDate">Date</label> <input type="date" id="dashboardDate"> </div>
                 <button id="generateDashboardBtn">Show Daily Totals</button>
                 <div id="dashboardOutput" class="table-responsive-wrapper" style="margin-top: 20px;"></div>
             </div>
@@ -136,11 +136,8 @@
         let app, auth, db, FieldValue;
         function initializeFirebase() {
             if (typeof firebase === 'undefined') return false;
-            if (!firebase.apps.length) {
-                app = firebase.initializeApp(firebaseConfig);
-            } else {
-                app = firebase.app();
-            }
+            if (!firebase.apps.length) app = firebase.initializeApp(firebaseConfig);
+            else app = firebase.app();
             auth = firebase.auth();
             db = firebase.firestore();
             FieldValue = firebase.firestore.FieldValue;
@@ -160,6 +157,7 @@
             const ids = ['loadingIndicator','loadingText','loginScreen','appContent','loginEmail','loginPassword','loginBtn','logoutBtn','loginError','googleLoginBtn','appTitle','selectGrade','inputClassName','addClassBtn','selectClass','inputSubjectName','addSubjectBtn','selectSubject','reportSubject','inputTeacherName','addTeacherBtn','selectTeacher','reportTeacher','startDate','updateDatesBtn','studentNameInput','addStudentBtn','attendanceTbody','attendance-sheet-title','attendanceInfo','saveBtn','calculateBtn','clearWeekBtn','markAllPresentBtn','reportMonth','generateReportBtn','printReportBtn','reportOutput','dashboardDate','generateDashboardBtn','dashboardOutput','resetAllBtn','rosterModal','closeModalBtn','viewRosterBtn','rosterModalTitle','rosterList'];
             ids.forEach(id => els[id] = document.getElementById(id));
             if (!initializeFirebase()) return showError("Firebase failed to load.");
+            els.loadingIndicator.style.display = 'block';
             auth.onAuthStateChanged(handleAuthStateChanged);
             attachEventListeners();
         });
@@ -178,7 +176,7 @@
                 currentUserRole = await getUserRole(user.uid);
                 updateUIForRole();
                 if (!appState.isDataLoaded) await loadInitialData();
-                else { populateAllSelectors(); setDefaultDate(); }
+                else { populateAllSelectors(); setDefaultDate(); renderStudentTable(); }
             } else {
                 els.loginScreen.style.display = 'block';
                 els.appContent.style.display = 'none';
@@ -208,21 +206,32 @@
         // ==== Data Loading ====
         async function loadInitialData() {
             setSelectorsLoadingState(true);
-            const [subSnap, teachSnap, rosterSnap] = await Promise.all([
-                db.collection('meta').doc('subjects').get(),
-                db.collection('meta').doc('teachers').get(),
-                db.collection('rosters').get()
-            ]);
-            appState.subjects = subSnap.exists ? (subSnap.data().list || []).sort() : [];
-            appState.teachers = teachSnap.exists ? (teachSnap.data().list || []).sort() : [];
-            appState.rosters = {};
-            rosterSnap.forEach(doc => {
-                appState.rosters[doc.id] = (doc.data().students || []).sort((a,b) => a.name.localeCompare(b.name));
-            });
-            populateAllSelectors();
-            setDefaultDate();
-            appState.isDataLoaded = true;
-            setSelectorsLoadingState(false);
+            try {
+                const [subSnap, teachSnap, rosterSnap] = await Promise.all([
+                    db.collection('meta').doc('subjects').get(),
+                    db.collection('meta').doc('teachers').get(),
+                    db.collection('rosters').get()
+                ]);
+
+                appState.subjects = subSnap.exists ? (subSnap.data().list || []).sort() : [];
+                appState.teachers = teachSnap.exists ? (teachSnap.data().list || []).sort() : [];
+                appState.rosters = {};
+                rosterSnap.forEach(doc => {
+                    appState.rosters[doc.id] = (doc.data().students || []).sort((a,b) => a.name.localeCompare(b.name));
+                });
+
+                // Critical: Populate dropdowns after data is loaded
+                populateAllSelectors();
+
+                setDefaultDate();
+                appState.isDataLoaded = true;
+                setSelectorsLoadingState(false);
+                renderStudentTable();  // Safe to call now
+            } catch (error) {
+                console.error("Data load error:", error);
+                alert("Failed to load data. Check Firebase connection.");
+                setSelectorsLoadingState(false, true);
+            }
         }
 
         function setSelectorsLoadingState(loading, error = false) {
@@ -264,7 +273,10 @@
             const cur = els.selectClass.value;
             els.selectClass.innerHTML = '';
             const ids = Object.keys(appState.rosters).sort();
-            if (!ids.length) els.selectClass.innerHTML = '<option>-- Add class --</option>';
+            if (!ids.length) {
+                els.selectClass.innerHTML = '<option>-- Add class --</option>';
+                return;
+            }
             ids.forEach(id => {
                 const opt = document.createElement('option');
                 opt.value = id; opt.textContent = formatClassId(id);
