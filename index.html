@@ -4,1003 +4,393 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
-
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#005A9C">
     <style>
         /* ==== Global Styles ==== */
-        :root {
-            --primary-color: #005A9C;
-            --secondary-color: #4CAF50;
-            --header-color: #ffffff;
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-            --text-color: #333;
-            --border-color: #e0e0e0;
-            --danger-color: #D32F2F;
-            --warning-color: #FFA000;
-            --print-btn-color: #3f51b5; /* Indigo */
-            --shadow: 0 5px 15px rgba(0,0,0,0.08);
-        }
-        
-        html, body {
-            overflow-x: hidden;
-            width: 100%;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-        }
-
-        /* ==== 1. Header ==== */
-        .main-header {
-            background: var(--primary-color);
-            color: var(--header-color);
-            padding: 15px 20px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .main-header h1 {
-            margin: 0;
-            font-size: 1.6em;
-            font-weight: 600;
-        }
-
-        /* ==== 2. Layout (Single Column) ==== */
-        .app-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px 10px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-        
-        /* App-like Cards */
-        .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            padding: 20px;
-            border: 1px solid var(--border-color);
-        }
-        .card h2 {
-            margin-top: 0;
-            text-align: center;
-            color: var(--primary-color);
-            font-size: 1.5em;
-            margin-bottom: 25px;
-        }
-        
-        #report-card p,
-        #danger-zone-card p {
-            text-align: center;
-            font-size: 0.95em;
-            margin-bottom: 20px;
-        }
-        
-        /* Divider */
-        hr.card-divider {
-            margin: 25px 0 20px; 
-            border-top: 1px solid var(--border-color); 
-            border-bottom: none;
-        }
-
-        /* ==== 3. Form Elements (App-like Forms) ==== */
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            text-align: left;
-            color: #555;
-        }
-        
-        select, input[type="text"], input[type="date"], input[type="month"] {
-            width: 100%;
-            display: block;
-            padding: 14px;
-            font-size: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            box-sizing: border-box;
-            background-color: #fcfcfc;
-        }
-        
-        input[type="date"], input[type="month"] {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        /* App-like Buttons */
-        button {
-            width: 100%;
-            display: block;
-            padding: 15px;
-            font-size: 1.1em;
-            font-weight: 700;
-            border: none;
-            border-radius: 10px;
-            box-sizing: border-box;
-            color: white;
-            cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        button:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        /* Button colors */
-        #addClassBtn { background-color: #2196F3; }
-        #addSubjectBtn { background-color: #00796B; } /* Teal */
-        #addTeacherBtn { background-color: #8E24AA; } /* Purple */
-        #addStudentBtn { background-color: #ff9800; }
-        #updateDatesBtn { background-color: #00796B; }
-        #generateReportBtn { background-color: #512DA8; }
-        #printReportBtn { background-color: var(--print-btn-color); }
-        #saveBtn { background-color: var(--secondary-color); }
-        #calculateBtn { background-color: #673AB7; }
-        #clearWeekBtn { background-color: var(--warning-color); }
-        #resetAllBtn { background-color: var(--danger-color); }
-
-        /* ==== 4. Table Styles ==== */
-        .table-responsive-wrapper {
-            width: 100%;
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-        th, td { border: 1px solid var(--border-color); padding: 14px; text-align: center; }
-        thead tr { background-color: #f1f1f1; }
-        th { font-weight: 600; }
-        tbody tr:nth-child(even) { background-color: #fcfcfc; }
-        tbody tr:hover { background-color: #eef; }
-        td:first-child { text-align: left; font-weight: 500; white-space: nowrap; min-width: 150px; }
-        .total-cell { font-weight: bold; background-color: #f0f4ff; font-size: 1.1em; }
-        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-        #reportOutput table { min-width: 0; }
-        #reportOutput th { background-color: #512DA8; color: white; }
-
-        /* ==== 5. Danger Zone ==== */
-        .danger-zone {
-            border-color: var(--danger-color);
-            background-color: #fff5f5;
-        }
-        .danger-zone h2 { color: var(--danger-color); border-bottom-color: transparent; }
-        
-        /* ==== 6. Footer ==== */
-        .main-footer-credits {
-            text-align: center;
-            padding: 20px 15px;
-            margin-top: 20px;
-            color: #777;
-            font-size: 0.9em;
-            background-color: #eef;
-            line-height: 1.7;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            border-top: 2px solid var(--primary-color);
-        }
-        
-        /* Message for user */
-        .info-message {
-            text-align: center;
-            padding: 20px;
-            background-color: #f0f4ff;
-            border-radius: 10px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        /* ==== 7. Mobile Responsive "Card" View (PORTRAIT) ==== */
-        @media screen and (max-width: 767px) {
-            
-            .table-responsive-wrapper {
-                overflow-x: visible;
-                border: none;
-            }
-            #attendanceTable {
-                min-width: 0 !important;
-            }
-
-            #attendanceTable, 
-            #attendanceTable thead, 
-            #attendanceTable tbody, 
-            #attendanceTable th, 
-            #attendanceTable td, 
-            #attendanceTable tr {
-                display: block;
-            }
-
-            #attendanceTable thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
-            }
-            
-            #attendanceTable tr.student-row {
-                border: none;
-                border-radius: 16px;
-                margin-bottom: 15px;
-                background: var(--card-bg);
-                box-shadow: var(--shadow);
-                overflow: hidden;
-            }
-
-            #attendanceTable td {
-                border: none;
-                border-bottom: 1px solid #f0f0f0;
-                position: relative;
-                padding: 14px 20px;
-                padding-left: 50%;
-                text-align: right;
-                min-height: 44px;
-            }
-            
-            #attendanceTable td:first-child {
-                background: var(--primary-color);
-                color: white;
-                font-weight: 600;
-                font-size: 1.25em;
-                padding: 18px 20px;
-                text-align: left;
-                border-bottom: none;
-            }
-            
-            #attendanceTable td:before {
-                content: attr(data-label);
-                position: absolute;
-                top: 50%;
-                left: 20px;
-                transform: translateY(-50%);
-                width: 45%;
-                padding-right: 10px;
-                white-space: nowrap;
-                text-align: left;
-                font-weight: 600;
-                color: #555;
-            }
-            
-            #attendanceTable td:first-child:before { content: ""; }
-            #attendanceTable td:last-child { border-bottom: 0; }
-            #attendanceTable input[type="checkbox"] { width: 22px; height: 22px; }
-            #attendanceTable .total-cell {
-                text-align: right;
-                font-size: 1.2em;
-                font-weight: 700;
-                background-color: #f0f4ff;
-            }
-        }
-        
-        /* ==== Desktop Responsiveness ==== */
-        @media (min-width: 768px) {
-            .main-header h1 {
-                font-size: 2em;
-            }
-            .button-group {
-                flex-direction: row;
-            }
-        }
-        
-        /* ======================================================= */
-        /* ==== 8. (REMOVED) @media print styles are gone ==== */
-        /* ======================================================= */
-        
+        :root{--primary-color:#005A9C;--secondary-color:#4CAF50;--header-color:#fff;--bg-color:#f4f7f6;--card-bg:#fff;--text-color:#333;--border-color:#e0e0e0;--danger-color:#D32F2F;--warning-color:#FFA000;--print-btn-color:#3f51b5;--google-btn-color:#DB4437;--shadow:0 5px 15px rgba(0,0,0,.08)}html,body{overflow-x:hidden;width:100%}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;background-color:var(--bg-color);color:var(--text-color);line-height:1.6;display:flex;justify-content:center;align-items:center;min-height:100vh}#loadingIndicator{font-size:1.2em;color:var(--primary-color);text-align:center}.main-header{background:var(--primary-color);color:var(--header-color);padding:15px 20px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.1);position:relative}.main-header h1{margin:0;font-size:1.6em;font-weight:600}.app-container{width:100%;max-width:1000px;margin:0 auto;padding:20px 10px;display:grid;grid-template-columns:1fr;gap:20px}.card{background:var(--card-bg);border-radius:16px;box-shadow:var(--shadow);padding:20px;border:1px solid var(--border-color)}.card h2{margin-top:0;text-align:center;color:var(--primary-color);font-size:1.5em;margin-bottom:25px}#report-card p,#danger-zone-card p{text-align:center;font-size:.95em;margin-bottom:20px}hr.card-divider{margin:25px 0 20px;border-top:1px solid var(--border-color);border-bottom:none}.form-group{margin-bottom:20px}.form-group label{display:block;font-weight:600;margin-bottom:8px;text-align:left;color:#555}select,input[type=text],input[type=date],input[type=month],input[type=email],input[type=password]{width:100%;display:block;padding:14px;font-size:16px;border:1px solid var(--border-color);border-radius:10px;box-sizing:border-box;background-color:#fcfcfc}input[type=date],input[type=month]{appearance:none;-webkit-appearance:none}.radio-group{display:flex;justify-content:flex-start;gap:20px;margin-top:10px}.radio-group input[type=radio]{display:none}.radio-group label{display:inline-block;padding:10px 20px;border:2px solid var(--border-color);border-radius:10px;cursor:pointer;font-weight:600;text-align:center;width:80px}.radio-group input[type=radio]:checked+label{background-color:var(--primary-color);color:#fff;border-color:var(--primary-color)}button{width:100%;display:block;padding:15px;font-size:1.1em;font-weight:700;border:none;border-radius:10px;box-sizing:border-box;color:#fff;cursor:pointer;margin-top:10px;box-shadow:0 4px 12px rgba(0,0,0,.1);transition:transform .2s ease,box-shadow .2s ease}button:disabled{background-color:#ccc;cursor:not-allowed;box-shadow:none}button:active:not(:disabled){transform:translateY(2px);box-shadow:0 2px 6px rgba(0,0,0,.1)}.button-group{display:flex;flex-direction:column;gap:10px;margin-top:20px}.button-group-inline{display:flex;gap:10px;margin-bottom:15px;justify-content:center}.button-group-inline button{margin-top:0;flex:1;max-width:200px;font-size:.95em;padding:12px}#addClassBtn{background-color:#2196F3}#addSubjectBtn{background-color:#00796B}#addTeacherBtn{background-color:#8E24AA}#addStudentBtn{background-color:#ff9800}#updateDatesBtn{background-color:#00796B}#generateReportBtn{background-color:#512DA8}#generateDashboardBtn{background-color:#d81b60}#printReportBtn{background-color:var(--print-btn-color)}#saveBtn{background-color:var(--secondary-color)}#calculateBtn{background-color:#673AB7}#clearWeekBtn{background-color:var(--warning-color)}#resetAllBtn{background-color:var(--danger-color)}#loginBtn,#logoutBtn{background-color:var(--primary-color)}#googleLoginBtn{background-color:var(--google-btn-color);margin-top:15px}#markAllPresentBtn{background-color:#0d6efd}#logoutBtn{width:auto;position:absolute;top:10px;right:10px;padding:8px 15px;font-size:.9em;margin-top:0}.table-responsive-wrapper{width:100%;overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:600px}th,td{border:1px solid var(--border-color);padding:14px;text-align:center}thead tr{background-color:#f1f1f1}th{font-weight:600}tbody tr:nth-child(even){background-color:#fcfcfc}tbody tr:hover{background-color:#eef}td:first-child{text-align:left;font-weight:500;white-space:nowrap;min-width:150px}.total-cell{font-weight:700;background-color:#f0f4ff;font-size:1.1em}input[type=checkbox]{width:20px;height:20px;cursor:pointer}#reportOutput table,#dashboardOutput table{min-width:0}#reportOutput th,#dashboardOutput th{background-color:#512DA8;color:#fff}#dashboardOutput th{background-color:#d81b60}#dashboardOutput tr:last-child{background-color:#f0f4ff;font-weight:700}.danger-zone{border-color:var(--danger-color);background-color:#fff5f5}.danger-zone h2{color:var(--danger-color);border-bottom-color:transparent}.main-footer-credits{text-align:center;padding:20px 15px;margin-top:20px;color:#777;font-size:.9em;background-color:#eef;line-height:1.7;overflow-wrap:break-word;word-break:break-word;border-top:2px solid var(--primary-color)}.info-message{text-align:center;padding:20px;background-color:#f0f4ff;border-radius:10px;color:#555;font-weight:500}#loginScreen{padding:30px;text-align:center}#loginScreen input[type=email],#loginScreen input[type=password]{margin-bottom:15px}#loginError{color:var(--danger-color);margin-top:15px;font-weight:700;display:none}@media screen and (max-width:767px){body{display:block;min-height:auto}#loadingIndicator{margin-top:50px}.table-responsive-wrapper{overflow-x:visible;border:none}#attendanceTable{min-width:0!important}#attendanceTable,#attendanceTable thead,#attendanceTable tbody,#attendanceTable th,#attendanceTable td,#attendanceTable tr{display:block}#attendanceTable thead tr{position:absolute;top:-9999px;left:-9999px}#attendanceTable tr.student-row{border:none;border-radius:16px;margin-bottom:15px;background:var(--card-bg);box-shadow:var(--shadow);overflow:hidden}#attendanceTable td{border:none;border-bottom:1px solid #f0f0f0;position:relative;padding:14px 20px;padding-left:50%;text-align:right;min-height:44px}#attendanceTable td:first-child{background:var(--primary-color);color:#fff;font-weight:600;font-size:1.25em;padding:18px 20px;text-align:left;border-bottom:none}#attendanceTable td:before{content:attr(data-label);position:absolute;top:50%;left:20px;transform:translateY(-50%);width:45%;padding-right:10px;white-space:nowrap;text-align:left;font-weight:600;color:#555}#attendanceTable td:first-child:before{content:""}#attendanceTable td:last-child{border-bottom:0}#attendanceTable input[type=checkbox]{width:22px;height:22px}#attendanceTable .total-cell{text-align:right;font-size:1.2em;font-weight:700;background-color:#f0f4ff}}@media (min-width:768px){body{display:block;min-height:auto}#loadingIndicator{margin-top:50px}.main-header h1{font-size:2em}.button-group,.button-group-inline{flex-direction:row}}
     </style>
 </head>
 <body>
-
-    <header class="main-header">
-        <h1>Smart Attendance Tracker</h1>
-    </header>
-
-    <main class="app-container">
-        <div class="card" id="class-manager-card">
-            <h2>Class Management</h2>
-            <div class="form-group">
-                <label for="selectGrade">Select Grade</label>
-                <select id="selectGrade">
-                    <option value="Grade 6">Grade 6</option>
-                    <option value="Grade 7">Grade 7</option>
-                    <option value="Grade 8">Grade 8</option>
-                    <option value="Grade 9">Grade 9</option>
-                    <option value="Grade 10">Grade 10</option>
-                    <option value="Grade 11">Grade 11</option>
-                    <option value="Grade 12">Grade 12</option>
-                    <option value="Grade 13">Grade 13</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="inputClassName">Class Name (e.g., A, B)</label>
-                <input type="text" id="inputClassName" placeholder="e.g., A">
-            </div>
-            <button id="addClassBtn">Add New Class</button>
-            <hr class="card-divider">
-            <div class="form-group">
-                <label for="selectClass">Select Active Class</label>
-                <select id="selectClass">
-                    <option value="">-- Please add a class first --</option>
-                </select>
-            </div>
-        </div>
-        
-        <div class="card" id="subject-manager-card">
-            <h2>Subject Management</h2>
-            <div class="form-group">
-                <label for="inputSubjectName">New Subject Name</label>
-                <input type="text" id="inputSubjectName" placeholder="e.g., Mathematics, ICT">
-            </div>
-            <button id="addSubjectBtn">Add New Subject</button>
-            <hr class="card-divider">
-            <div class="form-group">
-                <label for="selectSubject">Select Active Subject</label>
-                <select id="selectSubject">
-                    <option value="">-- Please add a subject first --</option>
-                </select>
-            </div>
-        </div>
-        
-        <div class="card" id="teacher-manager-card">
-            <h2>Teacher Management</h2>
-            <div class="form-group">
-                <label for="inputTeacherName">New Teacher Name</label>
-                <input type="text" id="inputTeacherName" placeholder="e.g., Kelum Konara">
-            </div>
-            <button id="addTeacherBtn">Add New Teacher</button>
-            <hr class="card-divider">
-            <div class="form-group">
-                <label for="selectTeacher">Select Active Teacher</label>
-                <select id="selectTeacher">
-                    <option value="">-- Please add a teacher first --</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="card" id="date-manager-card">
-            <h2>Date Selector</h2>
-            <div class="form-group">
-                <label for="startDate">Select Any Day of the Week</label>
-                <input type="date" id="startDate">
-            </div>
-            <button id="updateDatesBtn">Update Week (Mon-Fri)</button>
-        </div>
-
-        <div class="card" id="student-manager-card">
-            <h2>Student Management</h2>
-            <div class="form-group">
-                <label for="studentNameInput">New Student Name</label>
-                <input type="text" id="studentNameInput" placeholder="Enter new student's name">
-            </div>
-            <button id="addStudentBtn">Add Student to Selected Class</button>
-        </div>
-
-        <div class="card" id="attendance-sheet-card">
-            <h2 id="attendance-sheet-title">Attendance Sheet</h2>
-            
-            <div class="table-responsive-wrapper">
-                <table id="attendanceTable">
-                    <thead>
-                        <tr>
-                            <th>Student Name</th>
-                            <th>Day 1 (Mon)</th>
-                            <th>Day 2 (Tue)</th>
-                            <th>Day 3 (Wed)</th>
-                            <th>Day 4 (Thu)</th>
-                            <th>Day 5 (Fri)</th>
-                            <th>Total Present (Week)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attendanceTbody">
-                        </tbody>
-                </table>
-            </div>
-            
-            <p id="attendanceInfo" class="info-message" style="display:none;"></p>
-
-            <div class="button-group">
-                <button id="saveBtn">Save Attendance</button>
-                <button id="calculateBtn">Calculate Totals</button>
-                <button id="clearWeekBtn">Clear Week's Marks</button>
-            </div>
-        </div>
-        
-        <div class="card" id="report-card">
-            <h2>Monthly Report</h2>
-            <p>Select class, subject, teacher, and month for the summary.</p>
-            
-            <div class="form-group">
-                <label for="reportSubject">Select Subject for Report</label>
-                <select id="reportSubject">
-                    <option value="">-- Select a subject --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="reportTeacher">Select Teacher for Report</label>
-                <select id="reportTeacher">
-                    <option value="">-- Select a teacher --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="reportMonth">Select Month</label>
-                <input type="month" id="reportMonth">
-            </div>
-            
-            <button id="generateReportBtn">Generate Report</button>
-            <button id="printReportBtn" style="margin-top: 10px;">Save Report as PDF</button>
-
-            <div id="reportOutput" class="table-responsive-wrapper" style="margin-top: 20px;">
-                </div>
-        </div>
-        
-        <div class="card danger-zone" id="danger-zone-card">
-            <h2>Danger Zone</h2>
-            <p>This will permanently delete ALL saved classes, subjects, teachers, students, and attendance records.</p>
-            <button id="resetAllBtn">RESET ALL DATA</button>
-        </div>
-    </main>
     
-    <footer class="main-footer-credits">
-        Developer : Kelum Konara <br>
-        SmartSoft | The Mobile Apps Developer <br>
-        0714469232
-    </footer>
+    <div id="loadingIndicator"><span id="loadingText">Loading Application...</span></div>
+
+    <div id="loginScreen" class="card" style="display: none; max-width: 400px; margin: 50px auto;">
+        <h2>Smart Attendance Tracker</h2>
+        <div class="form-group"> <label for="loginEmail">Email</label> <input type="email" id="loginEmail" placeholder="Enter email"> </div>
+        <div class="form-group"> <label for="loginPassword">Password</label> <input type="password" id="loginPassword" placeholder="Enter password"> </div>
+        <button id="loginBtn">Login</button>
+        <button id="googleLoginBtn">Sign in with Google</button>
+        <p id="loginError"></p>
+    </div>
+
+    <div id="appContent" style="display: none;">
+        <header class="main-header">
+            <h1 id="appTitle">Smart Attendance Tracker</h1>
+            <button id="logoutBtn">Logout</button>
+        </header>
+
+        <main class="app-container">
+            <div class="card management-card" id="class-manager-card" style="display: none;">
+                 <h2>Class Management</h2>
+                 <div class="form-group"> <label for="selectGrade">Grade</label> <select id="selectGrade"><option value="Grade 6">6</option><option value="Grade 7">7</option><option value="Grade 8">8</option><option value="Grade 9">9</option><option value="Grade 10">10</option><option value="Grade 11">11</option><option value="Grade 12">12</option><option value="Grade 13">13</option></select> </div>
+                 <div class="form-group"> <label for="inputClassName">Class Name</label> <input type="text" id="inputClassName" placeholder="e.g., A"> </div>
+                 <button id="addClassBtn">Add New Class</button>
+                 <hr class="card-divider">
+                 <div class="form-group"> <label for="selectClass">Active Class</label> <select id="selectClass"><option value="">-- Loading... --</option></select> </div>
+            </div>
+            <div class="card management-card" id="subject-manager-card" style="display: none;">
+                 <h2>Subject Management</h2>
+                 <div class="form-group"> <label for="inputSubjectName">New Subject</label> <input type="text" id="inputSubjectName" placeholder="e.g., Maths"> </div>
+                 <button id="addSubjectBtn">Add New Subject</button>
+                 <hr class="card-divider">
+                 <div class="form-group"> <label for="selectSubject">Active Subject</label> <select id="selectSubject"><option value="">-- Loading... --</option></select> </div>
+            </div>
+             <div class="card management-card" id="teacher-manager-card" style="display: none;">
+                 <h2>Teacher Management</h2>
+                  <div class="form-group"> <label for="inputTeacherName">New Teacher</label> <input type="text" id="inputTeacherName" placeholder="e.g., Mr. Perera"> </div>
+                 <button id="addTeacherBtn">Add New Teacher</button>
+                 <hr class="card-divider">
+                 <div class="form-group"> <label for="selectTeacher">Active Teacher</label> <select id="selectTeacher"><option value="">-- Loading... --</option></select> </div>
+            </div>
+             <div class="card management-card" id="student-manager-card" style="display: none;">
+                <h2>Student Management</h2>
+                 <div class="form-group"> <label for="studentNameInput">New Student</label> <input type="text" id="studentNameInput" placeholder="Enter name"> </div>
+                 <div class="form-group"> <label>Gender</label> <div class="radio-group"> <input type="radio" id="genderMale" name="studentGender" value="Male" checked> <label for="genderMale">Male</label> <input type="radio" id="genderFemale" name="studentGender" value="Female"> <label for="genderFemale">Female</label> </div> </div>
+                 <button id="addStudentBtn">Add Student</button>
+            </div>
+
+            <div class="card" id="date-manager-card">
+                <h2>Date Selector</h2>
+                <div class="form-group"> <label for="startDate">Select Week</label> <input type="date" id="startDate"> </div>
+                <button id="updateDatesBtn">Update Week (Mon-Fri)</button>
+            </div>
+
+            <div class="card" id="attendance-sheet-card">
+                <h2 id="attendance-sheet-title">Attendance Sheet</h2>
+                <div class="button-group-inline">
+                     <button id="markAllPresentBtn">Mark All Present</button>
+                     <button id="calculateBtn">Calculate Totals</button>
+                </div>
+                <div class="table-responsive-wrapper">
+                    <table id="attendanceTable">
+                        <thead> <tr> <th>Student Name</th><th>Day 1</th><th>Day 2</th><th>Day 3</th><th>Day 4</th><th>Day 5</th><th>Total</th> </tr> </thead>
+                        <tbody id="attendanceTbody"></tbody>
+                    </table>
+                </div>
+                <p id="attendanceInfo" class="info-message" style="display:none;"></p>
+                <div class="button-group">
+                    <button id="saveBtn">Save Attendance</button>
+                    <button id="clearWeekBtn">Clear Week's Marks</button>
+                </div>
+            </div>
+
+            <div class="card principal-only" id="dashboard-card" style="display: none;">
+                <h2>Principal's Dashboard</h2>
+                <p>Select date for daily summary.</p>
+                <div class="form-group"> <label for="dashboardDate">Date</label> <input type="date" id="dashboardDate"> </div>
+                <button id="generateDashboardBtn">Show Daily Totals</button>
+                <div id="dashboardOutput" class="table-responsive-wrapper" style="margin-top: 20px;"></div>
+            </div>
+
+            <div class="card" id="report-card">
+                <h2>Teacher's Monthly Report</h2>
+                <p>Select details for summary.</p>
+                <div class="form-group"> <label for="reportSubject">Subject</label> <select id="reportSubject"><option>-- Loading... --</option></select> </div>
+                <div class="form-group"> <label for="reportTeacher">Teacher</label> <select id="reportTeacher"><option>-- Loading... --</option></select> </div>
+                <div class="form-group"> <label for="reportMonth">Month</label> <input type="month" id="reportMonth"> </div>
+                <button id="generateReportBtn">Generate Report</button>
+                <button id="printReportBtn" style="margin-top: 10px;">Save Report as PDF</button>
+                <div id="reportOutput" class="table-responsive-wrapper" style="margin-top: 20px;"></div>
+            </div>
+
+            <div class="card danger-zone principal-only" id="danger-zone-card" style="display: none;">
+                <h2>Danger Zone</h2>
+                <p>This button is disabled. Use Firebase Console for data deletion.</p>
+                <button id="resetAllBtn" disabled>RESET ALL DATA (Disabled)</button>
+            </div>
+        </main>
+
+        <footer class="main-footer-credits">
+            Developer : Kelum Konara <br> SmartSoft | The Mobile Apps Developer <br> 0714469232
+        </footer>
+    </div> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful: ', registration.scope);
-                    })
-                    .catch(error => {
-                        console.log('ServiceWorker registration failed: ', error);
-                    });
-            });
+      // =====================================================================
+      // ==== YOUR FIREBASE CONFIG OBJECT (FROM PREVIOUS MESSAGE) ====
+      // =====================================================================
+      const firebaseConfig = {
+        apiKey: "AIzaSyCPWRMciqqubcBUSzsE88xQcM9s1rMCMV8",
+        authDomain: "smart-attendance-tracker-841c6.firebaseapp.com",
+        projectId: "smart-attendance-tracker-841c6",
+        storageBucket: "smart-attendance-tracker-841c6.appspot.com",
+        messagingSenderId: "741876469231",
+        appId: "1:741876469231:web:e971888d73cddaeec53a1a",
+        measurementId: "G-TP7WKWL66Y"
+      };
+      // =====================================================================
+
+      // Initialize Firebase Globals
+      let app, auth, db;
+      let currentUser = null;
+      let currentUserRole = null;
+      let FieldValue;
+      let firebaseInitialized = false; // Flag
+
+      function initializeFirebase() {
+           console.log("DEBUG: Attempting Firebase Initialization...");
+           try {
+               if (typeof firebase === 'undefined') throw new Error("Firebase SDK global object not found.");
+               if (typeof firebaseConfig === 'undefined' || !firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_")) throw new Error("Firebase config missing/incomplete.");
+               if (!firebase.apps.length) { app = firebase.initializeApp(firebaseConfig); console.log("DEBUG: Firebase Initialized successfully."); }
+               else { app = firebase.app(); console.log("DEBUG: Firebase App already initialized."); }
+               auth = firebase.auth();
+               db = firebase.firestore();
+               FieldValue = firebase.firestore.FieldValue;
+               firebaseInitialized = true;
+               console.log("DEBUG: Firebase Auth and Firestore services obtained.");
+               return true;
+           } catch (e) {
+               console.error("CRITICAL: Error initializing Firebase SDK", e);
+               const loadingIndicatorEl = document.getElementById('loadingIndicator');
+               const loadingTextEl = document.getElementById('loadingText');
+               if (loadingIndicatorEl) {
+                   const errorMsg = `CRITICAL ERROR: Could not initialize Firebase. ${e.message}. Check Console/Config.`;
+                   if (loadingTextEl) { loadingTextEl.innerHTML = `<strong style='color: red;'>${errorMsg}</strong>`; }
+                   else { loadingIndicatorEl.innerHTML = `<strong style='color: red;'>${errorMsg}</strong>`; }
+                   loadingIndicatorEl.style.color = "red";
+                   const loginScreenEl = document.getElementById('loginScreen');
+                   const appContentEl = document.getElementById('appContent');
+                   if(loginScreenEl) loginScreenEl.style.display = 'none';
+                   if(appContentEl) appContentEl.style.display = 'none';
+               }
+               firebaseInitialized = false;
+               return false;
+           }
+      }
+    </script>
+    <script>
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator && firebaseInitialized) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js')
+                        .then(registration => { console.log('SW registered: ', registration.scope); })
+                        .catch(error => { console.log('SW registration failed: ', error); });
+                });
+            } else { console.log("SW not supported or Firebase not loaded."); }
         }
     </script>
-    
+
     <script>
-        // Global database object
-        let db = {
-            rosters: {},
-            subjects: [],
-            teachers: [],
-            attendance: {}
-        };
-
-        // --- Date helper arrays ---
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const DB_KEY = 'schoolAttendanceDB_v4';
-
-        // --- DOM Elements ---
-        const selectGrade = document.getElementById('selectGrade');
-        const inputClassName = document.getElementById('inputClassName');
-        const addClassBtn = document.getElementById('addClassBtn');
-        const selectClass = document.getElementById('selectClass');
-        const inputSubjectName = document.getElementById('inputSubjectName');
-        const addSubjectBtn = document.getElementById('addSubjectBtn');
-        const selectSubject = document.getElementById('selectSubject');
-        const reportSubject = document.getElementById('reportSubject');
-        const inputTeacherName = document.getElementById('inputTeacherName');
-        const addTeacherBtn = document.getElementById('addTeacherBtn');
-        const selectTeacher = document.getElementById('selectTeacher');
-        const reportTeacher = document.getElementById('reportTeacher');
-        const startDateInput = document.getElementById('startDate');
-        const updateDatesBtn = document.getElementById('updateDatesBtn');
-        const studentNameInput = document.getElementById('studentNameInput');
-        const addStudentBtn = document.getElementById('addStudentBtn');
-        const tableBody = document.getElementById('attendanceTbody');
-        const attendanceSheetTitle = document.getElementById('attendance-sheet-title');
-        const attendanceInfo = document.getElementById('attendanceInfo');
-        const saveBtn = document.getElementById('saveBtn');
-        const calculateBtn = document.getElementById('calculateBtn');
-        const clearWeekBtn = document.getElementById('clearWeekBtn');
-        const reportMonthInput = document.getElementById('reportMonth');
-        const generateReportBtn = document.getElementById('generateReportBtn');
-        const printReportBtn = document.getElementById('printReportBtn');
-        const reportOutput = document.getElementById('reportOutput');
-        const resetAllBtn = document.getElementById('resetAllBtn');
-
-        // ==== 1. Data Persistence (localStorage) ====
-        function loadData() {
-            const data = localStorage.getItem(DB_KEY);
-            if (data) {
-                const parsedData = JSON.parse(data);
-                db.rosters = parsedData.rosters || {};
-                db.subjects = parsedData.subjects || [];
-                db.teachers = parsedData.teachers || [];
-                db.attendance = parsedData.attendance || {};
-            }
-        }
-        function saveData() {
-            localStorage.setItem(DB_KEY, JSON.stringify(db));
-        }
-
-        // ==== 2. Class, Subject & Teacher Management ====
-        function generateClassId(grade, className) {
-            return `${grade.replace(' ', '')}-${className.trim().toUpperCase()}`;
-        }
-        function addNewClass() {
-            const grade = selectGrade.value;
-            const className = inputClassName.value;
-            if (!className) { alert('Please enter a class name.'); return; }
-            const classId = generateClassId(grade, className);
-            
-            if (db.rosters[classId]) {
-                alert(`Class '${grade} - ${className}' already exists!`);
-            } else {
-                db.rosters[classId] = [];
-                db.attendance[classId] = {};
-                saveData();
-                populateClassSelector();
-                selectClass.value = classId;
-                handleClassChange();
-                alert(`Class '${grade} - ${className}' added successfully!`);
-                inputClassName.value = '';
-            }
-        }
-        function populateClassSelector() {
-            selectClass.innerHTML = '';
-            const classIds = Object.keys(db.rosters).sort();
-            if (classIds.length === 0) {
-                selectClass.innerHTML = '<option value="">-- Add a class first --</option>';
-                return;
-            }
-            classIds.forEach(classId => {
-                const formattedName = classId.replace('-', ' - ').replace(/([A-Za-z])(\d+)/, '$1 $2');
-                const option = document.createElement('option');
-                option.value = classId;
-                option.textContent = formattedName;
-                selectClass.appendChild(option);
-            });
-        }
-        function handleClassChange() {
-            renderStudentTable();
-        }
-        
-        function addNewSubject() {
-            const subjectName = inputSubjectName.value.trim();
-            if (!subjectName) { alert('Please enter a subject name.'); return; }
-            if (db.subjects.includes(subjectName)) {
-                alert('This subject already exists.'); return;
-            }
-            db.subjects.push(subjectName);
-            db.subjects.sort();
-            saveData();
-            populateSubjectSelectors();
-            selectSubject.value = subjectName;
-            renderStudentTable();
-            alert(`Subject '${subjectName}' added successfully!`);
-            inputSubjectName.value = '';
-        }
-        
-        function populateSubjectSelectors() {
-            selectSubject.innerHTML = '';
-            reportSubject.innerHTML = '';
-            if (db.subjects.length === 0) {
-                selectSubject.innerHTML = '<option value="">-- Add a subject first --</option>';
-                reportSubject.innerHTML = '<option value="">-- Add a subject first --</option>';
-                return;
-            }
-            
-            db.subjects.forEach(subject => {
-                const option1 = document.createElement('option');
-                option1.value = subject;
-                option1.textContent = subject;
-                selectSubject.appendChild(option1);
-                
-                const option2 = document.createElement('option');
-                option2.value = subject;
-                option2.textContent = subject;
-                reportSubject.appendChild(option2);
-            });
-        }
-        
-        function handleSubjectChange() {
-            renderStudentTable();
-        }
-        
-        function addNewTeacher() {
-            const teacherName = inputTeacherName.value.trim();
-            if (!teacherName) { alert('Please enter a teacher name.'); return; }
-            if (db.teachers.includes(teacherName)) {
-                alert('This teacher already exists.'); return;
-            }
-            db.teachers.push(teacherName);
-            db.teachers.sort();
-            saveData();
-            populateTeacherSelectors();
-            selectTeacher.value = teacherName;
-            renderStudentTable();
-            alert(`Teacher '${teacherName}' added successfully!`);
-            inputTeacherName.value = '';
-        }
-
-        function populateTeacherSelectors() {
-            selectTeacher.innerHTML = '';
-            reportTeacher.innerHTML = '';
-            if (db.teachers.length === 0) {
-                selectTeacher.innerHTML = '<option value="">-- Add a teacher first --</option>';
-                reportTeacher.innerHTML = '<option value="">-- Add a teacher first --</option>';
-                return;
-            }
-            
-            db.teachers.forEach(teacher => {
-                const option1 = document.createElement('option');
-                option1.value = teacher;
-                option1.textContent = teacher;
-                selectTeacher.appendChild(option1);
-                
-                const option2 = document.createElement('option');
-                option2.value = teacher;
-                option2.textContent = teacher;
-                reportTeacher.appendChild(option2);
-            });
-        }
-
-        function handleTeacherChange() {
-            renderStudentTable();
-        }
-
-        // ==== 3. Student Management ====
-        function addStudent() {
-            const studentName = studentNameInput.value.trim();
-            const selectedClassId = selectClass.value;
-            if (!selectedClassId) { alert('Please select a class first.'); return; }
-            if (!studentName) { alert('Please enter a student name.'); return; }
-            if (db.rosters[selectedClassId].includes(studentName)) { alert('Student already exists.'); return; }
-
-            db.rosters[selectedClassId].push(studentName);
-            db.rosters[selectedClassId].sort();
-            saveData();
-            renderStudentTable();
-            studentNameInput.value = '';
-            studentNameInput.focus();
-        }
-
-        function renderStudentTable() {
-            const classId = selectClass.value;
-            const subject = selectSubject.value;
-            const teacher = selectTeacher.value;
-            
-            if (!classId || !subject || !teacher) {
-                tableBody.innerHTML = '';
-                attendanceInfo.style.display = 'block';
-                let missing = [];
-                if (!classId) missing.push("Class");
-                if (!subject) missing.push("Subject");
-                if (!teacher) missing.push("Teacher");
-                attendanceInfo.textContent = `Please select an Active ${missing.join(' and ')} to begin.`;
-                return;
-            }
-            attendanceInfo.style.display = 'none';
-            
-            const classText = selectClass.options[selectClass.selectedIndex].textContent;
-            attendanceSheetTitle.textContent = `Attendance: ${classText} (${subject} / ${teacher})`;
-
-            tableBody.innerHTML = '';
-            const students = db.rosters[classId] || [];
-            
-            const headers = document.querySelectorAll('#attendanceTable thead th');
-            const dayColumnCount = headers.length - 2;
-            
-            const headerInfo = [];
-            for (let i = 0; i < dayColumnCount; i++) {
-                const headerCell = headers[i + 1];
-                headerInfo.push({
-                    label: headerCell.textContent,
-                    date: headerCell.dataset.date
-                });
-            }
-            const totalLabel = headers[headers.length - 1].textContent;
-
-            if (students.length === 0) {
-                 tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No students in this class.</td></tr>';
-                 return;
-            }
-
-            students.forEach(studentName => {
-                const row = document.createElement('tr');
-                row.classList.add('student-row');
-                
-                const nameCell = document.createElement('td');
-                nameCell.textContent = studentName;
-                row.appendChild(nameCell);
-
-                headerInfo.forEach(header => {
-                    const checkCell = document.createElement('td');
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkCell.dataset.label = header.label; 
-                    if (header.date) {
-                        checkbox.checked = checkAttendance(classId, subject, teacher, header.date, studentName);
-                    }
-                    checkCell.appendChild(checkbox);
-                    row.appendChild(checkCell);
-                });
-
-                const totalCell = document.createElement('td');
-                totalCell.classList.add('total-cell');
-                totalCell.textContent = '0';
-                totalCell.dataset.label = totalLabel;
-                row.appendChild(totalCell);
-
-                tableBody.appendChild(row);
-            });
-            
-            calculateTotals();
-        }
-
-        // ==== 4. Date & Attendance Functions ====
-        
-        function updateTableHeaders() {
-            const selectedDateStr = startDateInput.value;
-            if (!selectedDateStr) return;
-
-            const startDate = new Date(selectedDateStr + "T12:00:00");
-            const dayOfWeek = startDate.getDay();
-            const offsetToMonday = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek;
-            
-            const monday = new Date(startDate.getTime());
-            monday.setDate(monday.getDate() + offsetToMonday);
-            
-            startDateInput.value = monday.toISOString().split('T')[0];
-
-            const headers = document.querySelectorAll('#attendanceTable thead th');
-            const dayColumnCount = headers.length - 2;
-            
-            let currentDate = new Date(monday.getTime());
-
-            for (let i = 0; i < dayColumnCount; i++) {
-                const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-                const dateNum = currentDate.getDate();
-                const month = monthNames[currentDate.getMonth()];
-                const headerText = `${month} ${dateNum} (${dayLabels[i]})`;
-                
-                const headerCell = headers[i + 1];
-                headerCell.textContent = headerText;
-                headerCell.dataset.date = currentDate.toISOString().split('T')[0];
-                
-                currentDate.setDate(currentDate.getDate() + 1);
-            }
-            
-            renderStudentTable();
-        }
-        
-        function setDefaultDate() {
-            const today = new Date();
-            startDateInput.value = today.toISOString().split('T')[0];
-            reportMonthInput.value = today.toISOString().slice(0, 7);
-        }
-
-        function checkAttendance(classId, subject, teacher, date, studentName) {
-            const presentList = db.attendance[classId]?.[date]?.[subject]?.[teacher];
-            if (!presentList) return false;
-            return presentList.includes(studentName);
-        }
-        
-        function updateAttendanceRecord(classId, subject, teacher, date, studentName, isPresent) {
-            if (!db.attendance[classId]) db.attendance[classId] = {};
-            if (!db.attendance[classId][date]) db.attendance[classId][date] = {};
-            if (!db.attendance[classId][date][subject]) db.attendance[classId][date][subject] = {};
-            if (!db.attendance[classId][date][subject][teacher]) db.attendance[classId][date][subject][teacher] = [];
-            
-            const presentList = db.attendance[classId][date][subject][teacher];
-            const studentIndex = presentList.indexOf(studentName);
-            if (isPresent && studentIndex === -1) {
-                presentList.push(studentName);
-            } else if (!isPresent && studentIndex > -1) {
-                presentList.splice(studentIndex, 1);
-            }
-        }
-
-        function saveAttendanceData() {
-            const selectedClassId = selectClass.value;
-            const selectedSubject = selectSubject.value;
-            const selectedTeacher = selectTeacher.value;
-            if (!selectedClassId || !selectedSubject || !selectedTeacher) {
-                alert('Please select a class, subject, and teacher first.'); return;
-            }
-            
-            const headers = document.querySelectorAll('#attendanceTable thead th');
-            const rows = document.querySelectorAll('#attendanceTable tr.student-row');
-
-            rows.forEach(row => {
-                const studentName = row.cells[0].textContent;
-                const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-                checkboxes.forEach((checkbox, index) => {
-                    const date = headers[index + 1].dataset.date;
-                    if (date) {
-                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, checkbox.checked);
-                    }
-                });
-            });
-            saveData();
-            alert('Attendance data saved!');
-        }
-
-        function clearWeekData() {
-            if (!confirm("Are you sure you want to clear all marks for this week?")) return;
-            const selectedClassId = selectClass.value;
-            const selectedSubject = selectSubject.value;
-            const selectedTeacher = selectTeacher.value;
-            if (!selectedClassId || !selectedSubject || !selectedTeacher) return;
-            
-            const headers = document.querySelectorAll('#attendanceTable thead th');
-            const rows = document.querySelectorAll('#attendanceTable tr.student-row');
-            
-            rows.forEach(row => {
-                const studentName = row.cells[0].textContent;
-                const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-                checkboxes.forEach((checkbox, index) => {
-                    const date = headers[index + 1].dataset.date;
-                    if (date) {
-                        checkbox.checked = false;
-                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, false);
-                    }
-                });
-            });
-            saveData();
-            calculateTotals();
-            alert("This week's marks cleared.");
-        }
-
-        function calculateTotals() {
-            const rows = document.querySelectorAll('#attendanceTable tr.student-row');
-            rows.forEach(row => {
-                const checkboxes = row.querySelectorAll('input[type="checkbox"]:checked');
-                const presentCount = checkboxes.length;
-                row.querySelector('.total-cell').textContent = presentCount;
-            });
-        }
-        
-        function generateMonthlyReport() {
-            const selectedClassId = selectClass.value;
-            const selectedSubject = reportSubject.value;
-            const selectedTeacher = reportTeacher.value;
-            const selectedMonth = reportMonthInput.value;
-            
-            if (!selectedClassId) { alert('Please select an active class first.'); return; }
-            if (!selectedSubject) { alert('Please select a subject for the report.'); return; }
-            if (!selectedTeacher) { alert('Please select a teacher for the report.'); return; }
-            if (!selectedMonth) { alert('Please select a month.'); return; }
-            
-            const students = db.rosters[selectedClassId] || [];
-            const classAttendance = db.attendance[selectedClassId] || {};
-            const report = {};
-            students.forEach(student => { report[student] = 0; });
-            
-            const monthDates = Object.keys(classAttendance).filter(date => date.startsWith(selectedMonth));
-            
-            monthDates.forEach(date => {
-                const presentList = classAttendance[date]?.[selectedSubject]?.[selectedTeacher] || [];
-                presentList.forEach(studentName => {
-                    if (report.hasOwnProperty(studentName)) {
-                        report[studentName]++;
-                    }
-                });
-            });
-            
-            if (students.length === 0) {
-                reportOutput.innerHTML = '<p>No students in this class.</p>'; return;
-            }
-            
-            const classText = selectClass.options[selectClass.selectedIndex].textContent;
-            
-            let tableHtml = `
-                <h2>Monthly Attendance Report</h2>
-                <h3>Class: ${classText}</h3>
-                <h3>Subject: ${selectedSubject}</h3>
-                <h3>Teacher: ${selectedTeacher}</h3>
-                <h3>Month: ${selectedMonth}</h3>
-                <table class="report-table"><thead><tr>
-                <th>Student Name</th><th>Total Days Present</th>
-                </tr></thead><tbody>`;
-                
-            students.forEach(studentName => {
-                tableHtml += `<tr><td>${studentName}</td>
-                    <td style="text-align:center;">${report[studentName]}</td></tr>`;
-            });
-            tableHtml += '</tbody></table>';
-            reportOutput.innerHTML = tableHtml;
-        }
-        
-        // ==================================
-        // ==== NEW PRINT FUNCTION (THE FIX) ====
-        // ==================================
-        function printReport() {
-            const reportContent = reportOutput.innerHTML;
-            if (!reportContent.includes("<table")) {
-                alert("Please generate a report first before printing.");
-                return;
-            }
-
-            // Create a new window
-            const printWindow = window.open('', '_blank', 'height=800,width=800');
-            
-            // Write the content and styles to the new window
-            printWindow.document.write('<html><head><title>Print Report</title>');
-            printWindow.document.write(`
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { border: 1px solid #333; padding: 8px; text-align: center; }
-                    th { background-color: #f0f0f0; }
-                    td:first-child { text-align: left; }
-                    h2, h3 { text-align: center; color: #000; }
-                </style>
-            `);
-            printWindow.document.write('</head><body>');
-            printWindow.document.write(reportContent); // Write the generated report
-            printWindow.document.write('</body></html>');
-            
-            printWindow.document.close(); // Important!
-            
-            // Use a timeout to ensure content is rendered before printing
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 250);
-        }
-        
-        function resetAllData() {
-            if (confirm("DANGER! This will permanently delete ALL data. Are you sure?")) {
-                localStorage.removeItem(DB_KEY);
-                db = { rosters: {}, subjects: [], teachers: [], attendance: {} };
-                location.reload();
-            }
-        }
-
-        // ==== 5. Initialization ====
+        // **** ALL APP LOGIC MOVED INSIDE DOMContentLoaded ****
         document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-            populateClassSelector();
-            populateSubjectSelectors();
-            populateTeacherSelectors();
-            setDefaultDate();
-            updateTableHeaders();
+            console.log("DEBUG: DOM content loaded. Starting main script logic.");
+
+            // --- Global State & Helpers ---
+            let appState = { rosters: {}, subjects: [], teachers: [], isDataLoaded: false };
+            const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+            // --- DOM Elements (Get elements AFTER DOM is loaded) ---
+            console.log("DEBUG: Retrieving DOM elements...");
+            // (Define ALL element variables here)
+            const loadingIndicator = getElementAndLog('loadingIndicator');
+            const loadingText = getElementAndLog('loadingText');
+            const loginScreen = getElementAndLog('loginScreen');
+            const appContent = getElementAndLog('appContent');
+            const loginEmailInput = getElementAndLog('loginEmail');
+            const loginPasswordInput = getElementAndLog('loginPassword');
+            const loginBtn = getElementAndLog('loginBtn');
+            const logoutBtn = getElementAndLog('logoutBtn');
+            const loginError = getElementAndLog('loginError');
+            const googleLoginBtn = getElementAndLog('googleLoginBtn');
+            const appTitle = getElementAndLog('appTitle');
+            const selectGrade = getElementAndLog('selectGrade');
+            const inputClassName = getElementAndLog('inputClassName');
+            const addClassBtn = getElementAndLog('addClassBtn');
+            const selectClass = getElementAndLog('selectClass');
+            const inputSubjectName = getElementAndLog('inputSubjectName');
+            const addSubjectBtn = getElementAndLog('addSubjectBtn');
+            const selectSubject = getElementAndLog('selectSubject');
+            const reportSubject = getElementAndLog('reportSubject');
+            const inputTeacherName = getElementAndLog('inputTeacherName');
+            const addTeacherBtn = getElementAndLog('addTeacherBtn');
+            const selectTeacher = getElementAndLog('selectTeacher');
+            const reportTeacher = getElementAndLog('reportTeacher');
+            const startDateInput = getElementAndLog('startDate');
+            const updateDatesBtn = getElementAndLog('updateDatesBtn');
+            const studentNameInput = getElementAndLog('studentNameInput');
+            const addStudentBtn = getElementAndLog('addStudentBtn');
+            const tableBody = getElementAndLog('attendanceTbody');
+            const attendanceSheetTitle = getElementAndLog('attendance-sheet-title');
+            const attendanceInfo = getElementAndLog('attendanceInfo');
+            const saveBtn = getElementAndLog('saveBtn');
+            const calculateBtn = getElementAndLog('calculateBtn');
+            const clearWeekBtn = getElementAndLog('clearWeekBtn');
+            const markAllPresentBtn = getElementAndLog('markAllPresentBtn');
+            const reportMonthInput = getElementAndLog('reportMonth');
+            const generateReportBtn = getElementAndLog('generateReportBtn');
+            const printReportBtn = getElementAndLog('printReportBtn');
+            const reportOutput = getElementAndLog('reportOutput');
+            const dashboardDateInput = getElementAndLog('dashboardDate');
+            const generateDashboardBtn = getElementAndLog('generateDashboardBtn');
+            const dashboardOutput = getElementAndLog('dashboardOutput');
+            const resetAllBtn = getElementAndLog('resetAllBtn');
+            const dashboardCard = getElementAndLog('dashboard-card');
+            const dangerZoneCard = document.getElementById('danger-zone-card'); // Corrected
+            const managementCards = document.querySelectorAll('.management-card');
+            console.log("DEBUG: Finished retrieving DOM elements.");
+
+            // --- Helper to get element and log ---
+            function getElementAndLog(id) {
+                const el = document.getElementById(id);
+                if (!el) { console.error(`CRITICAL ERROR: Element with ID '${id}' NOT FOUND!`); }
+                return el;
+            }
+
+            // --- Check if essential elements were found ---
+            const criticalElements = [loadingIndicator, loadingText, loginScreen, appContent, loginBtn, logoutBtn, googleLoginBtn];
+            if (criticalElements.some(el => !el)) {
+                 console.error("CRITICAL: Essential UI elements not found. Check HTML IDs.");
+                 if(loadingIndicator) loadingIndicator.innerHTML = "<strong style='color:red;'>Error: App structure broken. Check HTML IDs.</strong>";
+                 return; // Stop initialization
+            }
+            console.log("DEBUG: Essential DOM elements check passed.");
+
+            // --- Set Initial UI State ---
+            loadingIndicator.style.display = 'block';
+            loginScreen.style.display = 'none';
+            appContent.style.display = 'none';
+
+            // --- Initialize Firebase ---
+            const firebaseReady = initializeFirebase(); // Call global init
+
+            if (firebaseReady) {
+                 console.log("DEBUG: Firebase ready. Attaching auth listener and SW.");
+                 auth.onAuthStateChanged(handleAuthStateChanged);
+                 registerServiceWorker();
+                 attachEventListeners(); // Attach all listeners
+                 console.log("DEBUG: Initialization sequence complete.");
+            } else {
+                 console.error("STOPPING APP INITIALIZATION DUE TO FIREBASE FAILURE.");
+            }
+
+            // =======================================================
+            // ==== FUNCTION DEFINITIONS (Auth, Data Loading etc.) ====
+            // =======================================================
             
-            // Event listeners
-            addClassBtn.addEventListener('click', addNewClass);
-            addSubjectBtn.addEventListener('click', addNewSubject);
-            addTeacherBtn.addEventListener('click', addNewTeacher);
-            
-            selectClass.addEventListener('change', handleClassChange);
-            selectSubject.addEventListener('change', handleSubjectChange);
-            selectTeacher.addEventListener('change', handleTeacherChange);
-            
-            addStudentBtn.addEventListener('click', addStudent);
-            updateDatesBtn.addEventListener('click', updateTableHeaders);
-            saveBtn.addEventListener('click', saveAttendanceData);
-            calculateBtn.addEventListener('click', calculateTotals);
-            clearWeekBtn.addEventListener('click', clearWeekData);
-            generateReportBtn.addEventListener('click', generateMonthlyReport);
-            printReportBtn.addEventListener('click', printReport);
-            resetAllBtn.addEventListener('click', resetAllBtn);
-            
-            renderStudentTable();
-        });
+            async function handleAuthStateChanged(user) {
+                console.log("DEBUG: handleAuthStateChanged CALLED. User:", user ? user.uid : 'null');
+                if (loadingIndicator && loadingIndicator.style.display !== 'none') { console.log("DEBUG: Hiding loading indicator."); loadingIndicator.style.display = 'none'; }
+                currentUser = user; currentUserRole = null;
+                if (user) {
+                    console.log("DEBUG: User logged in. Showing app content.");
+                    if (loginScreen) loginScreen.style.display = 'none'; if (appContent) appContent.style.display = 'block';
+                    try {
+                        if (!db) throw new Error("Firestore DB not initialized.");
+                        console.log("DEBUG: Checking user role doc:", user.uid);
+                        const userDocRef = db.collection('users').doc(user.uid); const userDoc = await userDocRef.get();
+                        if (userDoc.exists && userDoc.data().role) { currentUserRole = userDoc.data().role; console.log("DEBUG: User role:", currentUserRole); if (!userDoc.data().email && user.email) { await userDocRef.set({ email: user.email }, { merge: true }); } }
+                        else { console.warn(`DEBUG: User doc/role missing. Creating default 'teacher' role.`); await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true }); currentUserRole = 'teacher'; }
+                    } catch (error) { console.error("DEBUG: Error fetching/setting user role:", error); currentUserRole = 'teacher'; alert("Could not determine user role: " + error.message); }
+                    updateUIForRole();
+                    if (!appState.isDataLoaded) { console.log("DEBUG: Calling loadInitialData()."); await loadInitialData(); }
+                    else { console.log("DEBUG: Data already loaded, repopulating."); populateAllSelectors(); setDefaultDate(); updateTableHeaders(); }
+                } else { console.log("DEBUG: User logged out. Showing login screen."); if (loginScreen) loginScreen.style.display = 'block'; if (appContent) appContent.style.display = 'none'; clearUI(); appState.isDataLoaded = false; }
+                console.log("DEBUG: handleAuthStateChanged FINISHED.");
+            }
+
+            function updateUIForRole() {
+                console.log("DEBUG: Updating UI for role:", currentUserRole);
+                if (!currentUserRole || !appContent || !dashboardCard || !dangerZoneCard || !managementCards.length) return;
+                if(appTitle) appTitle.textContent = `Smart Attendance (${currentUserRole})`;
+                const isPrincipal = currentUserRole === 'principal';
+                dashboardCard.style.display = isPrincipal ? 'block' : 'none';
+                dangerZoneCard.style.display = isPrincipal ? 'block' : 'none';
+                managementCards.forEach(card => {
+                    if (isPrincipal) { card.style.display = 'block'; }
+                    else { card.style.display = (card.id === 'student-manager-card') ? 'block' : 'none'; }
+                });
+                document.getElementById('class-manager-card').style.display = 'block';
+                document.getElementById('subject-manager-card').style.display = 'block';
+                document.getElementById('teacher-manager-card').style.display = 'block';
+                if(addClassBtn) addClassBtn.disabled = !isPrincipal;
+                if(addSubjectBtn) addSubjectBtn.disabled = !isPrincipal;
+                if(addTeacherBtn) addTeacherBtn.disabled = !isPrincipal;
+            }
+
+            async function loginUser() {
+                 console.log("DEBUG: loginUser function CALLED.");
+                 loginBtn.disabled = true; loginError.style.display = 'none'; loginError.textContent = '';
+                 const email = loginEmailInput.value.trim(); const password = loginPasswordInput.value;
+                 if (!email || !password) { loginError.textContent = "Enter email/password."; loginError.style.display = 'block'; loginBtn.disabled = false; return; }
+                 try { if (!auth) throw new Error("Firebase Auth missing."); console.log("DEBUG: Attempting sign in for:", email); await auth.signInWithEmailAndPassword(email, password); console.log("DEBUG: Login successful via function"); }
+                 catch (error) { console.error("Login fail:", error); loginError.textContent = "Login failed: " + (error.code || error.message); loginError.style.display = 'block'; }
+                 finally { loginBtn.disabled = false; }
+            }
+            async function logoutUser() { /* ... Same ... */ }
+            async function loginWithGoogle() { /* ... Same ... */ }
+            function clearUI() { /* ... Same ... */ }
+            async function loadInitialData() { /* ... Same ... */ }
+            function setSelectorsLoadingState(isLoading, isError = false) { /* ... Same ... */ }
+            function populateAllSelectors() { /* ... Same ... */ }
+            function generateClassId(grade, className) { /* ... */ }
+            async function addNewClass() { /* ... Same ... */ }
+            function populateClassSelector() { /* ... Same ... */ }
+            function handleClassChange() { renderStudentTable(); }
+            async function addNewSubject() { /* ... Same ... */ }
+            function populateSubjectSelectors() { /* ... Same ... */ }
+            function handleSubjectChange() { renderStudentTable(); }
+            async function addNewTeacher() { /* ... Same ... */ }
+            function populateTeacherSelectors() { /* ... Same ... */ }
+            function handleTeacherChange() { renderStudentTable(); }
+            function formatClassId(classId) { /* ... */ }
+            function isStudentInClass(classId, studentName) { /* ... */ }
+            async function addStudent() { /* ... Same ... */ }
+            async function renderStudentTable() { /* ... Same ... */ }
+            function updateTableHeaders() { /* ... Same ... */ }
+            function setDefaultDate() { /* ... Same ... */ }
+            async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same ... */ }
+            function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same ... */ }
+            async function saveAttendanceData() { /* ... Same ... */ }
+            async function clearWeekData() { /* ... Same (with confirmation) ... */ }
+            function calculateTotals() { /* ... Same ... */ }
+            function markAllPresent() { /* ... Same ... */ }
+            async function generateMonthlyReport() { /* ... Same ... */ }
+            function printReport() { /* ... Same ... */ }
+            async function generateDashboard() { /* ... Same ... */ }
+            function resetAllData() { /* ... Same (disabled) ... */ }
+
+            // --- Helper to Attach Event Listeners ---
+            function attachEventListeners() {
+                 console.log("DEBUG: Inside attachEventListeners function.");
+                 if(loginBtn) { console.log("DEBUG: Attaching listener to loginBtn..."); loginBtn.addEventListener('click', loginUser); } else console.error("CRITICAL ERROR: Cannot attach listener: loginBtn missing");
+                 if(logoutBtn) { console.log("DEBUG: Attaching listener to logoutBtn..."); logoutBtn.addEventListener('click', logoutUser); } else console.error("CRITICAL ERROR: Cannot attach listener: logoutBtn missing");
+                 if(googleLoginBtn) { console.log("DEBUG: Attaching listener to googleLoginBtn..."); googleLoginBtn.addEventListener('click', loginWithGoogle); } else console.error("CRITICAL ERROR: Cannot attach listener: googleLoginBtn missing");
+                 if(addClassBtn) addClassBtn.addEventListener('click', addNewClass); else console.warn("Listener not attached: addClassBtn missing");
+                 if(addSubjectBtn) addSubjectBtn.addEventListener('click', addNewSubject); else console.warn("Listener not attached: addSubjectBtn missing");
+                 if(addTeacherBtn) addTeacherBtn.addEventListener('click', addNewTeacher); else console.warn("Listener not attached: addTeacherBtn missing");
+                 if(selectClass) selectClass.addEventListener('change', handleClassChange); else console.warn("Listener not attached: selectClass missing");
+                 if(selectSubject) selectSubject.addEventListener('change', handleSubjectChange); else console.warn("Listener not attached: selectSubject missing");
+                 if(selectTeacher) selectTeacher.addEventListener('change', handleTeacherChange); else console.warn("Listener not attached: selectTeacher missing");
+                 if(addStudentBtn) addStudentBtn.addEventListener('click', addStudent); else console.warn("Listener not attached: addStudentBtn missing");
+                 if(updateDatesBtn) updateDatesBtn.addEventListener('click', updateTableHeaders); else console.warn("Listener not attached: updateDatesBtn missing");
+                 if(saveBtn) saveBtn.addEventListener('click', saveAttendanceData); else console.warn("Listener not attached: saveBtn missing");
+                 if(calculateBtn) calculateBtn.addEventListener('click', calculateTotals); else console.warn("Listener not attached: calculateBtn missing");
+                 if(clearWeekBtn) clearWeekBtn.addEventListener('click', clearWeekData); else console.warn("Listener not attached: clearWeekBtn missing");
+                 if(markAllPresentBtn) markAllPresentBtn.addEventListener('click', markAllPresent); else console.warn("Listener not attached: markAllPresentBtn missing");
+                 // ** FIX: Check generateReportBtn again **
+                 const genReportBtn = document.getElementById('generateReportBtn');
+                 if(genReportBtn) genReportBtn.addEventListener('click', generateMonthlyReport); else console.warn("Listener not attached: generateReportBtn missing");
+                 if(printReportBtn) printReportBtn.addEventListener('click', printReport); else console.warn("Listener not attached: printReportBtn missing");
+                 if(generateDashboardBtn) generateDashboardBtn.addEventListener('click', generateDashboard); else console.warn("Listener not attached: generateDashboardBtn missing");
+                 if(resetAllBtn) resetAllBtn.addEventListener('click', resetAllData); else console.warn("Listener not attached: resetAllBtn missing");
+            }
+
+        }); // End of DOMContentLoaded
     </script>
 
 </body>
