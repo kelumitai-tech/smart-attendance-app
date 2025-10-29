@@ -213,6 +213,7 @@
                     db.collection('rosters').get()
                 ]);
 
+                // Load existing data
                 appState.subjects = subSnap.exists ? (subSnap.data().list || []).sort() : [];
                 appState.teachers = teachSnap.exists ? (teachSnap.data().list || []).sort() : [];
                 appState.rosters = {};
@@ -220,7 +221,9 @@
                     appState.rosters[doc.id] = (doc.data().students || []).sort((a,b) => a.name.localeCompare(b.name));
                 });
 
+                // Populate dropdowns from existing data
                 populateAllSelectors();
+
                 setDefaultDate();
                 appState.isDataLoaded = true;
                 setSelectorsLoadingState(false);
@@ -272,10 +275,14 @@
             const cur = els.selectClass.value;
             els.selectClass.innerHTML = '';
             const ids = Object.keys(appState.rosters).sort();
-            if (!ids.length) { els.selectClass.innerHTML = '<option>-- No classes --</option>'; return; }
+            if (!ids.length) {
+                els.selectClass.innerHTML = '<option>-- No classes --</option>';
+                return;
+            }
             ids.forEach(id => {
                 const opt = document.createElement('option');
-                opt.value = id; opt.textContent = formatClassId(id);
+                opt.value = id;
+                opt.textContent = formatClassId(id);
                 els.selectClass.appendChild(opt);
             });
             els.selectClass.value = ids.includes(cur) ? cur : (ids[0] || '');
@@ -429,9 +436,10 @@
             dayThs.forEach((th, i) => {
                 const d = new Date(base);
                 d.setDate(base.getDate() + i);
-                th.textContent = `Day ${i+1}`;
+                const dateStr = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}`;
+                th.textContent = dateStr;  // Show actual date
                 th.dataset.date = d.toISOString().split('T')[0];
-                th.dataset.label = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}`;
+                th.dataset.label = dateStr;
             });
             renderStudentTable();
         }
@@ -576,11 +584,15 @@
             });
 
             let html = `<table><thead><tr><th>Class</th><th>Present</th><th>Total</th><th>%</th></tr></thead><tbody>`;
+            let grandPresent = 0, grandTotal = 0;
             Object.entries(summary).forEach(([cid, v]) => {
                 const pct = v.total ? ((v.present / v.total) * 100).toFixed(1) : 0;
                 html += `<tr><td>${formatClassId(cid)}</td><td>${v.present}</td><td>${v.total}</td><td>${pct}%</td></tr>`;
+                grandPresent += v.present;
+                grandTotal += v.total;
             });
-            html += `<tr><td colspan="3"><strong>Total</strong></td><td><strong>${Object.values(summary).reduce((a,b)=>a+b.present,0)} / ${Object.values(summary).reduce((a,b)=>a+b.total,0)}</strong></td></tr>`;
+            const grandPct = grandTotal ? ((grandPresent / grandTotal) * 100).toFixed(1) : 0;
+            html += `<tr style="background:#f0f4ff;font-weight:700;"><td>Total</td><td>${grandPresent}</td><td>${grandTotal}</td><td>${grandPct}%</td></tr>`;
             html += `</tbody></table>`;
             els.dashboardOutput.innerHTML = html || '<p>මෙම දිනය සඳහා දත්ත නැත.</p>';
             els.generateDashboardBtn.disabled = false;
