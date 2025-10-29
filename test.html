@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; display: grid; place-items: center; min-height: 90vh; background-color: #f4f7f6; }
+        .container { background: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); text-align: center; }
+        h1 { color: #005A9C; }
+        #status { font-size: 1.2em; font-weight: bold; margin-top: 20px; padding: 15px; border-radius: 8px; }
+        .success { color: #4CAF50; background-color: #e8f5e9; }
+        .error { color: #D32F2F; background-color: #ffebee; }
+        input { width: 90%; padding: 10px; margin-bottom: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
+        button { width: 95%; padding: 12px; font-size: 16px; font-weight: bold; color: white; background-color: #005A9C; border: none; border-radius: 8px; cursor: pointer; }
+        #userInfo { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Firebase Connection Test</h1>
+        <p id="status">Initializing Firebase...</p>
+
+        <div id="loginForm" style="display: none;">
+            <hr>
+            <input type="email" id="testEmail" placeholder="Enter Test Email">
+            <input type="password" id="testPassword" placeholder="Enter Test Password">
+            <button id="testLoginBtn">Test Login</button>
+            <p id="loginStatus"></p>
+        </div>
+
+        <div id="userInfo" style="display: none;">
+            <p id="welcomeMsg"></p>
+            <button id="testLogoutBtn">Test Logout</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+    <script>
+        // =====================================================================
+        // ==== YOUR FIREBASE CONFIG OBJECT (FROM PREVIOUS MESSAGE) ====
+        // =====================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPWRMciqqubcBUSzsE88xQcM9s1rMCMV8",
+            authDomain: "smart-attendance-tracker-841c6.firebaseapp.com",
+            projectId: "smart-attendance-tracker-841c6",
+            storageBucket: "smart-attendance-tracker-841c6.appspot.com",
+            messagingSenderId: "741876469231",
+            appId: "1:741876469231:web:e971888d73cddaeec53a1a",
+            measurementId: "G-TP7WKWL66Y"
+        };
+        // =====================================================================
+
+        // Get DOM Elements
+        const statusElement = document.getElementById('status');
+        const loginForm = document.getElementById('loginForm');
+        const userInfo = document.getElementById('userInfo');
+        const welcomeMsg = document.getElementById('welcomeMsg');
+        const loginStatus = document.getElementById('loginStatus');
+        const testEmailInput = document.getElementById('testEmail');
+        const testPasswordInput = document.getElementById('testPassword');
+        const testLoginBtn = document.getElementById('testLoginBtn');
+        const testLogoutBtn = document.getElementById('testLogoutBtn');
+
+        let auth;
+
+        try {
+            // 1. Initialize Firebase
+            if (typeof firebase === 'undefined') throw new Error("Firebase SDK script not loaded.");
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                console.log("DEBUG: Firebase Initialized.");
+            }
+            auth = firebase.auth(); // Get Auth service
+
+            statusElement.textContent = "SUCCESS: Firebase Initialized!";
+            statusElement.className = "success";
+            console.log("DEBUG: Firebase Init Success.");
+
+            // 2. Attach Auth State Listener
+            auth.onAuthStateChanged(user => {
+                console.log("DEBUG: Auth state changed. User:", user ? user.email : 'null');
+                if (user) {
+                    // User is signed in
+                    loginForm.style.display = 'none';
+                    userInfo.style.display = 'block';
+                    welcomeMsg.textContent = `Welcome, ${user.email}!`;
+                    loginStatus.textContent = "";
+                } else {
+                    // User is signed out
+                    loginForm.style.display = 'block';
+                    userInfo.style.display = 'none';
+                    welcomeMsg.textContent = "";
+                }
+            });
+
+            // 3. Attach Login Button Listener
+            testLoginBtn.addEventListener('click', () => {
+                const email = testEmailInput.value;
+                const password = testPasswordInput.value;
+                loginStatus.textContent = "Logging in...";
+                loginStatus.style.color = "blue";
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(userCredential => {
+                        console.log("DEBUG: Login successful:", userCredential.user.email);
+                        loginStatus.textContent = "Login Successful!";
+                        loginStatus.style.color = "green";
+                    })
+                    .catch(error => {
+                        console.error("DEBUG: Login Error:", error.code, error.message);
+                        loginStatus.textContent = `Login Failed: ${error.message}`;
+                        loginStatus.style.color = "red";
+                    });
+            });
+
+            // 4. Attach Logout Button Listener
+            testLogoutBtn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    console.log("DEBUG: Logout successful.");
+                }).catch(error => {
+                    console.error("DEBUG: Logout Error:", error.message);
+                });
+            });
+
+        } catch (e) {
+            console.error("CRITICAL: Error initializing Firebase SDK", e);
+            statusElement.textContent = `FAILED: ${e.message}`;
+            statusElement.className = "error";
+        }
+    </script>
+
+</body>
+</html>
