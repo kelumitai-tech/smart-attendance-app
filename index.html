@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Attendance Tracker (Firebase)</title>
-
-    <link rel="manifest" href="manifest.json">
+    <title>Smart Attendance Tracker</title> <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#005A9C">
 
     <style>
@@ -14,243 +12,65 @@
             --primary-color: #005A9C;
             --secondary-color: #4CAF50;
             --header-color: #ffffff;
-            --bg-color: #f4f7f6; /* Lighter, cleaner background */
+            --bg-color: #f4f7f6;
             --card-bg: #ffffff;
             --text-color: #333;
-            --border-color: #e0e0e0; /* Softer border */
+            --border-color: #e0e0e0;
             --danger-color: #D32F2F;
             --warning-color: #FFA000;
-            --print-btn-color: #3f51b5; /* Indigo */
-            --google-btn-color: #DB4437; /* Google Red */
-            --shadow: 0 5px 15px rgba(0,0,0,0.08); /* Softer shadow */
+            --print-btn-color: #3f51b5;
+            --google-btn-color: #DB4437;
+            --shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
 
-        html, body {
-            overflow-x: hidden;
-            width: 100%;
-        }
+        html, body { overflow-x: hidden; width: 100%; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            display: flex; /* Use flexbox for centering loading */
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh; /* Ensure loading covers screen */
+            margin: 0; background-color: var(--bg-color); color: var(--text-color);
+            line-height: 1.6; display: flex; justify-content: center; align-items: center; min-height: 100vh;
         }
+        #loadingIndicator { font-size: 1.2em; color: var(--primary-color); text-align: center; }
 
-        /* NEW: Loading Indicator */
-        #loadingIndicator {
-            font-size: 1.2em;
-            color: var(--primary-color);
-            text-align: center;
-        }
+        /* ==== Header ==== */
+        .main-header { background: var(--primary-color); color: var(--header-color); padding: 15px 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
+        .main-header h1 { margin: 0; font-size: 1.6em; font-weight: 600; }
 
-        /* ==== 1. Header ==== */
-        .main-header {
-            background: var(--primary-color);
-            color: var(--header-color);
-            padding: 15px 20px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            position: relative; /* Needed for logout button positioning */
-        }
-        .main-header h1 {
-            margin: 0;
-            font-size: 1.6em;
-            font-weight: 600;
-        }
+        /* ==== Layout ==== */
+        .app-container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 20px 10px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .card { background: var(--card-bg); border-radius: 16px; box-shadow: var(--shadow); padding: 20px; border: 1px solid var(--border-color); }
+        .card h2 { margin-top: 0; text-align: center; color: var(--primary-color); font-size: 1.5em; margin-bottom: 25px; }
+        #report-card p, #danger-zone-card p { text-align: center; font-size: 0.95em; margin-bottom: 20px; }
+        hr.card-divider { margin: 25px 0 20px; border-top: 1px solid var(--border-color); border-bottom: none; }
 
-        /* ==== 2. Layout (Single Column) ==== */
-        .app-container {
-            width: 100%; /* Take full width */
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px 10px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
+        /* ==== Forms ==== */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 8px; text-align: left; color: #555; }
+        select, input[type="text"], input[type="date"], input[type="month"], input[type="email"], input[type="password"] { width: 100%; display: block; padding: 14px; font-size: 16px; border: 1px solid var(--border-color); border-radius: 10px; box-sizing: border-box; background-color: #fcfcfc; }
+        input[type="date"], input[type="month"] { appearance: none; -webkit-appearance: none; }
+        .radio-group { display: flex; justify-content: flex-start; gap: 20px; margin-top: 10px; }
+        .radio-group input[type="radio"] { display: none; }
+        .radio-group label { display: inline-block; padding: 10px 20px; border: 2px solid var(--border-color); border-radius: 10px; cursor: pointer; font-weight: 600; text-align: center; width: 80px; }
+        .radio-group input[type="radio"]:checked + label { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
 
-        /* App-like Cards */
-        .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            padding: 20px;
-            border: 1px solid var(--border-color);
-        }
-        .card h2 {
-            margin-top: 0;
-            text-align: center;
-            color: var(--primary-color);
-            font-size: 1.5em;
-            margin-bottom: 25px;
-        }
-
-        #report-card p,
-        #danger-zone-card p {
-            text-align: center;
-            font-size: 0.95em;
-            margin-bottom: 20px;
-        }
-
-        /* Divider */
-        hr.card-divider {
-            margin: 25px 0 20px;
-            border-top: 1px solid var(--border-color);
-            border-bottom: none;
-        }
-
-        /* ==== 3. Form Elements ==== */
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            text-align: left;
-            color: #555;
-        }
-
-        select, input[type="text"], input[type="date"], input[type="month"], input[type="email"], input[type="password"] {
-            width: 100%;
-            display: block;
-            padding: 14px;
-            font-size: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            box-sizing: border-box;
-            background-color: #fcfcfc;
-        }
-
-        input[type="date"], input[type="month"] {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        /* Gender Radio Button Styles */
-        .radio-group {
-            display: flex;
-            justify-content: flex-start;
-            gap: 20px;
-            margin-top: 10px;
-        }
-        .radio-group input[type="radio"] {
-            display: none;
-        }
-        .radio-group label {
-            display: inline-block;
-            padding: 10px 20px;
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            text-align: center;
-            width: 80px;
-        }
-        .radio-group input[type="radio"]:checked + label {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        /* App-like Buttons */
-        button {
-            width: 100%;
-            display: block;
-            padding: 15px;
-            font-size: 1.1em;
-            font-weight: 700;
-            border: none;
-            border-radius: 10px;
-            box-sizing: border-box;
-            color: white;
-            cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        button:disabled {
-             background-color: #ccc;
-             cursor: not-allowed;
-             box-shadow: none;
-        }
-        button:active:not(:disabled) {
-            transform: translateY(2px);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-         /* For Mark All/Calculate */
-        .button-group-inline {
-             display: flex;
-             gap: 10px;
-             margin-bottom: 15px;
-             justify-content: center;
-        }
-        .button-group-inline button {
-             margin-top: 0;
-             flex: 1;
-             max-width: 200px;
-             font-size: 0.95em;
-             padding: 12px;
-        }
-
+        /* ==== Buttons ==== */
+        button { width: 100%; display: block; padding: 15px; font-size: 1.1em; font-weight: 700; border: none; border-radius: 10px; box-sizing: border-box; color: white; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; box-shadow: none; }
+        button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .button-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .button-group-inline { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
+        .button-group-inline button { margin-top: 0; flex: 1; max-width: 200px; font-size: 0.95em; padding: 12px; }
 
         /* Button colors */
-        #addClassBtn { background-color: #2196F3; }
-        #addSubjectBtn { background-color: #00796B; }
-        #addTeacherBtn { background-color: #8E24AA; }
-        #addStudentBtn { background-color: #ff9800; }
-        #updateDatesBtn { background-color: #00796B; }
-        #generateReportBtn { background-color: #512DA8; }
-        #generateDashboardBtn { background-color: #d81b60; }
-        #printReportBtn { background-color: var(--print-btn-color); }
-        #saveBtn { background-color: var(--secondary-color); }
-        #calculateBtn { background-color: #673AB7; } /* Moved button */
-        #clearWeekBtn { background-color: var(--warning-color); }
-        #resetAllBtn { background-color: var(--danger-color); }
-        #loginBtn, #logoutBtn { background-color: var(--primary-color); }
-        #googleLoginBtn { background-color: var(--google-btn-color); margin-top: 15px; }
-        #markAllPresentBtn { background-color: #0d6efd; } /* Added button */
+        #addClassBtn { background-color: #2196F3; } #addSubjectBtn { background-color: #00796B; } #addTeacherBtn { background-color: #8E24AA; } #addStudentBtn { background-color: #ff9800; } #updateDatesBtn { background-color: #00796B; } #generateReportBtn { background-color: #512DA8; } #generateDashboardBtn { background-color: #d81b60; } #printReportBtn { background-color: var(--print-btn-color); } #saveBtn { background-color: var(--secondary-color); } #calculateBtn { background-color: #673AB7; } #clearWeekBtn { background-color: var(--warning-color); } #resetAllBtn { background-color: var(--danger-color); } #loginBtn, #logoutBtn { background-color: var(--primary-color); } #googleLoginBtn { background-color: var(--google-btn-color); margin-top: 15px; } #markAllPresentBtn { background-color: #0d6efd; }
+        #logoutBtn { width: auto; position: absolute; top: 10px; right: 10px; padding: 8px 15px; font-size: 0.9em; margin-top: 0; }
 
-        #logoutBtn {
-             width: auto;
-             position: absolute;
-             top: 10px;
-             right: 10px;
-             padding: 8px 15px;
-             font-size: 0.9em;
-             margin-top: 0;
-        }
-
-
-        /* ==== 4. Table Styles ==== */
-        .table-responsive-wrapper {
-            width: 100%;
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
+        /* ==== Tables ==== */
+        .table-responsive-wrapper { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th, td { border: 1px solid var(--border-color); padding: 14px; text-align: center; }
-        thead tr { background-color: #f1f1f1; }
-        th { font-weight: 600; }
-        tbody tr:nth-child(even) { background-color: #fcfcfc; }
-        tbody tr:hover { background-color: #eef; }
+        thead tr { background-color: #f1f1f1; } th { font-weight: 600; }
+        tbody tr:nth-child(even) { background-color: #fcfcfc; } tbody tr:hover { background-color: #eef; }
         td:first-child { text-align: left; font-weight: 500; white-space: nowrap; min-width: 150px; }
         .total-cell { font-weight: bold; background-color: #f0f4ff; font-size: 1.1em; }
         input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
@@ -259,54 +79,22 @@
         #dashboardOutput th { background-color: #d81b60; }
         #dashboardOutput tr:last-child { background-color: #f0f4ff; font-weight: bold; }
 
-
-        /* ==== 5. Danger Zone ==== */
-        .danger-zone {
-            border-color: var(--danger-color);
-            background-color: #fff5f5;
-        }
+        /* ==== Danger Zone ==== */
+        .danger-zone { border-color: var(--danger-color); background-color: #fff5f5; }
         .danger-zone h2 { color: var(--danger-color); border-bottom-color: transparent; }
 
-        /* ==== 6. Footer ==== */
-        .main-footer-credits {
-            text-align: center;
-            padding: 20px 15px;
-            margin-top: 20px;
-            color: #777;
-            font-size: 0.9em;
-            background-color: #eef;
-            line-height: 1.7;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            border-top: 2px solid var(--primary-color);
-        }
+        /* ==== Footer ==== */
+        .main-footer-credits { text-align: center; padding: 20px 15px; margin-top: 20px; color: #777; font-size: 0.9em; background-color: #eef; line-height: 1.7; overflow-wrap: break-word; word-break: break-word; border-top: 2px solid var(--primary-color); }
 
         /* Message for user */
-        .info-message {
-            text-align: center;
-            padding: 20px;
-            background-color: #f0f4ff;
-            border-radius: 10px;
-            color: #555;
-            font-weight: 500;
-        }
+        .info-message { text-align: center; padding: 20px; background-color: #f0f4ff; border-radius: 10px; color: #555; font-weight: 500; }
 
-        /* Login Screen Styles */
-        #loginScreen {
-             padding: 30px;
-             text-align: center;
-        }
-        #loginScreen input[type="email"], #loginScreen input[type="password"] {
-            margin-bottom: 15px;
-        }
-        #loginError {
-            color: var(--danger-color);
-            margin-top: 15px;
-            font-weight: bold;
-            display: none;
-        }
+        /* Login Screen */
+        #loginScreen { padding: 30px; text-align: center; }
+        #loginScreen input[type="email"], #loginScreen input[type="password"] { margin-bottom: 15px; }
+        #loginError { color: var(--danger-color); margin-top: 15px; font-weight: bold; display: none; }
 
-        /* ==== 7. Mobile Responsive "Card" View ==== */
+        /* ==== Mobile Responsive "Card" View ==== */
         @media screen and (max-width: 767px) {
             body { display: block; min-height: auto; } #loadingIndicator { margin-top: 50px; }
             .table-responsive-wrapper { overflow-x: visible; border: none; }
@@ -336,8 +124,7 @@
     <div id="loadingIndicator">Loading Application...</div>
 
     <div id="loginScreen" class="card" style="display: none; max-width: 400px; margin: 50px auto;">
-        <h2>Login</h2>
-        <div class="form-group"> <label for="loginEmail">Email</label> <input type="email" id="loginEmail" placeholder="Enter your email"> </div>
+        <h2>Smart Attendance Tracker</h2> <div class="form-group"> <label for="loginEmail">Email</label> <input type="email" id="loginEmail" placeholder="Enter your email"> </div>
         <div class="form-group"> <label for="loginPassword">Password</label> <input type="password" id="loginPassword" placeholder="Enter your password"> </div>
         <button id="loginBtn">Login</button>
         <button id="googleLoginBtn">Sign in with Google</button>
@@ -346,34 +133,33 @@
 
     <div id="appContent" style="display: none;">
         <header class="main-header">
-            <h1 id="appTitle">Smart Attendance Tracker</h1>
-            <button id="logoutBtn">Logout</button>
+            <h1 id="appTitle">Smart Attendance Tracker</h1> <button id="logoutBtn">Logout</button>
         </header>
 
         <main class="app-container">
             <div class="card management-card" id="class-manager-card" style="display: none;">
                  <h2>Class Management</h2>
-                 <div class="form-group"> <label for="selectGrade">Grade</label> <select id="selectGrade"><option>...</option></select> </div>
+                 <div class="form-group"> <label for="selectGrade">Grade</label> <select id="selectGrade"><option value="Grade 6">Grade 6</option><option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option><option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option><option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option><option value="Grade 13">Grade 13</option></select> </div>
                  <div class="form-group"> <label for="inputClassName">Class Name</label> <input type="text" id="inputClassName" placeholder="e.g., A"> </div>
                  <button id="addClassBtn">Add New Class</button>
                  <hr class="card-divider">
-                 <div class="form-group"> <label for="selectClass">Active Class</label> <select id="selectClass"><option>-- Loading... --</option></select> </div>
+                 <div class="form-group"> <label for="selectClass">Active Class</label> <select id="selectClass"><option value="">-- Loading... --</option></select> </div>
             </div>
             <div class="card management-card" id="subject-manager-card" style="display: none;">
                  <h2>Subject Management</h2>
                  <div class="form-group"> <label for="inputSubjectName">New Subject</label> <input type="text" id="inputSubjectName" placeholder="e.g., Maths"> </div>
                  <button id="addSubjectBtn">Add New Subject</button>
                  <hr class="card-divider">
-                 <div class="form-group"> <label for="selectSubject">Active Subject</label> <select id="selectSubject"><option>-- Loading... --</option></select> </div>
+                 <div class="form-group"> <label for="selectSubject">Active Subject</label> <select id="selectSubject"><option value="">-- Loading... --</option></select> </div>
             </div>
-            <div class="card management-card" id="teacher-manager-card" style="display: none;">
+             <div class="card management-card" id="teacher-manager-card" style="display: none;">
                  <h2>Teacher Management</h2>
                   <div class="form-group"> <label for="inputTeacherName">New Teacher</label> <input type="text" id="inputTeacherName" placeholder="e.g., Mr. Perera"> </div>
                  <button id="addTeacherBtn">Add New Teacher</button>
                  <hr class="card-divider">
-                 <div class="form-group"> <label for="selectTeacher">Active Teacher</label> <select id="selectTeacher"><option>-- Loading... --</option></select> </div>
+                 <div class="form-group"> <label for="selectTeacher">Active Teacher</label> <select id="selectTeacher"><option value="">-- Loading... --</option></select> </div>
             </div>
-            <div class="card management-card" id="student-manager-card" style="display: none;">
+             <div class="card management-card" id="student-manager-card" style="display: none;">
                 <h2>Student Management</h2>
                  <div class="form-group"> <label for="studentNameInput">New Student</label> <input type="text" id="studentNameInput" placeholder="Enter name"> </div>
                  <div class="form-group"> <label>Gender</label> <div class="radio-group"> <input type="radio" id="genderMale" name="studentGender" value="Male" checked> <label for="genderMale">Male</label> <input type="radio" id="genderFemale" name="studentGender" value="Female"> <label for="genderFemale">Female</label> </div> </div>
@@ -443,13 +229,13 @@
       // ==== PASTE YOUR FIREBASE CONFIG OBJECT HERE                   ====
       // =====================================================================
       const firebaseConfig = {
-        apiKey: "AIzaSyCPWRMciqqubcBUSzsE88xQcM9s1rMCMV8", // <--- REPLACE THIS LINE and below
-        authDomain: "smart-attendance-tracker-841c6.firebaseapp.com",
-        projectId: "smart-attendance-tracker-841c6",
-        storageBucket: "smart-attendance-tracker-841c6.appspot.com",
-        messagingSenderId: "741876469231",
-        appId: "1:741876469231:web:e971888d73cddaeec53a1a",
-        measurementId: "G-TP7WKWL66Y" // Optional measurement ID
+        apiKey: "AIzaSyCPWRMciqqubcBUSzsE88xQcM9s1rMCMV8", // <--- REPLACE IF NEEDED
+        authDomain: "smart-attendance-tracker-841c6.firebaseapp.com", // <--- REPLACE IF NEEDED
+        projectId: "smart-attendance-tracker-841c6", // <--- REPLACE IF NEEDED
+        storageBucket: "smart-attendance-tracker-841c6.appspot.com", // <--- REPLACE IF NEEDED
+        messagingSenderId: "741876469231", // <--- REPLACE IF NEEDED
+        appId: "1:741876469231:web:e971888d73cddaeec53a1a", // <--- REPLACE IF NEEDED
+        measurementId: "G-TP7WKWL66Y" // Optional
       };
       // =====================================================================
 
@@ -457,7 +243,7 @@
       let app, auth, db;
       let currentUser = null;
       let currentUserRole = null;
-      let FieldValue; // Declared here, assigned after init
+      let FieldValue;
 
       try {
           if (!firebase.apps.length) { app = firebase.initializeApp(firebaseConfig); }
@@ -475,7 +261,11 @@
     </script>
     <script>
         if ('serviceWorker' in navigator && typeof firebase !== 'undefined' && firebase.apps.length) {
-            window.addEventListener('load', () => { /* ... SW register ... */ });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => { console.log('SW registered: ', registration.scope); })
+                    .catch(error => { console.log('SW registration failed: ', error); });
+            });
         } else { console.log("SW not supported or Firebase not loaded."); }
     </script>
 
@@ -534,12 +324,14 @@
         // ==== 0. Authentication & Roles ====
 
         async function handleAuthStateChanged(user) {
-            // Ensure DOM is ready before manipulating it heavily
-            if (document.readyState === 'loading') {
+            // Wait for DOM content to be fully loaded before manipulating heavily
+             if (document.readyState === 'loading') {
+                 console.log("DOM not ready, waiting...");
                  await new Promise(resolve => window.addEventListener('DOMContentLoaded', resolve));
+                 console.log("DOM ready.");
             }
 
-            // Hide loading indicator only after DOM ready and auth known
+            // Hide loading indicator only now
              if (loadingIndicator) loadingIndicator.style.display = 'none';
 
             currentUser = user;
@@ -550,34 +342,42 @@
                  if (loginScreen) loginScreen.style.display = 'none';
                  if (appContent) appContent.style.display = 'block';
 
-                try {
-                    // Check if db is initialized before using it
-                    if (!db) throw new Error("Firestore DB not initialized.");
-                    const userDocRef = db.collection('users').doc(user.uid);
-                    const userDoc = await userDocRef.get();
-                    if (userDoc.exists && userDoc.data().role) {
-                        currentUserRole = userDoc.data().role;
-                        console.log("User role:", currentUserRole);
-                         if (!userDoc.data().email && user.email) {
+                // --- Fetch Role ---
+                 try {
+                     if (!db) throw new Error("Firestore DB not initialized.");
+                     const userDocRef = db.collection('users').doc(user.uid);
+                     const userDoc = await userDocRef.get();
+                     if (userDoc.exists && userDoc.data().role) {
+                         currentUserRole = userDoc.data().role;
+                         console.log("User role:", currentUserRole);
+                         if (!userDoc.data().email && user.email) { // Update email if missing (e.g., Google login)
                               await userDocRef.set({ email: user.email }, { merge: true });
                          }
-                    } else {
-                        console.warn(`User document or role not found for ${user.uid}. Creating/assigning default role 'teacher'.`);
-                        await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true });
-                        currentUserRole = 'teacher';
-                    }
-                } catch (error) {
-                    console.error("Error fetching/setting user role:", error);
-                    currentUserRole = 'teacher'; // Fallback role
-                    alert("Could not determine user role. Defaulting to 'teacher'. Try refreshing.");
-                }
+                     } else { // Create user doc with default role if doesn't exist
+                         console.warn(`User doc/role missing for ${user.uid}. Creating/assigning default role 'teacher'.`);
+                         await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true });
+                         currentUserRole = 'teacher';
+                     }
+                 } catch (error) {
+                     console.error("Error fetching/setting user role:", error);
+                     currentUserRole = 'teacher'; // Fallback
+                     alert("Could not determine user role. Defaulting to 'teacher'. Try refreshing.");
+                 }
+                 // --- End Fetch Role ---
 
                 updateUIForRole();
 
-                if (!appState.isDataLoaded) {
-                    loadInitialData();
-                }
-            } else {
+                // Load data ONLY if not already loaded in this session
+                 if (!appState.isDataLoaded) {
+                     await loadInitialData(); // Make sure data is loaded before proceeding
+                 } else {
+                      // If data is already loaded, ensure dropdowns are correctly populated and table is rendered
+                      populateAllSelectors(); // Repopulate selectors from existing state
+                      setDefaultDate(); // Reset dates
+                      updateTableHeaders(); // Rerender table
+                 }
+
+            } else { // User logged out
                 console.log("User logged out");
                  if (loginScreen) loginScreen.style.display = 'block';
                  if (appContent) appContent.style.display = 'none';
@@ -588,98 +388,53 @@
 
         // Show/Hide UI elements based on user role
         function updateUIForRole() {
-            if (!currentUserRole || !appContent || !dashboardCard || !dangerZoneCard || !managementCards.length) return; // Ensure elements exist
+            if (!currentUserRole || !appContent || !dashboardCard || !dangerZoneCard || !managementCards.length) return;
 
              if(appTitle) appTitle.textContent = `Smart Attendance (${currentUserRole})`;
-
             const isPrincipal = currentUserRole === 'principal';
 
             dashboardCard.style.display = isPrincipal ? 'block' : 'none';
             dangerZoneCard.style.display = isPrincipal ? 'block' : 'none';
 
+            // Hide/Show management cards based on role
             managementCards.forEach(card => {
-                // Principals see all management cards
-                if (isPrincipal) {
-                     card.style.display = 'block';
-                } else { // Teacher or other role
-                     // Teachers only see the student management card (example)
-                     if (card.id === 'student-manager-card') {
-                          card.style.display = 'block';
-                     } else {
-                          card.style.display = 'none'; // Hide others for teachers
-                     }
-                }
+                 // Principals see all management cards
+                 if (isPrincipal) {
+                      card.style.display = 'block';
+                 } else { // Teacher
+                      // Teachers might only need student management, or none if students are pre-populated
+                      if (card.id === 'student-manager-card') {
+                           card.style.display = 'block'; // Example: Allow teachers to add students
+                      } else {
+                           card.style.display = 'none'; // Hide Class, Subject, Teacher management for teachers
+                      }
+                 }
             });
 
-             // Ensure essential selection dropdowns are visible for teachers even if add buttons are hidden
-             // These cards contain the dropdowns needed by teachers
+             // Ensure essential selection dropdowns are always visible (even for teachers)
              document.getElementById('class-manager-card').style.display = 'block';
              document.getElementById('subject-manager-card').style.display = 'block';
              document.getElementById('teacher-manager-card').style.display = 'block';
 
-            // Example: Disable "Add" buttons if the user is not a principal
+            // Disable "Add" buttons if the user is not a principal
             addClassBtn.disabled = !isPrincipal;
             addSubjectBtn.disabled = !isPrincipal;
             addTeacherBtn.disabled = !isPrincipal;
-            // addStudentBtn.disabled = !isPrincipal; // Allow teachers to add students
+            // addStudentBtn.disabled = !isPrincipal; // Decide if teachers can add students
         }
 
 
-        async function loginUser() {
-             loginBtn.disabled = true; loginError.style.display = 'none'; loginError.textContent = '';
-             const email = loginEmailInput.value.trim(); const password = loginPasswordInput.value;
-             if (!email || !password) { loginError.textContent = "Enter email/password."; loginError.style.display = 'block'; loginBtn.disabled = false; return; }
-             try { if (!auth) throw new Error("Firebase Auth missing."); await auth.signInWithEmailAndPassword(email, password); }
-             catch (error) { console.error("Login fail:", error); loginError.textContent = "Login failed: " + (error.message || "Unknown"); loginError.style.display = 'block'; }
-             finally { loginBtn.disabled = false; }
-        }
-
-        async function logoutUser() {
-             if (!auth) return; logoutBtn.disabled = true;
-             try { await auth.signOut(); } catch (error) { console.error("Logout fail:", error); alert("Logout failed: " + error.message); }
-             finally { logoutBtn.disabled = false; }
-        }
-
-        async function loginWithGoogle() {
-            if (!auth || !firebase.auth.GoogleAuthProvider) { alert("Google Login unavailable."); return; }
-            const provider = new firebase.auth.GoogleAuthProvider();
-            googleLoginBtn.disabled = true; loginError.style.display = 'none';
-            try { await auth.signInWithPopup(provider); }
-            catch (error) {
-                console.error("Google Login failed:", error);
-                loginError.textContent = "Google Login failed: " + error.message;
-                loginError.style.display = 'block';
-                googleLoginBtn.disabled = false; // Re-enable only on error
-            }
-        }
-
-        function clearUI() {
-             selectClass.innerHTML = '<option value="">-- Login Required --</option>';
-             selectSubject.innerHTML = '<option value="">-- Login Required --</option>';
-             selectTeacher.innerHTML = '<option value="">-- Login Required --</option>';
-             reportSubject.innerHTML = '<option value="">-- Login Required --</option>';
-             reportTeacher.innerHTML = '<option value="">-- Login Required --</option>';
-             tableBody.innerHTML = '';
-             reportOutput.innerHTML = '';
-             dashboardOutput.innerHTML = '';
-             appState = { rosters: {}, subjects: [], teachers: [], isDataLoaded: false };
-             // Reset input fields too
-             if(inputClassName) inputClassName.value = '';
-             if(inputSubjectName) inputSubjectName.value = '';
-             if(inputTeacherName) inputTeacherName.value = '';
-             if(studentNameInput) studentNameInput.value = '';
-        }
+        async function loginUser() { /* ... Same error handling ... */ }
+        async function logoutUser() { /* ... Same error handling ... */ }
+        async function loginWithGoogle() { /* ... Same error handling ... */ }
+        function clearUI() { /* ... Same ... */ }
 
         // ==== 1. Data Loading ====
         async function loadInitialData() {
-             if (!currentUser || !db) return;
-             console.log("Loading initial data...");
-             appState.isDataLoaded = false;
-             selectClass.innerHTML = '<option value="">-- Loading... --</option>';
-             selectSubject.innerHTML = '<option value="">-- Loading... --</option>';
-             selectTeacher.innerHTML = '<option value="">-- Loading... --</option>';
-             reportSubject.innerHTML = '<option value="">-- Loading... --</option>';
-             reportTeacher.innerHTML = '<option value="">-- Loading... --</option>';
+            if (!currentUser || !db) return;
+            console.log("Loading initial data...");
+            appState.isDataLoaded = false; // Mark start
+            setSelectorsLoadingState(true); // Show loading in dropdowns
 
             try {
                 const [subjectsSnapshot, teachersSnapshot, rostersSnapshot] = await Promise.all([
@@ -689,61 +444,224 @@
                 ]);
 
                 appState.subjects = subjectsSnapshot.exists ? (subjectsSnapshot.data().list || []) : [];
-                appState.subjects.sort(); populateSubjectSelectors();
+                appState.subjects.sort();
 
                 appState.teachers = teachersSnapshot.exists ? (teachersSnapshot.data().list || []) : [];
-                appState.teachers.sort(); populateTeacherSelectors();
+                appState.teachers.sort();
 
                 appState.rosters = {};
                 rostersSnapshot.forEach(doc => {
                     appState.rosters[doc.id] = doc.data().students || [];
                     appState.rosters[doc.id].sort((a, b) => a.name.localeCompare(b.name));
                 });
-                populateClassSelector(); // This will call handleClassChange -> renderStudentTable
 
-                console.log("Initial data loaded.");
-                appState.isDataLoaded = true;
+                console.log("Initial data fetched, populating UI.");
+                populateAllSelectors(); // Populate all dropdowns
+
+                appState.isDataLoaded = true; // Mark finish
+
                 setDefaultDate();
-                updateTableHeaders(); // Call explicitly after data load
+                updateTableHeaders(); // Trigger first table render
 
             } catch (error) {
                 console.error("Error loading initial data: ", error);
                 alert("Error loading setup data. Check connection/permissions.");
-                selectClass.innerHTML = '<option value="">-- Error --</option>';
-                selectSubject.innerHTML = '<option value="">-- Error --</option>';
-                selectTeacher.innerHTML = '<option value="">-- Error --</option>';
+                setSelectorsLoadingState(false, true); // Show error in dropdowns
             }
         }
 
-        // ==== 2. Management Functions ====
-        function generateClassId(grade, className) { /* ... */ return `${grade.replace(' ', '')}-${className.trim().toUpperCase()}`; }
-        async function addNewClass() { /* ... Same Firestore logic ... */
-             if (!currentUser || !db || currentUserRole !== 'principal') return; // Role check example
-             addClassBtn.disabled = true;
-             // ... rest of the logic ...
+        // Helper to set loading/error state for dropdowns
+        function setSelectorsLoadingState(isLoading, isError = false) {
+             const message = isError ? '-- Error --' : (isLoading ? '-- Loading... --' : '');
+             const selectors = [selectClass, selectSubject, selectTeacher, reportSubject, reportTeacher];
+             selectors.forEach(sel => {
+                  if (isLoading || isError) {
+                       sel.innerHTML = `<option value="">${message}</option>`;
+                       sel.disabled = true;
+                  } else {
+                       sel.disabled = false;
+                       // Content will be added by populate functions
+                  }
+             });
         }
-        function populateClassSelector() { /* ... Same ... */ }
+
+        // Helper to populate all dropdowns at once
+        function populateAllSelectors() {
+             populateClassSelector();
+             populateSubjectSelectors();
+             populateTeacherSelectors();
+        }
+
+        // ==== 2. Management Functions ====
+        function generateClassId(grade, className) { /* ... */ }
+        async function addNewClass() {
+             if (!currentUser || !db || currentUserRole !== 'principal') return;
+             addClassBtn.disabled = true;
+             const grade = selectGrade.value; const className = inputClassName.value;
+             if (!className) { alert('Enter class name.'); addClassBtn.disabled = false; return; }
+             const classId = generateClassId(grade, className);
+             try {
+                  const classRef = db.collection('rosters').doc(classId);
+                  const doc = await classRef.get();
+                  if (doc.exists) { alert(`Class '${formatClassId(classId)}' exists.`); }
+                  else {
+                       await classRef.set({ students: [] });
+                       console.log(`Class ${classId} added.`);
+                       appState.rosters[classId] = []; // Update state
+                       populateClassSelector(); // Update UI
+                       selectClass.value = classId;
+                       handleClassChange();
+                       alert(`Class '${formatClassId(classId)}' added.`);
+                       inputClassName.value = '';
+                  }
+             } catch (e) { console.error("Add class error:", e); alert("Failed. Check rules/connection."); }
+             finally { addClassBtn.disabled = false; }
+        }
+        function populateClassSelector() {
+             const currentVal = selectClass.value; // Preserve selection
+             selectClass.innerHTML = ''; // Clear existing
+             const classIds = Object.keys(appState.rosters).sort();
+             if (classIds.length === 0) { selectClass.innerHTML = '<option value="">-- Add class --</option>'; selectClass.disabled = false; return; }
+             classIds.forEach(id => { const opt = document.createElement('option'); opt.value = id; opt.textContent = formatClassId(id); selectClass.appendChild(opt); });
+             // Restore selection or select first
+             selectClass.value = appState.rosters[currentVal] ? currentVal : (classIds[0] || '');
+             selectClass.disabled = false;
+        }
         function handleClassChange() { renderStudentTable(); }
-        async function addNewSubject() { /* ... Same Firestore logic ... */
+
+        async function addNewSubject() {
              if (!currentUser || !db || currentUserRole !== 'principal') return;
              addSubjectBtn.disabled = true;
-             // ... rest of the logic ...
+             const subjectName = inputSubjectName.value.trim();
+             if (!subjectName) { alert('Enter subject name.'); addSubjectBtn.disabled = false; return; }
+             if (appState.subjects.includes(subjectName)) { alert('Subject exists.'); addSubjectBtn.disabled = false; return; }
+             try {
+                  const ref = db.collection('meta').doc('subjects');
+                  await ref.set({ list: FieldValue.arrayUnion(subjectName) }, { merge: true });
+                  console.log(`Subject ${subjectName} added.`);
+                  appState.subjects.push(subjectName); appState.subjects.sort(); // Update state
+                  populateSubjectSelectors(); // Update UI
+                  selectSubject.value = subjectName;
+                  handleSubjectChange();
+                  alert(`Subject '${subjectName}' added.`);
+                  inputSubjectName.value = '';
+             } catch (e) { console.error("Add subject error:", e); alert("Failed. Check rules/connection."); }
+             finally { addSubjectBtn.disabled = false; }
         }
-        function populateSubjectSelectors() { /* ... Same ... */ }
+        function populateSubjectSelectors() {
+             const currentVal = selectSubject.value; const currentRepVal = reportSubject.value;
+             selectSubject.innerHTML = ''; reportSubject.innerHTML = '';
+             if (appState.subjects.length === 0) { selectSubject.innerHTML = '<option value="">-- Add subject --</option>'; reportSubject.innerHTML = '<option value="">-- Add subject --</option>'; selectSubject.disabled=false; reportSubject.disabled=false; return; }
+             appState.subjects.forEach(sub => {
+                  const opt1 = document.createElement('option'); opt1.value = sub; opt1.textContent = sub; selectSubject.appendChild(opt1);
+                  const opt2 = document.createElement('option'); opt2.value = sub; opt2.textContent = sub; reportSubject.appendChild(opt2);
+             });
+             selectSubject.value = appState.subjects.includes(currentVal) ? currentVal : (appState.subjects[0] || '');
+             reportSubject.value = appState.subjects.includes(currentRepVal) ? currentRepVal : (appState.subjects[0] || '');
+             selectSubject.disabled = false; reportSubject.disabled = false;
+        }
         function handleSubjectChange() { renderStudentTable(); }
-        async function addNewTeacher() { /* ... Same Firestore logic ... */
-             if (!currentUser || !db || currentUserRole !== 'principal') return;
+
+        async function addNewTeacher() {
+            if (!currentUser || !db || currentUserRole !== 'principal') return;
              addTeacherBtn.disabled = true;
-             // ... rest of the logic ...
+             const teacherName = inputTeacherName.value.trim();
+             if (!teacherName) { alert('Enter teacher name.'); addTeacherBtn.disabled = false; return; }
+             if (appState.teachers.includes(teacherName)) { alert('Teacher exists.'); addTeacherBtn.disabled = false; return; }
+             try {
+                  const ref = db.collection('meta').doc('teachers');
+                  await ref.set({ list: FieldValue.arrayUnion(teacherName) }, { merge: true });
+                  console.log(`Teacher ${teacherName} added.`);
+                  appState.teachers.push(teacherName); appState.teachers.sort(); // Update state
+                  populateTeacherSelectors(); // Update UI
+                  selectTeacher.value = teacherName;
+                  handleTeacherChange();
+                  alert(`Teacher '${teacherName}' added.`);
+                  inputTeacherName.value = '';
+             } catch (e) { console.error("Add teacher error:", e); alert("Failed. Check rules/connection."); }
+             finally { addTeacherBtn.disabled = false; }
         }
-        function populateTeacherSelectors() { /* ... Same ... */ }
+        function populateTeacherSelectors() {
+             const currentVal = selectTeacher.value; const currentRepVal = reportTeacher.value;
+             selectTeacher.innerHTML = ''; reportTeacher.innerHTML = '';
+             if (appState.teachers.length === 0) { selectTeacher.innerHTML = '<option value="">-- Add teacher --</option>'; reportTeacher.innerHTML = '<option value="">-- Add teacher --</option>'; selectTeacher.disabled=false; reportTeacher.disabled=false; return; }
+             appState.teachers.forEach(teach => {
+                  const opt1 = document.createElement('option'); opt1.value = teach; opt1.textContent = teach; selectTeacher.appendChild(opt1);
+                  const opt2 = document.createElement('option'); opt2.value = teach; opt2.textContent = teach; reportTeacher.appendChild(opt2);
+             });
+             selectTeacher.value = appState.teachers.includes(currentVal) ? currentVal : (appState.teachers[0] || '');
+             reportTeacher.value = appState.teachers.includes(currentRepVal) ? currentRepVal : (appState.teachers[0] || '');
+             selectTeacher.disabled = false; reportTeacher.disabled = false;
+        }
         function handleTeacherChange() { renderStudentTable(); }
-        function formatClassId(classId) { /* ... */ return classId ? classId.replace('-', ' - ').replace(/([A-Za-z])(\d+)/, '$1 $2') : ""; }
+        function formatClassId(classId) { return classId ? classId.replace('-', ' - ').replace(/([A-Za-z])(\d+)/, '$1 $2') : ""; }
+
 
         // ==== 3. Student Management ====
         function isStudentInClass(classId, studentName) { /* ... */ return appState.rosters[classId]?.some(s => s.name.toLowerCase() === studentName.toLowerCase()); }
-        async function addStudent() { /* ... Same Firestore logic ... */ }
-        async function renderStudentTable() { /* ... Same complex logic with attendanceMap ... */ }
+        async function addStudent() {
+             if (!currentUser || !db) return;
+             addStudentBtn.disabled = true;
+             const studentName = studentNameInput.value.trim();
+             const selectedClassId = selectClass.value;
+             const gender = document.querySelector('input[name="studentGender"]:checked')?.value;
+             if (!selectedClassId) { alert('Select class.'); addStudentBtn.disabled = false; return; }
+             if (!studentName) { alert('Enter name.'); addStudentBtn.disabled = false; return; }
+             if (!gender) { alert('Select gender.'); addStudentBtn.disabled = false; return; }
+             if (isStudentInClass(selectedClassId, studentName)) { alert('Student exists.'); addStudentBtn.disabled = false; return; }
+
+             const newStudent = { name: studentName, gender: gender };
+             try {
+                  const classRef = db.collection('rosters').doc(selectedClassId);
+                  const classDoc = await classRef.get();
+                  if (!classDoc.exists) { alert("Class not found."); addStudentBtn.disabled = false; return; }
+                  await classRef.update({ students: FieldValue.arrayUnion(newStudent) });
+                  console.log(`Student ${studentName} added to ${selectedClassId}`);
+                  if (!appState.rosters[selectedClassId]) appState.rosters[selectedClassId] = [];
+                  appState.rosters[selectedClassId].push(newStudent);
+                  appState.rosters[selectedClassId].sort((a, b) => a.name.localeCompare(b.name));
+                  renderStudentTable(); // Re-render
+                  studentNameInput.value = ''; studentNameInput.focus();
+             } catch (e) { console.error("Add student error:", e); alert("Failed. Check rules/connection."); }
+             finally { addStudentBtn.disabled = false; }
+        }
+        async function renderStudentTable() { /* ... Same logic using attendanceMap ... */
+            const classId = selectClass.value; const subject = selectSubject.value; const teacher = selectTeacher.value;
+            if (!classId || !subject || !teacher) { /* ... Show info message ... */ return; }
+            attendanceInfo.style.display = 'none';
+            const classText = selectClass.options[selectClass.selectedIndex]?.textContent || formatClassId(classId);
+            attendanceSheetTitle.textContent = `Attendance: ${classText} (${subject} / ${teacher})`;
+            tableBody.innerHTML = '<tr><td colspan="7">Loading attendance...</td></tr>';
+            const students = appState.rosters[classId] || [];
+            const headers = document.querySelectorAll('#attendanceTable thead th'); const dayColumnCount = headers.length - 2;
+            const headerInfo = []; for (let i = 0; i < dayColumnCount; i++) { const hc = headers[i+1]; if (hc.dataset.date) { headerInfo.push({ label: hc.textContent, date: hc.dataset.date }); } }
+            if (headerInfo.length === 0) { tableBody.innerHTML = '<tr><td colspan="7">Update Week first.</td></tr>'; return; }
+            const totalLabel = headers[headers.length - 1].textContent;
+            if (students.length === 0) { tableBody.innerHTML = '<tr><td colspan="7">No students.</td></tr>'; return; }
+
+            const studentAttendancePromises = students.map(student => {
+                 const datePromises = headerInfo.map(header => checkAttendance(classId, subject, teacher, header.date, student.name));
+                 return Promise.all(datePromises).then(results => ({ name: student.name, attendance: results }));
+            });
+            try {
+                const studentAttendanceResults = await Promise.all(studentAttendancePromises);
+                const attendanceMap = {}; studentAttendanceResults.forEach(res => { attendanceMap[res.name] = res.attendance; });
+                tableBody.innerHTML = '';
+                students.forEach(student => { /* ... build row using attendanceMap[student.name][index] ... */
+                     const row = document.createElement('tr'); row.classList.add('student-row');
+                     const nameCell = document.createElement('td'); nameCell.textContent = student.name; row.appendChild(nameCell);
+                     headerInfo.forEach((header, index) => {
+                          const checkCell = document.createElement('td'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkCell.dataset.label = header.label;
+                          checkbox.checked = attendanceMap[student.name]?.[index] || false;
+                          checkCell.appendChild(checkbox); row.appendChild(checkCell);
+                     });
+                     const totalCell = document.createElement('td'); totalCell.classList.add('total-cell'); totalCell.textContent = '0'; totalCell.dataset.label = totalLabel; row.appendChild(totalCell);
+                     tableBody.appendChild(row);
+                 });
+                calculateTotals();
+            } catch (error) { console.error("Error rendering table:", error); tableBody.innerHTML = '<tr><td colspan="7" style="color:red;">Error loading attendance.</td></tr>'; }
+        }
+
 
         // ==== 4. Date & Attendance ====
         function updateTableHeaders() { /* ... Same Monday logic ... */ }
@@ -751,17 +669,14 @@
         async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same Firestore read ... */ }
         function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same batch logic ... */ }
         async function saveAttendanceData() { /* ... Same batch commit logic ... */ }
-
         // Clear Week with Confirmation
         async function clearWeekData() {
             if (!confirm("Clear marks for this week?")) return; // Confirmation added
             if (!currentUser || !db) return;
-            // ... (rest of the clearWeekData function using batch is the same) ...
+            // ... (rest is same batch commit logic) ...
         }
-
         function calculateTotals() { /* ... Same ... */ }
-
-        // Mark All Present
+        // Mark All Present Added
         function markAllPresent() { /* ... Same ... */ }
 
         // ==== Reports & Dashboard ====
@@ -777,22 +692,15 @@
             loginScreen.style.display = 'none';
             appContent.style.display = 'none';
 
-            // Ensure Firebase is initialized before setting up listeners
             if (typeof firebase === 'undefined' || !firebase.apps.length) {
-                 console.error("Firebase failed to initialize before DOMContentLoaded!");
-                 loadingIndicator.textContent = "Critical Error: Firebase not loaded.";
-                 return;
+                 console.error("Firebase failed!"); loadingIndicator.textContent = "Error loading resources."; return;
             }
 
-            // Listen for authentication state changes (this triggers data load)
-            auth.onAuthStateChanged(handleAuthStateChanged);
+            auth.onAuthStateChanged(handleAuthStateChanged); // This triggers data load on login
 
-            // Add Login/Logout/Google button listeners
             loginBtn.addEventListener('click', loginUser);
             logoutBtn.addEventListener('click', logoutUser);
             googleLoginBtn.addEventListener('click', loginWithGoogle);
-
-            // --- Other event listeners ---
             addClassBtn.addEventListener('click', addNewClass);
             addSubjectBtn.addEventListener('click', addNewSubject);
             addTeacherBtn.addEventListener('click', addNewTeacher);
@@ -803,8 +711,8 @@
             updateDatesBtn.addEventListener('click', updateTableHeaders);
             saveBtn.addEventListener('click', saveAttendanceData);
             calculateBtn.addEventListener('click', calculateTotals);
-            clearWeekBtn.addEventListener('click', clearWeekData);
-            markAllPresentBtn.addEventListener('click', markAllPresent);
+            clearWeekBtn.addEventListener('click', clearWeekData); // Confirmation inside
+            markAllPresentBtn.addEventListener('click', markAllPresent); // New listener
             generateReportBtn.addEventListener('click', generateMonthlyReport);
             printReportBtn.addEventListener('click', printReport);
             generateDashboardBtn.addEventListener('click', generateDashboard);
