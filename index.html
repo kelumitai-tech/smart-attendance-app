@@ -7,406 +7,115 @@
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#005A9C">
-
     <style>
-        /* ==== Global Styles ==== */
+        /* ==== Global Styles (Same as previous working version) ==== */
         :root {
             --primary-color: #005A9C;
             --secondary-color: #4CAF50;
             --header-color: #ffffff;
-            --bg-color: #f4f7f6; /* Lighter, cleaner background */
+            --bg-color: #f4f7f6;
             --card-bg: #ffffff;
             --text-color: #333;
-            --border-color: #e0e0e0; /* Softer border */
+            --border-color: #e0e0e0;
             --danger-color: #D32F2F;
             --warning-color: #FFA000;
             --print-btn-color: #3f51b5; /* Indigo */
-            --google-btn-color: #DB4437; /* Google Red */
-            --shadow: 0 5px 15px rgba(0,0,0,0.08); /* Softer shadow */
+            --google-btn-color: #DB4437; /* Google Red */ /* NEW */
+            --shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
 
-        html, body {
-            overflow-x: hidden;
-            width: 100%;
-        }
+        html, body { /* ... */ overflow-x: hidden; width: 100%; }
 
-        body {
+        body { /* ... */
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            display: flex; /* Use flexbox for centering loading */
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh; /* Ensure loading covers screen */
+            margin: 0; background-color: var(--bg-color); color: var(--text-color);
+            line-height: 1.6; display: flex; justify-content: center; align-items: center; min-height: 100vh;
         }
+        #loadingIndicator { /* ... */ font-size: 1.2em; color: var(--primary-color); text-align: center; }
 
-        /* NEW: Loading Indicator */
-        #loadingIndicator {
-            font-size: 1.2em;
-            color: var(--primary-color);
-            text-align: center;
-        }
+        /* ==== Header ==== */
+        .main-header { /* ... */ background: var(--primary-color); color: var(--header-color); padding: 15px 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
+        .main-header h1 { /* ... */ margin: 0; font-size: 1.6em; font-weight: 600; }
 
-        /* ==== 1. Header ==== */
-        .main-header {
-            background: var(--primary-color);
-            color: var(--header-color);
-            padding: 15px 20px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            position: relative; /* Needed for logout button positioning */
-        }
-        .main-header h1 {
-            margin: 0;
-            font-size: 1.6em;
-            font-weight: 600;
-        }
+        /* ==== Layout ==== */
+        .app-container { /* ... */ width: 100%; max-width: 1000px; margin: 0 auto; padding: 20px 10px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .card { /* ... */ background: var(--card-bg); border-radius: 16px; box-shadow: var(--shadow); padding: 20px; border: 1px solid var(--border-color); }
+        .card h2 { /* ... */ margin-top: 0; text-align: center; color: var(--primary-color); font-size: 1.5em; margin-bottom: 25px; }
+        #report-card p, #danger-zone-card p { /* ... */ text-align: center; font-size: 0.95em; margin-bottom: 20px; }
+        hr.card-divider { /* ... */ margin: 25px 0 20px; border-top: 1px solid var(--border-color); border-bottom: none; }
 
-        /* ==== 2. Layout (Single Column) ==== */
-        .app-container {
-            width: 100%; /* Take full width */
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px 10px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
+        /* ==== Forms ==== */
+        .form-group { /* ... */ margin-bottom: 20px; }
+        .form-group label { /* ... */ display: block; font-weight: 600; margin-bottom: 8px; text-align: left; color: #555; }
+        select, input[type="text"], input[type="date"], input[type="month"], input[type="email"], input[type="password"] { /* ... */ width: 100%; display: block; padding: 14px; font-size: 16px; border: 1px solid var(--border-color); border-radius: 10px; box-sizing: border-box; background-color: #fcfcfc; }
+        input[type="date"], input[type="month"] { /* ... */ appearance: none; }
+        .radio-group { /* ... */ display: flex; justify-content: flex-start; gap: 20px; margin-top: 10px; }
+        .radio-group input[type="radio"] { /* ... */ display: none; }
+        .radio-group label { /* ... */ display: inline-block; padding: 10px 20px; border: 2px solid var(--border-color); border-radius: 10px; cursor: pointer; font-weight: 600; text-align: center; width: 80px; }
+        .radio-group input[type="radio"]:checked + label { /* ... */ background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
 
-        /* App-like Cards */
-        .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            padding: 20px;
-            border: 1px solid var(--border-color);
-        }
-        .card h2 {
-            margin-top: 0;
-            text-align: center;
-            color: var(--primary-color);
-            font-size: 1.5em;
-            margin-bottom: 25px;
-        }
-
-        #report-card p,
-        #danger-zone-card p {
-            text-align: center;
-            font-size: 0.95em;
-            margin-bottom: 20px;
-        }
-
-        /* Divider */
-        hr.card-divider {
-            margin: 25px 0 20px;
-            border-top: 1px solid var(--border-color);
-            border-bottom: none;
-        }
-
-        /* ==== 3. Form Elements ==== */
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            text-align: left;
-            color: #555;
-        }
-
-        select, input[type="text"], input[type="date"], input[type="month"], input[type="email"], input[type="password"] {
-            width: 100%;
-            display: block;
-            padding: 14px;
-            font-size: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            box-sizing: border-box;
-            background-color: #fcfcfc;
-        }
-
-        input[type="date"], input[type="month"] {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        /* Gender Radio Button Styles */
-        .radio-group {
-            display: flex;
-            justify-content: flex-start;
-            gap: 20px;
-            margin-top: 10px;
-        }
-        .radio-group input[type="radio"] {
-            display: none;
-        }
-        .radio-group label {
-            display: inline-block;
-            padding: 10px 20px;
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            text-align: center;
-            width: 80px;
-        }
-        .radio-group input[type="radio"]:checked + label {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        /* App-like Buttons */
-        button {
-            width: 100%;
-            display: block;
-            padding: 15px;
-            font-size: 1.1em;
-            font-weight: 700;
-            border: none;
-            border-radius: 10px;
-            box-sizing: border-box;
-            color: white;
-            cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        button:disabled {
-             background-color: #ccc;
-             cursor: not-allowed;
-             box-shadow: none;
-        }
-        button:active:not(:disabled) {
-            transform: translateY(2px);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-         /* For Mark All/Calculate */
-        .button-group-inline {
-             display: flex;
-             gap: 10px;
-             margin-bottom: 15px;
-             justify-content: center;
-        }
-        .button-group-inline button {
-             margin-top: 0;
-             flex: 1;
-             max-width: 200px;
-             font-size: 0.95em;
-             padding: 12px;
-        }
-
+        /* ==== Buttons ==== */
+        button { /* ... */ width: 100%; display: block; padding: 15px; font-size: 1.1em; font-weight: 700; border: none; border-radius: 10px; box-sizing: border-box; color: white; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        button:disabled { /* ... */ background-color: #ccc; cursor: not-allowed; box-shadow: none; }
+        button:active:not(:disabled) { /* ... */ transform: translateY(2px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .button-group { /* ... */ display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .button-group-inline { /* NEW */ display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
+        .button-group-inline button { /* NEW */ margin-top: 0; flex: 1; max-width: 200px; font-size: 0.95em; padding: 12px; }
 
         /* Button colors */
-        #addClassBtn { background-color: #2196F3; }
-        #addSubjectBtn { background-color: #00796B; }
-        #addTeacherBtn { background-color: #8E24AA; }
-        #addStudentBtn { background-color: #ff9800; }
-        #updateDatesBtn { background-color: #00796B; }
-        #generateReportBtn { background-color: #512DA8; }
-        #generateDashboardBtn { background-color: #d81b60; }
-        #printReportBtn { background-color: var(--print-btn-color); }
-        #saveBtn { background-color: var(--secondary-color); }
-        #calculateBtn { background-color: #673AB7; } /* Moved button */
-        #clearWeekBtn { background-color: var(--warning-color); }
-        #resetAllBtn { background-color: var(--danger-color); }
-        #loginBtn, #logoutBtn { background-color: var(--primary-color); }
-        #googleLoginBtn { background-color: var(--google-btn-color); margin-top: 15px; }
-        #markAllPresentBtn { background-color: #0d6efd; } /* Added button */
+        #addClassBtn { background-color: #2196F3; } #addSubjectBtn { background-color: #00796B; } #addTeacherBtn { background-color: #8E24AA; } #addStudentBtn { background-color: #ff9800; } #updateDatesBtn { background-color: #00796B; } #generateReportBtn { background-color: #512DA8; } #generateDashboardBtn { background-color: #d81b60; } #printReportBtn { background-color: var(--print-btn-color); } #saveBtn { background-color: var(--secondary-color); } #calculateBtn { background-color: #673AB7; } #clearWeekBtn { background-color: var(--warning-color); } #resetAllBtn { background-color: var(--danger-color); } #loginBtn, #logoutBtn { background-color: var(--primary-color); } #googleLoginBtn { background-color: var(--google-btn-color); margin-top: 15px; } /* NEW */ #markAllPresentBtn { background-color: #0d6efd; } /* NEW */
+        #logoutBtn { /* ... */ width: auto; position: absolute; top: 10px; right: 10px; padding: 8px 15px; font-size: 0.9em; margin-top: 0; }
 
-        #logoutBtn {
-             width: auto;
-             position: absolute;
-             top: 10px;
-             right: 10px;
-             padding: 8px 15px;
-             font-size: 0.9em;
-             margin-top: 0;
-        }
-
-
-        /* ==== 4. Table Styles ==== */
-        .table-responsive-wrapper {
-            width: 100%;
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-        th, td { border: 1px solid var(--border-color); padding: 14px; text-align: center; }
-        thead tr { background-color: #f1f1f1; }
-        th { font-weight: 600; }
-        tbody tr:nth-child(even) { background-color: #fcfcfc; }
-        tbody tr:hover { background-color: #eef; }
-        td:first-child { text-align: left; font-weight: 500; white-space: nowrap; min-width: 150px; }
-        .total-cell { font-weight: bold; background-color: #f0f4ff; font-size: 1.1em; }
-        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-        #reportOutput table, #dashboardOutput table { min-width: 0; }
-        #reportOutput th, #dashboardOutput th { background-color: #512DA8; color: white; }
+        /* ==== Tables ==== */
+        .table-responsive-wrapper { /* ... */ width: 100%; overflow-x: auto; }
+        table { /* ... */ width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { /* ... */ border: 1px solid var(--border-color); padding: 14px; text-align: center; }
+        thead tr { /* ... */ background-color: #f1f1f1; } th { font-weight: 600; }
+        tbody tr:nth-child(even) { /* ... */ background-color: #fcfcfc; } tbody tr:hover { background-color: #eef; }
+        td:first-child { /* ... */ text-align: left; font-weight: 500; white-space: nowrap; min-width: 150px; }
+        .total-cell { /* ... */ font-weight: bold; background-color: #f0f4ff; font-size: 1.1em; }
+        input[type="checkbox"] { /* ... */ width: 20px; height: 20px; cursor: pointer; }
+        #reportOutput table, #dashboardOutput table { /* ... */ min-width: 0; }
+        #reportOutput th, #dashboardOutput th { /* ... */ background-color: #512DA8; color: white; }
         #dashboardOutput th { background-color: #d81b60; }
         #dashboardOutput tr:last-child { background-color: #f0f4ff; font-weight: bold; }
 
-
-        /* ==== 5. Danger Zone ==== */
-        .danger-zone {
-            border-color: var(--danger-color);
-            background-color: #fff5f5;
-        }
+        /* ==== Danger Zone ==== */
+        .danger-zone { /* ... */ border-color: var(--danger-color); background-color: #fff5f5; }
         .danger-zone h2 { color: var(--danger-color); border-bottom-color: transparent; }
 
-        /* ==== 6. Footer ==== */
-        .main-footer-credits {
-            text-align: center;
-            padding: 20px 15px;
-            margin-top: 20px;
-            color: #777;
-            font-size: 0.9em;
-            background-color: #eef;
-            line-height: 1.7;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            border-top: 2px solid var(--primary-color);
-        }
+        /* ==== Footer ==== */
+        .main-footer-credits { /* ... */ text-align: center; padding: 20px 15px; margin-top: 20px; color: #777; font-size: 0.9em; background-color: #eef; line-height: 1.7; overflow-wrap: break-word; word-break: break-word; border-top: 2px solid var(--primary-color); }
 
         /* Message for user */
-        .info-message {
-            text-align: center;
-            padding: 20px;
-            background-color: #f0f4ff;
-            border-radius: 10px;
-            color: #555;
-            font-weight: 500;
-        }
+        .info-message { /* ... */ text-align: center; padding: 20px; background-color: #f0f4ff; border-radius: 10px; color: #555; font-weight: 500; }
 
-        /* Login Screen Styles */
-        #loginScreen {
-             padding: 30px;
-             text-align: center;
-        }
-        #loginScreen input[type="email"], #loginScreen input[type="password"] {
-            margin-bottom: 15px;
-        }
-        #loginError {
-            color: var(--danger-color);
-            margin-top: 15px;
-            font-weight: bold;
-            display: none;
-        }
+        /* Login Screen */
+        #loginScreen { /* ... */ padding: 30px; text-align: center; }
+        #loginScreen input[type="email"], #loginScreen input[type="password"] { margin-bottom: 15px; }
+        #loginError { /* ... */ color: var(--danger-color); margin-top: 15px; font-weight: bold; display: none; }
 
-        /* ==== 7. Mobile Responsive "Card" View ==== */
-        @media screen and (max-width: 767px) {
-            body {
-                display: block;
-                min-height: auto;
-            }
-            #loadingIndicator {
-                 margin-top: 50px;
-            }
-            .table-responsive-wrapper {
-                overflow-x: visible;
-                border: none;
-            }
-            #attendanceTable {
-                min-width: 0 !important;
-            }
-
-            #attendanceTable,
-            #attendanceTable thead,
-            #attendanceTable tbody,
-            #attendanceTable th,
-            #attendanceTable td,
-            #attendanceTable tr {
-                display: block;
-            }
-
-            #attendanceTable thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
-            }
-
-            #attendanceTable tr.student-row {
-                border: none;
-                border-radius: 16px;
-                margin-bottom: 15px;
-                background: var(--card-bg);
-                box-shadow: var(--shadow);
-                overflow: hidden;
-            }
-
-            #attendanceTable td {
-                border: none;
-                border-bottom: 1px solid #f0f0f0;
-                position: relative;
-                padding: 14px 20px;
-                padding-left: 50%;
-                text-align: right;
-                min-height: 44px;
-            }
-
-            #attendanceTable td:first-child {
-                background: var(--primary-color);
-                color: white;
-                font-weight: 600;
-                font-size: 1.25em;
-                padding: 18px 20px;
-                text-align: left;
-                border-bottom: none;
-            }
-
-            #attendanceTable td:before {
-                content: attr(data-label);
-                position: absolute;
-                top: 50%;
-                left: 20px;
-                transform: translateY(-50%);
-                width: 45%;
-                padding-right: 10px;
-                white-space: nowrap;
-                text-align: left;
-                font-weight: 600;
-                color: #555;
-            }
-
-            #attendanceTable td:first-child:before { content: ""; }
-            #attendanceTable td:last-child { border-bottom: 0; }
+        /* ==== Mobile Responsive "Card" View ==== */
+        @media screen and (max-width: 767px) { /* ... Same mobile styles as previous ... */
+            body { display: block; min-height: auto; } #loadingIndicator { margin-top: 50px; }
+            .table-responsive-wrapper { overflow-x: visible; border: none; }
+            #attendanceTable { min-width: 0 !important; }
+            #attendanceTable, #attendanceTable thead, #attendanceTable tbody, #attendanceTable th, #attendanceTable td, #attendanceTable tr { display: block; }
+            #attendanceTable thead tr { position: absolute; top: -9999px; left: -9999px; }
+            #attendanceTable tr.student-row { border: none; border-radius: 16px; margin-bottom: 15px; background: var(--card-bg); box-shadow: var(--shadow); overflow: hidden; }
+            #attendanceTable td { border: none; border-bottom: 1px solid #f0f0f0; position: relative; padding: 14px 20px; padding-left: 50%; text-align: right; min-height: 44px; }
+            #attendanceTable td:first-child { background: var(--primary-color); color: white; font-weight: 600; font-size: 1.25em; padding: 18px 20px; text-align: left; border-bottom: none; }
+            #attendanceTable td:before { content: attr(data-label); position: absolute; top: 50%; left: 20px; transform: translateY(-50%); width: 45%; padding-right: 10px; white-space: nowrap; text-align: left; font-weight: 600; color: #555; }
+            #attendanceTable td:first-child:before { content: ""; } #attendanceTable td:last-child { border-bottom: 0; }
             #attendanceTable input[type="checkbox"] { width: 22px; height: 22px; }
-            #attendanceTable .total-cell {
-                text-align: right;
-                font-size: 1.2em;
-                font-weight: 700;
-                background-color: #f0f4ff;
-            }
+            #attendanceTable .total-cell { text-align: right; font-size: 1.2em; font-weight: 700; background-color: #f0f4ff; }
         }
 
         /* ==== Desktop Responsiveness ==== */
-        @media (min-width: 768px) {
-            body {
-                display: block;
-                 min-height: auto;
-            }
-             #loadingIndicator {
-                 margin-top: 50px;
-            }
-            .main-header h1 {
-                font-size: 2em;
-            }
-            .button-group, .button-group-inline { /* Make both horizontal on desktop */
-                flex-direction: row;
-            }
+        @media (min-width: 768px) { /* ... Same desktop styles as previous ... */
+            body { display: block; min-height: auto; } #loadingIndicator { margin-top: 50px; }
+            .main-header h1 { font-size: 2em; }
+            .button-group, .button-group-inline { flex-direction: row; } /* Both groups horizontal */
         }
 
     </style>
@@ -437,95 +146,50 @@
         </header>
 
         <main class="app-container">
-            <div class="card management-card" id="class-manager-card" style="display: none;"> {/* Hide initially */}
+            <div class="card management-card" id="class-manager-card" style="display: none;">
                  <h2>Class Management</h2>
-                 <div class="form-group">
-                    <label for="selectGrade">Select Grade</label>
-                    <select id="selectGrade">
-                        <option value="Grade 6">Grade 6</option><option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option><option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option><option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option><option value="Grade 13">Grade 13</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="inputClassName">Class Name (e.g., A, B)</label>
-                    <input type="text" id="inputClassName" placeholder="e.g., A">
-                </div>
-                <button id="addClassBtn">Add New Class</button>
-                <hr class="card-divider">
-                <div class="form-group">
-                    <label for="selectClass">Select Active Class</label>
-                    <select id="selectClass"><option value="">-- Loading... --</option></select>
-                </div>
+                 <div class="form-group"> <label for="selectGrade">Select Grade</label> <select id="selectGrade"> <option value="Grade 6">Grade 6</option><option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option><option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option><option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option><option value="Grade 13">Grade 13</option> </select> </div>
+                 <div class="form-group"> <label for="inputClassName">Class Name</label> <input type="text" id="inputClassName" placeholder="e.g., A"> </div>
+                 <button id="addClassBtn">Add New Class</button>
+                 <hr class="card-divider">
+                 <div class="form-group"> <label for="selectClass">Select Active Class</label> <select id="selectClass"><option value="">-- Loading... --</option></select> </div>
             </div>
-            <div class="card management-card" id="subject-manager-card" style="display: none;"> {/* Hide initially */}
+            <div class="card management-card" id="subject-manager-card" style="display: none;">
                  <h2>Subject Management</h2>
-                 <div class="form-group">
-                    <label for="inputSubjectName">New Subject Name</label>
-                    <input type="text" id="inputSubjectName" placeholder="e.g., Mathematics, ICT">
-                </div>
-                <button id="addSubjectBtn">Add New Subject</button>
-                <hr class="card-divider">
-                <div class="form-group">
-                    <label for="selectSubject">Select Active Subject</label>
-                    <select id="selectSubject"><option value="">-- Loading... --</option></select>
-                </div>
+                 <div class="form-group"> <label for="inputSubjectName">New Subject Name</label> <input type="text" id="inputSubjectName" placeholder="e.g., Mathematics"> </div>
+                 <button id="addSubjectBtn">Add New Subject</button>
+                 <hr class="card-divider">
+                 <div class="form-group"> <label for="selectSubject">Select Active Subject</label> <select id="selectSubject"><option value="">-- Loading... --</option></select> </div>
             </div>
-             <div class="card management-card" id="teacher-manager-card" style="display: none;"> {/* Hide initially */}
+             <div class="card management-card" id="teacher-manager-card" style="display: none;">
                  <h2>Teacher Management</h2>
-                  <div class="form-group">
-                    <label for="inputTeacherName">New Teacher Name</label>
-                    <input type="text" id="inputTeacherName" placeholder="e.g., Kelum Konara">
-                </div>
-                <button id="addTeacherBtn">Add New Teacher</button>
-                <hr class="card-divider">
-                <div class="form-group">
-                    <label for="selectTeacher">Select Active Teacher</label>
-                    <select id="selectTeacher"><option value="">-- Loading... --</option></select>
-                </div>
+                  <div class="form-group"> <label for="inputTeacherName">New Teacher Name</label> <input type="text" id="inputTeacherName" placeholder="e.g., Kelum Konara"> </div>
+                 <button id="addTeacherBtn">Add New Teacher</button>
+                 <hr class="card-divider">
+                 <div class="form-group"> <label for="selectTeacher">Select Active Teacher</label> <select id="selectTeacher"><option value="">-- Loading... --</option></select> </div>
             </div>
-             <div class="card management-card" id="student-manager-card" style="display: none;"> {/* Hide initially */}
+             <div class="card management-card" id="student-manager-card" style="display: none;">
                 <h2>Student Management</h2>
-                 <div class="form-group">
-                    <label for="studentNameInput">New Student Name</label>
-                    <input type="text" id="studentNameInput" placeholder="Enter new student's name">
-                </div>
-                <div class="form-group" id="gender-group">
-                    <label>Gender</label>
-                    <div class="radio-group">
-                        <input type="radio" id="genderMale" name="studentGender" value="Male" checked>
-                        <label for="genderMale">Male</label>
-                        <input type="radio" id="genderFemale" name="studentGender" value="Female">
-                        <label for="genderFemale">Female</label>
-                    </div>
-                </div>
-                <button id="addStudentBtn">Add Student to Selected Class</button>
+                 <div class="form-group"> <label for="studentNameInput">New Student Name</label> <input type="text" id="studentNameInput" placeholder="Enter name"> </div>
+                 <div class="form-group" id="gender-group"> <label>Gender</label> <div class="radio-group"> <input type="radio" id="genderMale" name="studentGender" value="Male" checked> <label for="genderMale">Male</label> <input type="radio" id="genderFemale" name="studentGender" value="Female"> <label for="genderFemale">Female</label> </div> </div>
+                 <button id="addStudentBtn">Add Student</button>
             </div>
-
 
             <div class="card" id="date-manager-card">
                 <h2>Date Selector</h2>
-                <div class="form-group">
-                    <label for="startDate">Select Any Day of the Week</label>
-                    <input type="date" id="startDate">
-                </div>
+                <div class="form-group"> <label for="startDate">Select Week</label> <input type="date" id="startDate"> </div>
                 <button id="updateDatesBtn">Update Week (Mon-Fri)</button>
             </div>
 
-
             <div class="card" id="attendance-sheet-card">
                 <h2 id="attendance-sheet-title">Attendance Sheet</h2>
-
                 <div class="button-group-inline">
                      <button id="markAllPresentBtn">Mark All Present</button>
                      <button id="calculateBtn">Calculate Totals</button>
                 </div>
-
                 <div class="table-responsive-wrapper">
                     <table id="attendanceTable">
-                        <thead>
-                            <tr>
-                                <th>Student Name</th><th>Day 1 (Mon)</th><th>Day 2 (Tue)</th><th>Day 3 (Wed)</th><th>Day 4 (Thu)</th><th>Day 5 (Fri)</th><th>Total Present (Week)</th>
-                            </tr>
-                        </thead>
+                        <thead> <tr> <th>Student Name</th><th>Day 1 (Mon)</th><th>Day 2 (Tue)</th><th>Day 3 (Wed)</th><th>Day 4 (Thu)</th><th>Day 5 (Fri)</th><th>Total</th> </tr> </thead>
                         <tbody id="attendanceTbody"></tbody>
                     </table>
                 </div>
@@ -538,30 +202,18 @@
 
             <div class="card principal-only" id="dashboard-card" style="display: none;">
                 <h2>Principal's Dashboard</h2>
-                <p>Select a date to see the daily attendance summary for all classes.</p>
-                <div class="form-group">
-                    <label for="dashboardDate">Select Date</label>
-                    <input type="date" id="dashboardDate">
-                </div>
+                <p>Select date for daily summary.</p>
+                <div class="form-group"> <label for="dashboardDate">Select Date</label> <input type="date" id="dashboardDate"> </div>
                 <button id="generateDashboardBtn">Show Daily Totals</button>
                 <div id="dashboardOutput" class="table-responsive-wrapper" style="margin-top: 20px;"></div>
             </div>
 
             <div class="card" id="report-card">
                 <h2>Teacher's Monthly Report</h2>
-                <p>Select class, subject, teacher, and month for the summary.</p>
-                <div class="form-group">
-                    <label for="reportSubject">Select Subject for Report</label>
-                    <select id="reportSubject"><option value="">-- Loading... --</option></select>
-                </div>
-                <div class="form-group">
-                    <label for="reportTeacher">Select Teacher for Report</label>
-                    <select id="reportTeacher"><option value="">-- Loading... --</option></select>
-                </div>
-                <div class="form-group">
-                    <label for="reportMonth">Select Month</label>
-                    <input type="month" id="reportMonth">
-                </div>
+                <p>Select details for summary.</p>
+                <div class="form-group"> <label for="reportSubject">Select Subject</label> <select id="reportSubject"><option value="">-- Loading... --</option></select> </div>
+                <div class="form-group"> <label for="reportTeacher">Select Teacher</label> <select id="reportTeacher"><option value="">-- Loading... --</option></select> </div>
+                <div class="form-group"> <label for="reportMonth">Select Month</label> <input type="month" id="reportMonth"> </div>
                 <button id="generateReportBtn">Generate Report</button>
                 <button id="printReportBtn" style="margin-top: 10px;">Save Report as PDF</button>
                 <div id="reportOutput" class="table-responsive-wrapper" style="margin-top: 20px;"></div>
@@ -569,15 +221,13 @@
 
             <div class="card danger-zone principal-only" id="danger-zone-card" style="display: none;">
                 <h2>Danger Zone</h2>
-                <p>This button is currently disabled for safety. Deleting all Firestore data should be done carefully, preferably via the Firebase Console or a secured Cloud Function.</p>
+                <p>This button is disabled. Use Firebase Console for data deletion.</p>
                 <button id="resetAllBtn" disabled>RESET ALL DATA (Disabled)</button>
             </div>
         </main>
 
         <footer class="main-footer-credits">
-            Developer : Kelum Konara <br>
-            SmartSoft | The Mobile Apps Developer <br>
-            0714469232
+            Developer : Kelum Konara <br> SmartSoft | The Mobile Apps Developer <br> 0714469232
         </footer>
     </div> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -604,32 +254,23 @@
       let FieldValue;
 
       try {
-          if (!firebase.apps.length) {
-                app = firebase.initializeApp(firebaseConfig);
-          } else {
-                app = firebase.app();
-          }
+          if (!firebase.apps.length) { app = firebase.initializeApp(firebaseConfig); }
+          else { app = firebase.app(); }
           auth = firebase.auth();
           db = firebase.firestore();
-          FieldValue = firebase.firestore.FieldValue;
+          FieldValue = firebase.firestore.FieldValue; // Initialize FieldValue here
           console.log("Firebase Initialized Successfully");
       } catch (e) {
           console.error("Error initializing Firebase", e);
           document.getElementById('loadingIndicator').textContent = "Error connecting to Firebase. Check config and connection.";
       }
     </script>
-    <script> /* ... SW registration code ... */ </script>
+
+    <script> /* ... SW registration ... */ </script>
 
     <script>
         // Global in-memory state
-        let appState = {
-            rosters: {},
-            subjects: [],
-            teachers: [],
-            isDataLoaded: false
-        };
-
-        // --- Date helpers ---
+        let appState = { rosters: {}, subjects: [], teachers: [], isDataLoaded: false };
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -644,7 +285,6 @@
         const loginError = document.getElementById('loginError');
         const googleLoginBtn = document.getElementById('googleLoginBtn');
         const appTitle = document.getElementById('appTitle');
-
         const selectGrade = document.getElementById('selectGrade');
         const inputClassName = document.getElementById('inputClassName');
         const addClassBtn = document.getElementById('addClassBtn');
@@ -667,7 +307,7 @@
         const saveBtn = document.getElementById('saveBtn');
         const calculateBtn = document.getElementById('calculateBtn');
         const clearWeekBtn = document.getElementById('clearWeekBtn');
-        const markAllPresentBtn = document.getElementById('markAllPresentBtn');
+        const markAllPresentBtn = document.getElementById('markAllPresentBtn'); // Added
         const reportMonthInput = document.getElementById('reportMonth');
         const generateReportBtn = document.getElementById('generateReportBtn');
         const printReportBtn = document.getElementById('printReportBtn');
@@ -676,11 +316,9 @@
         const generateDashboardBtn = document.getElementById('generateDashboardBtn');
         const dashboardOutput = document.getElementById('dashboardOutput');
         const resetAllBtn = document.getElementById('resetAllBtn');
-        // Role elements
         const dashboardCard = document.getElementById('dashboard-card');
         const dangerZoneCard = document.getElementById('danger-zone-card');
         const managementCards = document.querySelectorAll('.management-card'); // Use querySelectorAll
-
 
         // ==== 0. Authentication & Roles ====
 
@@ -694,29 +332,25 @@
                 loginScreen.style.display = 'none';
                 appContent.style.display = 'block';
 
-                // Get user role from Firestore 'users' collection
                 try {
                     const userDocRef = db.collection('users').doc(user.uid);
                     const userDoc = await userDocRef.get();
                     if (userDoc.exists && userDoc.data().role) {
                         currentUserRole = userDoc.data().role;
                         console.log("User role:", currentUserRole);
-                         // Check if the user document needs creation/update after Google sign-in
-                         if (!userDoc.data().email) { // Example check if it was newly created potentially
-                              await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true }); // Assign default role
-                              currentUserRole = 'teacher';
-                              console.log("Assigned default role 'teacher' to new user.");
+                         // Update user doc if email is missing (e.g., after Google sign-in creates user)
+                         if (!userDoc.data().email && user.email) {
+                              await userDocRef.set({ email: user.email }, { merge: true });
                          }
                     } else {
-                        // User exists in Auth, but not in 'users' collection or no role field
                         console.warn(`User document or role not found for ${user.uid}. Creating/assigning default role 'teacher'.`);
-                        await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true });
+                        await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true }); // Create doc with default role
                         currentUserRole = 'teacher';
                     }
                 } catch (error) {
                     console.error("Error fetching/setting user role:", error);
                     currentUserRole = 'teacher'; // Fallback role
-                    alert("Could not determine user role. Defaulting to 'teacher'.");
+                    alert("Could not determine user role. Defaulting to 'teacher'. Try refreshing.");
                 }
 
                 updateUIForRole(); // Update UI based on fetched/assigned role
@@ -737,7 +371,7 @@
         function updateUIForRole() {
             if (!currentUserRole) return;
 
-            appTitle.textContent = `Smart Attendance (${currentUserRole})`;
+            appTitle.textContent = `Smart Attendance (${currentUserRole})`; // Example
 
             const isPrincipal = currentUserRole === 'principal';
 
@@ -745,161 +379,150 @@
             dashboardCard.style.display = isPrincipal ? 'block' : 'none';
             dangerZoneCard.style.display = isPrincipal ? 'block' : 'none';
 
-            // Show/hide Management cards (Example: Only Principal can manage these)
+            // Show/hide Management cards based on role
             managementCards.forEach(card => {
-                 // Exception: Teacher needs student management card
-                if (card.id === 'student-manager-card' && !isPrincipal) {
+                // Principals see all management cards
+                // Teachers only see the student management card (example rule)
+                if (isPrincipal) {
                      card.style.display = 'block';
-                }
-                 // Exception: Teacher needs class/subject/teacher SELECTORS (part of management cards)
-                 // Let's keep these cards visible but maybe disable ADD buttons for teachers?
-                 // Simpler approach: Keep visible for now. Granular control is complex.
-                else {
-                    card.style.display = isPrincipal ? 'block' : 'none';
+                } else { // Teacher or other role
+                     if (card.id === 'student-manager-card') {
+                          card.style.display = 'block'; // Teachers can add students
+                     } else {
+                          card.style.display = 'none'; // Teachers cannot manage classes, subjects, teachers
+                     }
                 }
             });
 
-             // Ensure essential selection dropdowns are visible for teachers even if add buttons are hidden elsewhere
+             // Always show Class, Subject, Teacher SELECTORS for everyone to use the app
              document.getElementById('class-manager-card').style.display = 'block';
              document.getElementById('subject-manager-card').style.display = 'block';
              document.getElementById('teacher-manager-card').style.display = 'block';
-             document.getElementById('student-manager-card').style.display = 'block'; // Ensure student add is visible (adjust if needed)
 
-
-             // Example: Disable "Add" buttons if the user is not a principal
-            //  addClassBtn.disabled = !isPrincipal;
-            //  addSubjectBtn.disabled = !isPrincipal;
-            //  addTeacherBtn.disabled = !isPrincipal;
-            //  addStudentBtn.disabled = !isPrincipal; // Or maybe teachers CAN add students? Decide based on needs.
-             // For now, let's keep buttons enabled and rely on card visibility
+            // Example: Disable "Add" buttons if the user is not a principal
+            addClassBtn.disabled = !isPrincipal;
+            addSubjectBtn.disabled = !isPrincipal;
+            addTeacherBtn.disabled = !isPrincipal;
+            // addStudentBtn.disabled = !isPrincipal; // Let's allow teachers to add students for now
         }
 
 
         async function loginUser() {
-             loginBtn.disabled = true;
-             loginError.style.display = 'none';
-             loginError.textContent = '';
-             const email = loginEmailInput.value.trim();
-             const password = loginPasswordInput.value;
-             if (!email || !password) { /* ... */ return; }
-             try {
-                if (!auth) throw new Error("Firebase Auth not initialized.");
-                await auth.signInWithEmailAndPassword(email, password);
-             } catch (error) { /* ... */ }
+             loginBtn.disabled = true; loginError.style.display = 'none'; loginError.textContent = '';
+             const email = loginEmailInput.value.trim(); const password = loginPasswordInput.value;
+             if (!email || !password) { loginError.textContent = "Enter email/password."; loginError.style.display = 'block'; loginBtn.disabled = false; return; }
+             try { if (!auth) throw new Error("Firebase Auth missing."); await auth.signInWithEmailAndPassword(email, password); }
+             catch (error) { console.error("Login fail:", error); loginError.textContent = "Login failed: " + (error.message || "Unknown"); loginError.style.display = 'block'; }
              finally { loginBtn.disabled = false; }
         }
 
         async function logoutUser() {
-             if (!auth) return;
-             logoutBtn.disabled = true;
-             try { await auth.signOut(); }
-             catch (error) { /* ... */ }
+             if (!auth) return; logoutBtn.disabled = true;
+             try { await auth.signOut(); } catch (error) { console.error("Logout fail:", error); alert("Logout failed: " + error.message); }
              finally { logoutBtn.disabled = false; }
         }
 
+        // Google Login Function
         async function loginWithGoogle() {
-            if (!auth || !firebase.auth.GoogleAuthProvider) {
-                 alert("Google Login not available."); return;
-            }
+            if (!auth || !firebase.auth.GoogleAuthProvider) { alert("Google Login unavailable."); return; }
             const provider = new firebase.auth.GoogleAuthProvider();
-            googleLoginBtn.disabled = true;
-            loginError.style.display = 'none';
+            googleLoginBtn.disabled = true; loginError.style.display = 'none';
             try {
                 await auth.signInWithPopup(provider);
-                // Auth state handler will now fetch/create user doc and role
+                // Auth state handler will manage UI and role check/creation
             } catch (error) {
                 console.error("Google Login failed:", error);
                 loginError.textContent = "Google Login failed: " + error.message;
                 loginError.style.display = 'block';
                 googleLoginBtn.disabled = false;
             }
-             // Re-enable button might happen in auth state change if needed
+            // No finally needed for button as popup closes or auth state changes
         }
 
-        function clearUI() { /* ... Same as previous ... */ }
+        function clearUI() { /* ... Same ... */ }
 
-        // ==== 1. Data Loading (from Firestore) ====
-        async function loadInitialData() { /* ... Same as previous ... */ }
+        // ==== 1. Data Loading ====
+        async function loadInitialData() { /* ... Same ... */ }
 
-        // ==== 2. Class, Subject & Teacher Management ====
+        // ==== 2. Management Functions ====
         function generateClassId(grade, className) { /* ... */ }
-        async function addNewClass() { /* ... Same as previous ... */ }
-        function populateClassSelector() { /* ... Same as previous ... */ }
+        async function addNewClass() { /* ... Same ... */ }
+        function populateClassSelector() { /* ... Same ... */ }
         function handleClassChange() { /* ... */ }
-        async function addNewSubject() { /* ... Same as previous ... */ }
-        function populateSubjectSelectors() { /* ... Same as previous, ensures dropdowns are populated */ }
+        async function addNewSubject() { /* ... Same ... */ }
+        function populateSubjectSelectors() { /* ... Same ... */ }
         function handleSubjectChange() { /* ... */ }
-        async function addNewTeacher() { /* ... Same as previous ... */ }
-        function populateTeacherSelectors() { /* ... Same as previous, ensures dropdowns are populated */ }
+        async function addNewTeacher() { /* ... Same ... */ }
+        function populateTeacherSelectors() { /* ... Same ... */ }
         function handleTeacherChange() { /* ... */ }
         function formatClassId(classId) { /* ... */ }
 
         // ==== 3. Student Management ====
         function isStudentInClass(classId, studentName) { /* ... */ }
-        async function addStudent() { /* ... Same as previous ... */ }
-        async function renderStudentTable() { /* ... Same as previous (uses attendanceMap) ... */ }
+        async function addStudent() { /* ... Same ... */ }
+        async function renderStudentTable() { /* ... Same ... */ }
 
-        // ==== 4. Date & Attendance Functions ====
-        function updateTableHeaders() { /* ... Same as previous ... */ }
-        function setDefaultDate() { /* ... Same as previous ... */ }
-        async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same as previous ... */ }
-        function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same as previous ... */ }
-        async function saveAttendanceData() { /* ... Same as previous (uses batch) ... */ }
+        // ==== 4. Date & Attendance ====
+        function updateTableHeaders() { /* ... Same ... */ }
+        function setDefaultDate() { /* ... Same ... */ }
+        async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same ... */ }
+        function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same ... */ }
+        async function saveAttendanceData() { /* ... Same ... */ }
 
         // Clear Week with Confirmation
         async function clearWeekData() {
+            // Confirmation Added
             if (!confirm("Are you sure you want to clear all currently displayed attendance marks for this week?\nThis action cannot be undone easily.")) {
                  return;
             }
             if (!currentUser || !db) return;
-            // ... (rest of the clearWeekData function using batch is the same) ...
-             clearWeekBtn.disabled = true;
-             const selectedClassId = selectClass.value;
-             const selectedSubject = selectSubject.value;
-             const selectedTeacher = selectTeacher.value;
-             if (!selectedClassId || !selectedSubject || !selectedTeacher) { clearWeekBtn.disabled = false; return; }
+            clearWeekBtn.disabled = true;
+            const selectedClassId = selectClass.value;
+            const selectedSubject = selectSubject.value;
+            const selectedTeacher = selectTeacher.value;
+            if (!selectedClassId || !selectedSubject || !selectedTeacher) { clearWeekBtn.disabled = false; return; }
 
-             const headers = document.querySelectorAll('#attendanceTable thead th');
-             const rows = document.querySelectorAll('#attendanceTable tr.student-row');
+            const headers = document.querySelectorAll('#attendanceTable thead th');
+            const rows = document.querySelectorAll('#attendanceTable tr.student-row');
 
-             const batch = db.batch();
-             let operationsCount = 0;
+            const batch = db.batch();
+            let operationsCount = 0;
 
-             try {
-                 rows.forEach(row => {
-                     const studentName = row.cells[0].textContent;
-                     const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-                     checkboxes.forEach((checkbox, index) => {
-                         const date = headers[index + 1].dataset.date;
-                         if (date) {
-                             checkbox.checked = false;
-                             updateAttendanceRecord(batch, selectedClassId, selectedSubject, selectedTeacher, date, studentName, false);
-                             operationsCount++;
-                         }
-                     });
-                 });
+            try {
+                rows.forEach(row => {
+                    const studentName = row.cells[0].textContent;
+                    const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach((checkbox, index) => {
+                        const date = headers[index + 1].dataset.date;
+                        if (date) {
+                            checkbox.checked = false;
+                            updateAttendanceRecord(batch, selectedClassId, selectedSubject, selectedTeacher, date, studentName, false);
+                            operationsCount++;
+                        }
+                    });
+                });
 
-                 if (operationsCount > 0) {
-                      await batch.commit();
-                      calculateTotals();
-                      alert("This week's marks cleared.");
-                      console.log("Batch attendance clear successful.");
-                 } else {
-                      alert('No attendance data found for this week to clear.');
-                 }
-             } catch (error) {
-                 console.error("Error clearing week data:", error);
-                 alert("Error clearing attendance data. Check Firestore rules/connection.");
-                 renderStudentTable();
-             } finally {
-                  clearWeekBtn.disabled = false;
-             }
+                if (operationsCount > 0) {
+                     await batch.commit();
+                     calculateTotals();
+                     alert("This week's marks cleared.");
+                     console.log("Batch attendance clear successful.");
+                } else {
+                     alert('No attendance data found for this week to clear.');
+                }
+            } catch (error) {
+                console.error("Error clearing week data:", error);
+                alert("Error clearing attendance data. Check Firestore rules/connection.");
+                renderStudentTable();
+            } finally {
+                 clearWeekBtn.disabled = false;
+            }
         }
 
 
-        function calculateTotals() { /* ... Same as previous ... */ }
+        function calculateTotals() { /* ... Same ... */ }
 
-        // Mark All Present Function
+        // Mark All Present Function Added
         function markAllPresent() {
              const rows = document.querySelectorAll('#attendanceTable tr.student-row');
              if (rows.length === 0) return;
@@ -914,10 +537,10 @@
         }
 
 
-        async function generateMonthlyReport() { /* ... Same as previous ... */ }
-        function printReport() { /* ... Same as previous ... */ }
-        async function generateDashboard() { /* ... Same as previous ... */ }
-        function resetAllData() { /* ... Same as previous (disabled) ... */ }
+        async function generateMonthlyReport() { /* ... Same ... */ }
+        function printReport() { /* ... Same ... */ }
+        async function generateDashboard() { /* ... Same ... */ }
+        function resetAllData() { /* ... Same (disabled) ... */ }
 
         // ==== 5. Initialization ====
         document.addEventListener('DOMContentLoaded', function() {
@@ -935,10 +558,10 @@
             // Listen for authentication state changes (this triggers everything else)
             auth.onAuthStateChanged(handleAuthStateChanged);
 
-            // Add Login/Logout button listeners
+            // Add Login/Logout/Google button listeners
             loginBtn.addEventListener('click', loginUser);
             logoutBtn.addEventListener('click', logoutUser);
-            googleLoginBtn.addEventListener('click', loginWithGoogle);
+            googleLoginBtn.addEventListener('click', loginWithGoogle); // Added listener
 
             // --- Other event listeners ---
             addClassBtn.addEventListener('click', addNewClass);
@@ -953,8 +576,8 @@
             updateDatesBtn.addEventListener('click', updateTableHeaders);
             saveBtn.addEventListener('click', saveAttendanceData);
             calculateBtn.addEventListener('click', calculateTotals);
-            clearWeekBtn.addEventListener('click', clearWeekData);
-            markAllPresentBtn.addEventListener('click', markAllPresent);
+            clearWeekBtn.addEventListener('click', clearWeekData); // Now has confirmation
+            markAllPresentBtn.addEventListener('click', markAllPresent); // Added listener
 
             generateReportBtn.addEventListener('click', generateMonthlyReport);
             printReportBtn.addEventListener('click', printReport);
