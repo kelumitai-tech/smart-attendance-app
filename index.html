@@ -138,7 +138,7 @@
       let currentUser = null;
       let currentUserRole = null;
       let FieldValue;
-      let firebaseInitialized = false; // Flag
+      let firebaseInitialized = false;
 
       function initializeFirebase() {
            console.log("DEBUG: Attempting Firebase Initialization...");
@@ -255,7 +255,7 @@
             if (criticalElements.some(el => !el)) {
                  console.error("CRITICAL: Essential UI elements not found. Check HTML IDs.");
                  if(loadingIndicator) loadingIndicator.innerHTML = "<strong style='color:red;'>Error: App structure broken. Check HTML IDs.</strong>";
-                 return;
+                 return; // Stop initialization
             }
             console.log("DEBUG: Essential DOM elements check passed.");
 
@@ -307,33 +307,19 @@
                 if (!currentUserRole || !appContent || !dashboardCard || !dangerZoneCard || !managementCards.length) return;
                 if(appTitle) appTitle.textContent = `Smart Attendance (${currentUserRole})`;
                 const isPrincipal = currentUserRole === 'principal';
-
-                // Handle cards that are *only* for principals
                 dashboardCard.style.display = isPrincipal ? 'block' : 'none';
                 dangerZoneCard.style.display = isPrincipal ? 'block' : 'none';
-
-                // Handle management cards
                 managementCards.forEach(card => {
-                    // Principals see all management cards
-                    if (isPrincipal) {
-                        card.style.display = 'block';
-                    } else { // Teachers only see the student management card
-                        card.style.display = (card.id === 'student-manager-card') ? 'block' : 'none';
-                    }
+                    if (isPrincipal) { card.style.display = 'block'; }
+                    else { card.style.display = (card.id === 'student-manager-card') ? 'block' : 'none'; }
                 });
-
-                // Ensure selection cards are visible for *all* users (teachers need them too)
-                if(document.getElementById('class-manager-card')) document.getElementById('class-manager-card').style.display = 'block';
-                if(document.getElementById('subject-manager-card')) document.getElementById('subject-manager-card').style.display = 'block';
-                if(document.getElementById('teacher-manager-card')) document.getElementById('teacher-manager-card').style.display = 'block';
-
-                // Disable "Add" buttons if the user is not a principal
+                document.getElementById('class-manager-card').style.display = 'block';
+                document.getElementById('subject-manager-card').style.display = 'block';
+                document.getElementById('teacher-manager-card').style.display = 'block';
                 if(addClassBtn) addClassBtn.disabled = !isPrincipal;
                 if(addSubjectBtn) addSubjectBtn.disabled = !isPrincipal;
                 if(addTeacherBtn) addTeacherBtn.disabled = !isPrincipal;
-                // Teachers can add students, so addStudentBtn is not disabled by role
             }
-
 
             async function loginUser() {
                  console.log("DEBUG: loginUser function CALLED.");
@@ -418,7 +404,7 @@
             // ==== 2. Management Functions ====
             function generateClassId(grade, className) { return `${grade.replace(' ', '')}-${className.trim().toUpperCase()}`; }
             async function addNewClass() {
-                 if (!currentUser || !db || addClassBtn.disabled) return;
+                 if (!currentUser || !db || !addClassBtn || addClassBtn.disabled) return;
                  addClassBtn.disabled = true;
                  const grade = selectGrade.value; const className = inputClassName.value;
                  if (!className) { alert('Enter class name.'); addClassBtn.disabled = (currentUserRole !== 'principal'); return; }
@@ -433,7 +419,7 @@
                            alert(`Class '${formatClassId(classId)}' added.`); inputClassName.value = '';
                       }
                  } catch (e) { console.error("Add class error:", e); alert("Failed. Check rules/connection."); }
-                 finally { addClassBtn.disabled = (currentUserRole !== 'principal'); }
+                 finally { if(addClassBtn) addClassBtn.disabled = (currentUserRole !== 'principal'); } // Re-enable based on role
             }
             function populateClassSelector() {
                  const currentVal = selectClass.value; selectClass.innerHTML = ''; setSelectorsLoadingState(false);
@@ -453,7 +439,7 @@
             function handleClassChange() { renderStudentTable(); }
             
             async function addNewSubject() {
-                 if (!currentUser || !db || addSubjectBtn.disabled) return;
+                 if (!currentUser || !db || !addSubjectBtn || addSubjectBtn.disabled) return;
                  addSubjectBtn.disabled = true;
                  const subjectName = inputSubjectName.value.trim();
                  if (!subjectName) { alert('Enter subject name.'); addSubjectBtn.disabled = (currentUserRole !== 'principal'); return; }
@@ -464,7 +450,7 @@
                       populateSubjectSelectors(); selectSubject.value = subjectName; handleSubjectChange();
                       alert(`Subject '${subjectName}' added.`); inputSubjectName.value = '';
                  } catch (e) { console.error("Add subject error:", e); alert("Failed. Check rules/connection."); }
-                 finally { addSubjectBtn.disabled = (currentUserRole !== 'principal'); }
+                 finally { if(addSubjectBtn) addSubjectBtn.disabled = (currentUserRole !== 'principal'); }
             }
             function populateSubjectSelectors() {
                  const currentVal = selectSubject.value; const currentRepVal = reportSubject.value;
@@ -477,7 +463,7 @@
             function handleSubjectChange() { renderStudentTable(); }
 
             async function addNewTeacher() {
-                if (!currentUser || !db || addTeacherBtn.disabled) return;
+                if (!currentUser || !db || !addTeacherBtn || addTeacherBtn.disabled) return;
                  addTeacherBtn.disabled = true;
                  const teacherName = inputTeacherName.value.trim();
                  if (!teacherName) { alert('Enter teacher name.'); addTeacherBtn.disabled = (currentUserRole !== 'principal'); return; }
@@ -574,7 +560,9 @@
                  if(clearWeekBtn) clearWeekBtn.addEventListener('click', clearWeekData); else console.warn("Listener not attached: clearWeekBtn missing");
                  if(markAllPresentBtn) markAllPresentBtn.addEventListener('click', markAllPresent); else console.warn("Listener not attached: markAllPresentBtn missing");
                  if(generateReportBtn) generateReportBtn.addEventListener('click', generateMonthlyReport); else console.warn("Listener not attached: generateReportBtn missing");
-... (rest of the listeners)
+                 if(printReportBtn) printReportBtn.addEventListener('click', printReport); else console.warn("Listener not attached: printReportBtn missing");
+                 if(generateDashboardBtn) generateDashboardBtn.addEventListener('click', generateDashboard); else console.warn("Listener not attached: generateDashboardBtn missing");
+                 if(resetAllBtn) resetAllBtn.addEventListener('click', resetAllData); else console.warn("Listener not attached: resetAllBtn missing");
             }
 
         }); // End of DOMContentLoaded
