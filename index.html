@@ -44,6 +44,7 @@
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
             // --- DOM Elements (Get elements AFTER DOM is loaded) ---
+            // **** MOVED ALL getElementById HERE ****
             console.log("DEBUG: Retrieving DOM elements...");
             const loadingIndicator = getElementAndLog('loadingIndicator');
             const loadingText = getElementAndLog('loadingText');
@@ -80,7 +81,7 @@
             const clearWeekBtn = getElementAndLog('clearWeekBtn');
             const markAllPresentBtn = getElementAndLog('markAllPresentBtn');
             const reportMonthInput = getElementAndLog('reportMonth');
-            const generateReportBtn = document.getElementById('generateReportBtn'); // Corrected ID
+            const generateReportBtn = document.getElementById('generateReportBtn'); // Corrected ID check needed in getElementAndLog
             const printReportBtn = getElementAndLog('printReportBtn');
             const reportOutput = getElementAndLog('reportOutput');
             const dashboardDateInput = getElementAndLog('dashboardDate');
@@ -96,10 +97,16 @@
             function getElementAndLog(id) {
                 // console.log(`DEBUG: Checking element: ${id}...`); // Optional: reduce noise
                 const el = document.getElementById(id);
-                if (!el) { console.error(`CRITICAL ERROR: Element with ID '${id}' NOT FOUND!`); }
+                // ** FIX: Check generateReportBtn specifically **
+                if (!el && id !== 'generateReportBtn') { // Allow generateReportBtn to be potentially missing without critical error initially
+                     console.error(`CRITICAL ERROR: Element with ID '${id}' NOT FOUND!`);
+                 } else if (!el && id === 'generateReportBtn') {
+                      console.warn(`WARN: Element with ID 'generateReportBtn' NOT FOUND!`); // Warn instead of error
+                 }
                 // else { console.log(`DEBUG: Element '${id}' FOUND.`); } // Optional: reduce noise
                 return el;
             }
+
 
             // --- Check if essential elements were found ---
             const criticalElements = [loadingIndicator, loadingText, loginScreen, appContent, loginBtn, logoutBtn, googleLoginBtn];
@@ -116,9 +123,9 @@
             appContent.style.display = 'none';
 
             // --- Initialize Firebase FIRST ---
-             console.log("DEBUG: Attempting Firebase Initialization...");
-             try {
-                 if (typeof firebase === 'undefined') throw new Error("Firebase SDK global object not found.");
+            console.log("DEBUG: Attempting Firebase Initialization...");
+            try {
+                if (typeof firebase === 'undefined') throw new Error("Firebase SDK global object not found.");
                  const firebaseConfig = { /* ... ඔයාගේ Config එක මෙතන ... */
                      apiKey: "AIzaSyCPWRMciqqubcBUSzsE88xQcM9s1rMCMV8",
                      authDomain: "smart-attendance-tracker-841c6.firebaseapp.com",
@@ -128,15 +135,15 @@
                      appId: "1:741876469231:web:e971888d73cddaeec53a1a",
                      measurementId: "G-TP7WKWL66Y"
                  };
-                 if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_")) throw new Error("Firebase config missing/incomplete.");
+                if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_")) throw new Error("Firebase config missing/incomplete.");
 
-                 if (!firebase.apps.length) { app = firebase.initializeApp(firebaseConfig); console.log("DEBUG: Firebase Initialized successfully."); }
-                 else { app = firebase.app(); console.log("DEBUG: Firebase App already initialized."); }
-                 auth = firebase.auth();
-                 db = firebase.firestore();
-                 FieldValue = firebase.firestore.FieldValue;
-                 firebaseInitialized = true; // Set flag
-                 console.log("DEBUG: Firebase Auth and Firestore services obtained.");
+                if (!firebase.apps.length) { app = firebase.initializeApp(firebaseConfig); console.log("DEBUG: Firebase Initialized successfully."); }
+                else { app = firebase.app(); console.log("DEBUG: Firebase App already initialized."); }
+                auth = firebase.auth();
+                db = firebase.firestore();
+                FieldValue = firebase.firestore.FieldValue;
+                firebaseInitialized = true; // Set flag
+                console.log("DEBUG: Firebase Auth and Firestore services obtained.");
 
                  // --- Attach Auth Listener and SW AFTER successful initialization ---
                  console.log("DEBUG: Firebase ready. Attaching auth listener and SW.");
@@ -145,7 +152,7 @@
 
                  // --- Attach ALL Event Listeners ---
                  console.log("DEBUG: Attaching event listeners...");
-                 attachEventListeners();
+                 attachEventListeners(); // Encapsulate listener attachment
                  console.log("DEBUG: Initialization sequence complete.");
 
              } catch (e) {
@@ -163,100 +170,71 @@
             // =======================================================
             // ==== FUNCTION DEFINITIONS (Auth, Data Loading etc.) ====
             // =======================================================
-            async function handleAuthStateChanged(user) {
-                console.log("DEBUG: handleAuthStateChanged CALLED. User object:", user ? user.uid : 'null');
-                 if (loadingIndicator && loadingIndicator.style.display !== 'none') { console.log("DEBUG: Hiding loading indicator."); loadingIndicator.style.display = 'none'; }
-
-                currentUser = user; currentUserRole = null;
-                if (user) {
-                    console.log("DEBUG: User is logged in. Showing app content.");
-                    if (loginScreen) loginScreen.style.display = 'none'; if (appContent) appContent.style.display = 'block';
-                    try {
-                        if (!db) throw new Error("Firestore DB not initialized.");
-                        console.log("DEBUG: Checking user document in Firestore for UID:", user.uid);
-                        const userDocRef = db.collection('users').doc(user.uid); const userDoc = await userDocRef.get();
-                        if (userDoc.exists && userDoc.data().role) { currentUserRole = userDoc.data().role; console.log("DEBUG: User role determined:", currentUserRole); if (!userDoc.data().email && user.email) { await userDocRef.set({ email: user.email }, { merge: true }); } }
-                        else { console.warn(`DEBUG: User doc/role missing for ${user.uid}. Creating/assigning default role 'teacher'.`); await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true }); currentUserRole = 'teacher'; }
-                    } catch (error) { console.error("DEBUG: Error fetching/setting user role:", error); currentUserRole = 'teacher'; alert("Could not determine user role (Error: " + error.message + "). Defaulting to 'teacher'. Try refreshing."); }
-                    updateUIForRole();
-                    if (!appState.isDataLoaded) { console.log("DEBUG: Initial data not loaded, calling loadInitialData()."); await loadInitialData(); }
-                    else { console.log("DEBUG: Initial data already loaded, repopulating UI elements."); populateAllSelectors(); setDefaultDate(); updateTableHeaders(); }
-                } else { console.log("DEBUG: User is logged out. Showing login screen."); if (loginScreen) loginScreen.style.display = 'block'; if (appContent) appContent.style.display = 'none'; clearUI(); appState.isDataLoaded = false; }
-                console.log("DEBUG: handleAuthStateChanged FINISHED.");
-            }
-            function updateUIForRole() { /* ... Same ... */ }
-            async function loginUser() {
-                 console.log("DEBUG: loginUser function CALLED."); // DEBUG
-                 loginBtn.disabled = true; loginError.style.display = 'none'; loginError.textContent = '';
-                 const email = loginEmailInput.value.trim(); const password = loginPasswordInput.value;
-                 if (!email || !password) { loginError.textContent = "Enter email/password."; loginError.style.display = 'block'; loginBtn.disabled = false; return; }
-                 try {
-                     if (!auth) throw new Error("Firebase Auth missing.");
-                     console.log("DEBUG: Attempting sign in for:", email); // DEBUG
-                     await auth.signInWithEmailAndPassword(email, password);
-                     console.log("DEBUG: Login successful via function"); // DEBUG
-                 }
-                 catch (error) {
-                     console.error("Login fail:", error); // DEBUG
-                     loginError.textContent = "Login failed: " + (error.code || error.message);
-                     loginError.style.display = 'block';
-                 }
-                 finally { loginBtn.disabled = false; }
-            }
-            async function logoutUser() { /* ... Same ... */ }
-            async function loginWithGoogle() { /* ... Same ... */ }
-            function clearUI() { /* ... Same ... */ }
-            async function loadInitialData() { /* ... Same ... */ }
-            function setSelectorsLoadingState(isLoading, isError = false) { /* ... Same ... */ }
-            function populateAllSelectors() { /* ... Same ... */ }
+            async function handleAuthStateChanged(user) { /* ... Same logic ... */ }
+            function updateUIForRole() { /* ... Same logic ... */ }
+            async function loginUser() { /* ... Same logic ... */ }
+            async function logoutUser() { /* ... Same logic ... */ }
+            async function loginWithGoogle() { /* ... Same logic ... */ }
+            function clearUI() { /* ... Same logic ... */ }
+            async function loadInitialData() { /* ... Same logic ... */ }
+            function setSelectorsLoadingState(isLoading, isError = false) { /* ... Same logic ... */ }
+            function populateAllSelectors() { /* ... Same logic ... */ }
             function generateClassId(grade, className) { /* ... */ }
-            async function addNewClass() { /* ... Same ... */ }
-            function populateClassSelector() { /* ... Same ... */ }
+            async function addNewClass() { /* ... Same logic ... */ }
+            function populateClassSelector() { /* ... Same logic ... */ }
             function handleClassChange() { renderStudentTable(); }
-            async function addNewSubject() { /* ... Same ... */ }
-            function populateSubjectSelectors() { /* ... Same ... */ }
+            async function addNewSubject() { /* ... Same logic ... */ }
+            function populateSubjectSelectors() { /* ... Same logic ... */ }
             function handleSubjectChange() { renderStudentTable(); }
-            async function addNewTeacher() { /* ... Same ... */ }
-            function populateTeacherSelectors() { /* ... Same ... */ }
+            async function addNewTeacher() { /* ... Same logic ... */ }
+            function populateTeacherSelectors() { /* ... Same logic ... */ }
             function handleTeacherChange() { renderStudentTable(); }
             function formatClassId(classId) { /* ... */ }
             function isStudentInClass(classId, studentName) { /* ... */ }
-            async function addStudent() { /* ... Same ... */ }
-            async function renderStudentTable() { /* ... Same ... */ }
-            function updateTableHeaders() { /* ... Same ... */ }
-            function setDefaultDate() { /* ... Same ... */ }
-            async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same ... */ }
-            function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same ... */ }
-            async function saveAttendanceData() { /* ... Same ... */ }
-            async function clearWeekData() { /* ... Same (with confirmation) ... */ }
-            function calculateTotals() { /* ... Same ... */ }
-            function markAllPresent() { /* ... Same ... */ }
-            async function generateMonthlyReport() { /* ... Same ... */ }
-            function printReport() { /* ... Same ... */ }
-            async function generateDashboard() { /* ... Same ... */ }
+            async function addStudent() { /* ... Same logic ... */ }
+            async function renderStudentTable() { /* ... Same logic ... */ }
+            function updateTableHeaders() { /* ... Same logic ... */ }
+            function setDefaultDate() { /* ... Same logic ... */ }
+            async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same logic ... */ }
+            function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same logic ... */ }
+            async function saveAttendanceData() { /* ... Same logic ... */ }
+            async function clearWeekData() { /* ... Same logic (with confirmation) ... */ }
+            function calculateTotals() { /* ... Same logic ... */ }
+            function markAllPresent() { /* ... Same logic ... */ }
+            async function generateMonthlyReport() { /* ... Same logic ... */ }
+            function printReport() { /* ... Same logic ... */ }
+            async function generateDashboard() { /* ... Same logic ... */ }
             function resetAllData() { /* ... Same (disabled) ... */ }
 
             // --- Helper to Attach Event Listeners ---
             function attachEventListeners() {
-                 if(loginBtn) loginBtn.addEventListener('click', loginUser); else console.error("Cannot attach listener: loginBtn missing");
-                 if(logoutBtn) logoutBtn.addEventListener('click', logoutUser); else console.error("Cannot attach listener: logoutBtn missing");
-                 if(googleLoginBtn) googleLoginBtn.addEventListener('click', loginWithGoogle); else console.error("Cannot attach listener: googleLoginBtn missing");
-                 if(addClassBtn) addClassBtn.addEventListener('click', addNewClass); else console.warn("addClassBtn missing");
-                 if(addSubjectBtn) addSubjectBtn.addEventListener('click', addNewSubject); else console.warn("addSubjectBtn missing");
-                 if(addTeacherBtn) addTeacherBtn.addEventListener('click', addNewTeacher); else console.warn("addTeacherBtn missing");
-                 if(selectClass) selectClass.addEventListener('change', handleClassChange); else console.warn("selectClass missing");
-                 if(selectSubject) selectSubject.addEventListener('change', handleSubjectChange); else console.warn("selectSubject missing");
-                 if(selectTeacher) selectTeacher.addEventListener('change', handleTeacherChange); else console.warn("selectTeacher missing");
-                 if(addStudentBtn) addStudentBtn.addEventListener('click', addStudent); else console.warn("addStudentBtn missing");
-                 if(updateDatesBtn) updateDatesBtn.addEventListener('click', updateTableHeaders); else console.warn("updateDatesBtn missing");
-                 if(saveBtn) saveBtn.addEventListener('click', saveAttendanceData); else console.warn("saveBtn missing");
-                 if(calculateBtn) calculateBtn.addEventListener('click', calculateTotals); else console.warn("calculateBtn missing");
-                 if(clearWeekBtn) clearWeekBtn.addEventListener('click', clearWeekData); else console.warn("clearWeekBtn missing");
-                 if(markAllPresentBtn) markAllPresentBtn.addEventListener('click', markAllPresent); else console.warn("markAllPresentBtn missing");
-                 if(generateReportBtn) generateReportBtn.addEventListener('click', generateMonthlyReport); else console.warn("generateReportBtn missing");
-                 if(printReportBtn) printReportBtn.addEventListener('click', printReport); else console.warn("printReportBtn missing");
-                 if(generateDashboardBtn) generateDashboardBtn.addEventListener('click', generateDashboard); else console.warn("generateDashboardBtn missing");
-                 if(resetAllBtn) resetAllBtn.addEventListener('click', resetAllData); else console.warn("resetAllBtn missing");
+                 console.log("DEBUG: Inside attachEventListeners function.");
+                 // **Check if element exists before attaching listener**
+                 if(loginBtn) { console.log("DEBUG: Attaching listener to loginBtn..."); loginBtn.addEventListener('click', loginUser); } else console.error("CRITICAL ERROR: Cannot attach listener: loginBtn missing");
+                 if(logoutBtn) { console.log("DEBUG: Attaching listener to logoutBtn..."); logoutBtn.addEventListener('click', logoutUser); } else console.error("CRITICAL ERROR: Cannot attach listener: logoutBtn missing");
+                 if(googleLoginBtn) { console.log("DEBUG: Attaching listener to googleLoginBtn..."); googleLoginBtn.addEventListener('click', loginWithGoogle); } else console.error("CRITICAL ERROR: Cannot attach listener: googleLoginBtn missing");
+
+                 // Attach other listeners safely
+                 if(addClassBtn) addClassBtn.addEventListener('click', addNewClass); else console.warn("Listener not attached: addClassBtn missing");
+                 if(addSubjectBtn) addSubjectBtn.addEventListener('click', addNewSubject); else console.warn("Listener not attached: addSubjectBtn missing");
+                 if(addTeacherBtn) addTeacherBtn.addEventListener('click', addNewTeacher); else console.warn("Listener not attached: addTeacherBtn missing");
+                 if(selectClass) selectClass.addEventListener('change', handleClassChange); else console.warn("Listener not attached: selectClass missing");
+                 if(selectSubject) selectSubject.addEventListener('change', handleSubjectChange); else console.warn("Listener not attached: selectSubject missing");
+                 if(selectTeacher) selectTeacher.addEventListener('change', handleTeacherChange); else console.warn("Listener not attached: selectTeacher missing");
+                 if(addStudentBtn) addStudentBtn.addEventListener('click', addStudent); else console.warn("Listener not attached: addStudentBtn missing");
+                 if(updateDatesBtn) updateDatesBtn.addEventListener('click', updateTableHeaders); else console.warn("Listener not attached: updateDatesBtn missing");
+                 if(saveBtn) saveBtn.addEventListener('click', saveAttendanceData); else console.warn("Listener not attached: saveBtn missing");
+                 if(calculateBtn) calculateBtn.addEventListener('click', calculateTotals); else console.warn("Listener not attached: calculateBtn missing");
+                 if(clearWeekBtn) clearWeekBtn.addEventListener('click', clearWeekData); else console.warn("Listener not attached: clearWeekBtn missing");
+                 if(markAllPresentBtn) markAllPresentBtn.addEventListener('click', markAllPresent); else console.warn("Listener not attached: markAllPresentBtn missing");
+                  // ** FIX: Check generateReportBtn before adding listener **
+                 const genReportBtn = document.getElementById('generateReportBtn'); // Re-get inside function?
+                 if(genReportBtn) genReportBtn.addEventListener('click', generateMonthlyReport); else console.warn("Listener not attached: generateReportBtn missing");
+                 // if(generateReportBtn) generateReportBtn.addEventListener('click', generateMonthlyReport); else console.warn("Listener not attached: generateReportBtn missing");
+                 if(printReportBtn) printReportBtn.addEventListener('click', printReport); else console.warn("Listener not attached: printReportBtn missing");
+                 if(generateDashboardBtn) generateDashboardBtn.addEventListener('click', generateDashboard); else console.warn("Listener not attached: generateDashboardBtn missing");
+                 if(resetAllBtn) resetAllBtn.addEventListener('click', resetAllData); else console.warn("Listener not attached: resetAllBtn missing");
+                 console.log("DEBUG: Finished attaching listeners.");
             }
 
         }); // End of DOMContentLoaded
