@@ -267,6 +267,7 @@
             // --- Helper to get element and log ---
             function getElementAndLog(id) {
                 const el = document.getElementById(id);
+                // ** This check is CRITICAL. If any are null, it means your HTML is broken/missing. **
                 if (!el) { console.error(`CRITICAL ERROR: Element with ID '${id}' NOT FOUND!`); }
                 return el;
             }
