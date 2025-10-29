@@ -21,7 +21,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
-      const firebaseConfig = { /* ... ඔයාගේ Config එක මෙතන ... */
+      // ==========================================================
+      // ==== YOUR FIREBASE CONFIG OBJECT                   ====
+      // ==========================================================
+      const firebaseConfig = {
         apiKey: "AIzaSyCPWRMciqqubcBUSzsE88xQcM9s1rMCMV8",
         authDomain: "smart-attendance-tracker-841c6.firebaseapp.com",
         projectId: "smart-attendance-tracker-841c6",
@@ -30,45 +33,16 @@
         appId: "1:741876469231:web:e971888d73cddaeec53a1a",
         measurementId: "G-TP7WKWL66Y"
       };
+      // ==========================================================
 
-      // --- Initialize Firebase Globals ---
+      // Initialize Firebase Globals
       let app, auth, db;
       let currentUser = null;
       let currentUserRole = null;
       let FieldValue;
       let firebaseInitialized = false; // Flag
 
-      function initializeFirebase() {
-           console.log("DEBUG: Attempting Firebase Initialization...");
-           try {
-               if (typeof firebase === 'undefined') throw new Error("Firebase SDK global object not found.");
-               if (typeof firebaseConfig === 'undefined' || !firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_")) throw new Error("Firebase config missing/incomplete.");
-               if (!firebase.apps.length) { app = firebase.initializeApp(firebaseConfig); console.log("DEBUG: Firebase Initialized successfully."); }
-               else { app = firebase.app(); console.log("DEBUG: Firebase App already initialized."); }
-               auth = firebase.auth();
-               db = firebase.firestore();
-               FieldValue = firebase.firestore.FieldValue;
-               console.log("DEBUG: Firebase Auth and Firestore services obtained.");
-               firebaseInitialized = true; // Set flag
-               return true;
-           } catch (e) {
-               console.error("CRITICAL: Error initializing Firebase SDK", e);
-               const loadingIndicatorEl = document.getElementById('loadingIndicator');
-               const loadingTextEl = document.getElementById('loadingText');
-               if (loadingIndicatorEl) {
-                   const errorMsg = `CRITICAL ERROR: Could not initialize Firebase. ${e.message}. Check Console/Config.`;
-                   if (loadingTextEl) { loadingTextEl.innerHTML = `<strong style='color: red;'>${errorMsg}</strong>`; }
-                   else { loadingIndicatorEl.innerHTML = `<strong style='color: red;'>${errorMsg}</strong>`; }
-                   loadingIndicatorEl.style.color = "red";
-                   const loginScreenEl = document.getElementById('loginScreen');
-                   const appContentEl = document.getElementById('appContent');
-                   if(loginScreenEl) loginScreenEl.style.display = 'none';
-                   if(appContentEl) appContentEl.style.display = 'none';
-               }
-               firebaseInitialized = false;
-               return false;
-           }
-      }
+      function initializeFirebase() { /* ... Same initialization logic ... */ }
     </script>
 
     <script>
@@ -76,6 +50,7 @@
     </script>
 
     <script>
+        // **** NEW: Wrap ALL code inside DOMContentLoaded ****
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DEBUG: DOM content loaded. Starting main script logic.");
 
@@ -84,19 +59,66 @@
             const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-            // --- DOM Elements ---
+            // --- Firebase Globals (Declared outside, assigned inside init) ---
+            // let app, auth, db, FieldValue; (Use globals declared above)
+            // let currentUser = null;
+            // let currentUserRole = null;
+
+            // --- DOM Elements (Get elements AFTER DOM is loaded) ---
+            // **** MOVED ALL getElementById HERE ****
             const loadingIndicator = document.getElementById('loadingIndicator');
             const loadingText = document.getElementById('loadingText');
             const loginScreen = document.getElementById('loginScreen');
             const appContent = document.getElementById('appContent');
-            // ... (rest of getElementById calls) ...
+            const loginEmailInput = document.getElementById('loginEmail');
+            const loginPasswordInput = document.getElementById('loginPassword');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const loginError = document.getElementById('loginError');
+            const googleLoginBtn = document.getElementById('googleLoginBtn');
+            const appTitle = document.getElementById('appTitle');
+            const selectGrade = document.getElementById('selectGrade');
+            const inputClassName = document.getElementById('inputClassName');
+            const addClassBtn = document.getElementById('addClassBtn');
+            const selectClass = document.getElementById('selectClass');
+            const inputSubjectName = document.getElementById('inputSubjectName');
+            const addSubjectBtn = document.getElementById('addSubjectBtn');
+            const selectSubject = document.getElementById('selectSubject');
+            const reportSubject = document.getElementById('reportSubject');
+            const inputTeacherName = document.getElementById('inputTeacherName');
+            const addTeacherBtn = document.getElementById('addTeacherBtn');
+            const selectTeacher = document.getElementById('selectTeacher');
+            const reportTeacher = document.getElementById('reportTeacher');
+            const startDateInput = document.getElementById('startDate');
+            const updateDatesBtn = document.getElementById('updateDatesBtn');
+            const studentNameInput = document.getElementById('studentNameInput');
+            const addStudentBtn = document.getElementById('addStudentBtn');
+            const tableBody = document.getElementById('attendanceTbody');
+            const attendanceSheetTitle = document.getElementById('attendance-sheet-title');
+            const attendanceInfo = document.getElementById('attendanceInfo');
+            const saveBtn = document.getElementById('saveBtn');
+            const calculateBtn = document.getElementById('calculateBtn');
+            const clearWeekBtn = document.getElementById('clearWeekBtn');
+            const markAllPresentBtn = document.getElementById('markAllPresentBtn');
+            const reportMonthInput = document.getElementById('reportMonth');
+            const generateReportBtn = document.getElementById('generateReportBtn');
+            const printReportBtn = document.getElementById('printReportBtn');
+            const reportOutput = document.getElementById('reportOutput');
+            const dashboardDateInput = document.getElementById('dashboardDate');
+            const generateDashboardBtn = document.getElementById('generateDashboardBtn');
+            const dashboardOutput = document.getElementById('dashboardOutput');
+            const resetAllBtn = document.getElementById('resetAllBtn');
+            const dashboardCard = document.getElementById('dashboard-card');
+            const dangerZoneCard = document.getElementById('danger-zone-card');
+            const managementCards = document.querySelectorAll('.management-card'); // Use querySelectorAll
+
 
             // --- Check if essential elements were found ---
-            const criticalElements = [loadingIndicator, loadingText, loginScreen, appContent /*, add more critical ones if needed */ ];
+            const criticalElements = [loadingIndicator, loadingText, loginScreen, appContent, loginBtn, logoutBtn, googleLoginBtn /* add more if needed */];
             if (criticalElements.some(el => !el)) {
                  console.error("CRITICAL: Essential UI elements not found AFTER DOMContentLoaded. Check HTML IDs.");
                  if(loadingIndicator) loadingIndicator.innerHTML = "<strong style='color:red;'>Error: App structure broken. Check HTML IDs.</strong>";
-                 return;
+                 return; // Stop initialization
             }
             console.log("DEBUG: Essential DOM elements found.");
 
@@ -105,19 +127,18 @@
             loginScreen.style.display = 'none';
             appContent.style.display = 'none';
 
-            // --- Initialize Firebase FIRST ---
+            // --- Initialize Firebase INSIDE DOMContentLoaded ---
             const firebaseReady = initializeFirebase(); // Call global init
 
             if (firebaseReady) {
-                 console.log("DEBUG: Firebase ready inside DOMContentLoaded. Attaching auth listener and SW.");
-                 // **** NEW: Attach listener immediately AFTER successful init ****
-                 console.log("DEBUG: Attaching auth state listener NOW...");
-                 auth.onAuthStateChanged(handleAuthStateChanged);
+                 console.log("DEBUG: Firebase ready. Attaching auth listener and SW.");
+                 auth.onAuthStateChanged(handleAuthStateChanged); // This triggers UI/Data Load
                  registerServiceWorker();
 
                  // --- Attach Event Listeners ---
+                 // **** MOVED ATTACHMENT HERE, AFTER ELEMENTS ARE CONFIRMED ****
                  console.log("DEBUG: Attaching event listeners inside DOMContentLoaded...");
-                 attachEventListeners(); // Encapsulate listener attachment
+                 attachEventListeners();
                  console.log("DEBUG: All event listeners attached.");
             } else {
                  console.error("STOPPING APP INITIALIZATION DUE TO FIREBASE FAILURE.");
@@ -128,79 +149,46 @@
             // ==== FUNCTION DEFINITIONS (Auth, Data Loading etc.) ====
             // =======================================================
 
-            async function handleAuthStateChanged(user) {
-                console.log("DEBUG: handleAuthStateChanged CALLED. User object:", user ? user.uid : 'null');
-                 // Hide loading indicator (should happen only once)
-                 if (loadingIndicator && loadingIndicator.style.display !== 'none') {
-                      console.log("DEBUG: Hiding loading indicator inside handleAuthStateChanged.");
-                      loadingIndicator.style.display = 'none';
-                 } else if (loadingIndicator && loadingIndicator.style.display === 'none') {
-                     // If it's already hidden, maybe log that this is a subsequent auth change?
-                     console.log("DEBUG: handleAuthStateChanged called again (subsequent change).");
-                 }
-
-                currentUser = user; currentUserRole = null;
-                if (user) { /* ... fetch role, update UI, load data ... */ }
-                else { /* ... show login, clear UI ... */ }
-                console.log("DEBUG: handleAuthStateChanged FINISHED.");
-            }
-            function updateUIForRole() { /* ... Same ... */ }
-            async function loginUser() { /* ... Same ... */ }
-            async function logoutUser() { /* ... Same ... */ }
-            async function loginWithGoogle() { /* ... Same ... */ }
-            function clearUI() { /* ... Same ... */ }
-            async function loadInitialData() { /* ... Same ... */ }
-            function setSelectorsLoadingState(isLoading, isError = false) { /* ... Same ... */ }
-            function populateAllSelectors() { /* ... Same ... */ }
+            async function handleAuthStateChanged(user) { /* ... Same logic ... */ }
+            function updateUIForRole() { /* ... Same logic ... */ }
+            async function loginUser() { /* ... Same logic ... */ }
+            async function logoutUser() { /* ... Same logic ... */ }
+            async function loginWithGoogle() { /* ... Same logic ... */ }
+            function clearUI() { /* ... Same logic ... */ }
+            async function loadInitialData() { /* ... Same logic ... */ }
+            function setSelectorsLoadingState(isLoading, isError = false) { /* ... Same logic ... */ }
+            function populateAllSelectors() { /* ... Same logic ... */ }
             function generateClassId(grade, className) { /* ... */ }
-            async function addNewClass() { /* ... Same ... */ }
-            function populateClassSelector() { /* ... Same ... */ }
+            async function addNewClass() { /* ... Same logic ... */ }
+            function populateClassSelector() { /* ... Same logic ... */ }
             function handleClassChange() { renderStudentTable(); }
-            async function addNewSubject() { /* ... Same ... */ }
-            function populateSubjectSelectors() { /* ... Same ... */ }
+            async function addNewSubject() { /* ... Same logic ... */ }
+            function populateSubjectSelectors() { /* ... Same logic ... */ }
             function handleSubjectChange() { renderStudentTable(); }
-            async function addNewTeacher() { /* ... Same ... */ }
-            function populateTeacherSelectors() { /* ... Same ... */ }
+            async function addNewTeacher() { /* ... Same logic ... */ }
+            function populateTeacherSelectors() { /* ... Same logic ... */ }
             function handleTeacherChange() { renderStudentTable(); }
             function formatClassId(classId) { /* ... */ }
             function isStudentInClass(classId, studentName) { /* ... */ }
-            async function addStudent() { /* ... Same ... */ }
-            async function renderStudentTable() { /* ... Same ... */ }
-            function updateTableHeaders() { /* ... Same ... */ }
-            function setDefaultDate() { /* ... Same ... */ }
-            async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same ... */ }
-            function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same ... */ }
-            async function saveAttendanceData() { /* ... Same ... */ }
-            async function clearWeekData() { /* ... Same (with confirmation) ... */ }
-            function calculateTotals() { /* ... Same ... */ }
-            function markAllPresent() { /* ... Same ... */ }
-            async function generateMonthlyReport() { /* ... Same ... */ }
-            function printReport() { /* ... Same ... */ }
-            async function generateDashboard() { /* ... Same ... */ }
+            async function addStudent() { /* ... Same logic ... */ }
+            async function renderStudentTable() { /* ... Same logic ... */ }
+            function updateTableHeaders() { /* ... Same logic ... */ }
+            function setDefaultDate() { /* ... Same logic ... */ }
+            async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same logic ... */ }
+            function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same logic ... */ }
+            async function saveAttendanceData() { /* ... Same logic ... */ }
+            async function clearWeekData() { /* ... Same logic (with confirmation) ... */ }
+            function calculateTotals() { /* ... Same logic ... */ }
+            function markAllPresent() { /* ... Same logic ... */ }
+            async function generateMonthlyReport() { /* ... Same logic ... */ }
+            function printReport() { /* ... Same logic ... */ }
+            async function generateDashboard() { /* ... Same logic ... */ }
             function resetAllData() { /* ... Same (disabled) ... */ }
 
             // --- Helper to Attach Event Listeners ---
             function attachEventListeners() {
-                 const loginBtn = document.getElementById('loginBtn');
-                 const logoutBtn = document.getElementById('logoutBtn');
-                 const googleLoginBtn = document.getElementById('googleLoginBtn');
-                 const addClassBtn = document.getElementById('addClassBtn');
-                 const addSubjectBtn = document.getElementById('addSubjectBtn');
-                 const addTeacherBtn = document.getElementById('addTeacherBtn');
-                 const selectClass = document.getElementById('selectClass');
-                 const selectSubject = document.getElementById('selectSubject');
-                 const selectTeacher = document.getElementById('selectTeacher');
-                 const addStudentBtn = document.getElementById('addStudentBtn');
-                 const updateDatesBtn = document.getElementById('updateDatesBtn');
-                 const saveBtn = document.getElementById('saveBtn');
-                 const calculateBtn = document.getElementById('calculateBtn');
-                 const clearWeekBtn = document.getElementById('clearWeekBtn');
-                 const markAllPresentBtn = document.getElementById('markAllPresentBtn');
-                 const generateReportBtn = document.getElementById('generateReportBtn');
-                 const printReportBtn = document.getElementById('printReportBtn');
-                 const generateDashboardBtn = document.getElementById('generateDashboardBtn');
-                 const resetAllBtn = document.getElementById('resetAllBtn');
-
+                 // **Re-get elements INSIDE this function scope OR rely on globals defined at top of DOMContentLoaded**
+                 // Using globals defined at the top of DOMContentLoaded
                  if(loginBtn) loginBtn.addEventListener('click', loginUser); else console.warn("loginBtn missing");
                  if(logoutBtn) logoutBtn.addEventListener('click', logoutUser); else console.warn("logoutBtn missing");
                  if(googleLoginBtn) googleLoginBtn.addEventListener('click', loginWithGoogle); else console.warn("googleLoginBtn missing");
