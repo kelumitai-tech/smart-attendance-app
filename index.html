@@ -12,11 +12,16 @@
     </style>
 </head>
 <body>
-
     <div id="loadingIndicator">Loading Application...</div>
 
     <div id="loginScreen" class="card" style="display: none; max-width: 400px; margin: 50px auto;">
-        </div>
+        <h2>Smart Attendance Tracker</h2>
+        <div class="form-group"> <label for="loginEmail">Email</label> <input type="email" id="loginEmail" placeholder="Enter email"> </div>
+        <div class="form-group"> <label for="loginPassword">Password</label> <input type="password" id="loginPassword" placeholder="Enter password"> </div>
+        <button id="loginBtn">Login</button>
+        <button id="googleLoginBtn">Sign in with Google</button>
+        <p id="loginError"></p>
+    </div>
 
     <div id="appContent" style="display: none;">
         <header class="main-header">
@@ -25,10 +30,20 @@
         </header>
 
         <main class="app-container">
-            </main>
+            <div class="card management-card" id="class-manager-card" style="display: none;"><h2>Class Management</h2></div>
+             <div class="card management-card" id="subject-manager-card" style="display: none;"><h2>Subject Management</h2></div>
+             <div class="card management-card" id="teacher-manager-card" style="display: none;"><h2>Teacher Management</h2></div>
+             <div class="card management-card" id="student-manager-card" style="display: none;"><h2>Student Management</h2></div>
+             <div class="card" id="date-manager-card"><h2>Date Selector</h2></div>
+             <div class="card" id="attendance-sheet-card"><h2>Attendance Sheet</h2></div>
+             <div class="card principal-only" id="dashboard-card" style="display: none;"><h2>Principal's Dashboard</h2></div>
+             <div class="card" id="report-card"><h2>Teacher's Monthly Report</h2></div>
+             <div class="card danger-zone principal-only" id="danger-zone-card" style="display: none;"><h2>Danger Zone</h2></div>
+        </main>
 
         <footer class="main-footer-credits">
-            </footer>
+            Developer : Kelum Konara <br> SmartSoft | The Mobile Apps Developer <br> 0714469232
+        </footer>
     </div> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -52,11 +67,11 @@
       let app, auth, db;
       let currentUser = null;
       let currentUserRole = null;
-      let FieldValue; // Declared globally
+      let FieldValue;
 
       // --- Wrap initialization in a function ---
       function initializeFirebase() {
-           console.log("DEBUG: Attempting Firebase Initialization..."); // DEBUG
+           console.log("DEBUG: Attempting Firebase Initialization...");
            try {
                if (typeof firebase === 'undefined') throw new Error("Firebase SDK global object not found.");
                if (typeof firebaseConfig === 'undefined' || !firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_")) throw new Error("Firebase config missing/incomplete.");
@@ -66,52 +81,107 @@
                auth = firebase.auth();
                db = firebase.firestore();
                FieldValue = firebase.firestore.FieldValue; // Assign here
-               console.log("DEBUG: Firebase Auth and Firestore services obtained."); // DEBUG
-               return true; // Indicate success
+               console.log("DEBUG: Firebase Auth and Firestore services obtained.");
+               return true; // Success
            } catch (e) {
-               console.error("CRITICAL: Error initializing Firebase SDK", e); // DEBUG + CRITICAL tag
+               console.error("CRITICAL: Error initializing Firebase SDK", e);
                const loadingIndicatorEl = document.getElementById('loadingIndicator');
                if (loadingIndicatorEl) {
-                   loadingIndicatorEl.textContent = `CRITICAL ERROR: Could not initialize Firebase. ${e.message}. Check Console.`;
-                   loadingIndicatorEl.style.color = "red";
+                   // **NEW: More prominent error display**
+                   loadingIndicatorEl.innerHTML = `
+                       <strong style='color: red;'>CRITICAL ERROR:</strong><br>
+                       Could not initialize Firebase.<br>
+                       Reason: ${e.message}<br>
+                       Please check Console and Firebase Config.`;
+                   loadingIndicatorEl.style.color = "red"; // Make sure text is red
+                   // Hide login/app content explicitly on init error
+                   const loginScreenEl = document.getElementById('loginScreen');
+                   const appContentEl = document.getElementById('appContent');
+                   if(loginScreenEl) loginScreenEl.style.display = 'none';
+                   if(appContentEl) appContentEl.style.display = 'none';
                }
-               return false; // Indicate failure
+               return false; // Failure
            }
       }
     </script>
     <script>
-        function registerServiceWorker() { /* ... Same SW register logic ... */ }
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator && typeof firebase !== 'undefined' && firebase.apps.length) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js')
+                        .then(registration => { console.log('SW registered: ', registration.scope); })
+                        .catch(error => { console.log('SW registration failed: ', error); });
+                });
+            } else { console.log("SW not supported or Firebase not loaded."); }
+        }
     </script>
 
     <script>
-        console.log("DEBUG: Main script started."); // DEBUG
+        console.log("DEBUG: Main script started.");
 
         // Global in-memory state
         let appState = { rosters: {}, subjects: [], teachers: [], isDataLoaded: false };
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-        // --- DOM Elements ---
+        // --- DOM Elements (Ensure IDs match HTML) ---
         const loadingIndicator = document.getElementById('loadingIndicator');
         const loginScreen = document.getElementById('loginScreen');
         const appContent = document.getElementById('appContent');
-        // ... (ensure all other getElementById calls are here)
+        const loginEmailInput = document.getElementById('loginEmail');
+        const loginPasswordInput = document.getElementById('loginPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginError = document.getElementById('loginError');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const appTitle = document.getElementById('appTitle');
+        const selectGrade = document.getElementById('selectGrade');
+        const inputClassName = document.getElementById('inputClassName');
+        const addClassBtn = document.getElementById('addClassBtn');
+        const selectClass = document.getElementById('selectClass');
+        const inputSubjectName = document.getElementById('inputSubjectName');
+        const addSubjectBtn = document.getElementById('addSubjectBtn');
+        const selectSubject = document.getElementById('selectSubject');
+        const reportSubject = document.getElementById('reportSubject');
+        const inputTeacherName = document.getElementById('inputTeacherName');
+        const addTeacherBtn = document.getElementById('addTeacherBtn');
+        const selectTeacher = document.getElementById('selectTeacher');
+        const reportTeacher = document.getElementById('reportTeacher');
+        const startDateInput = document.getElementById('startDate');
+        const updateDatesBtn = document.getElementById('updateDatesBtn');
+        const studentNameInput = document.getElementById('studentNameInput');
+        const addStudentBtn = document.getElementById('addStudentBtn');
+        const tableBody = document.getElementById('attendanceTbody');
+        const attendanceSheetTitle = document.getElementById('attendance-sheet-title');
+        const attendanceInfo = document.getElementById('attendanceInfo');
+        const saveBtn = document.getElementById('saveBtn');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const clearWeekBtn = document.getElementById('clearWeekBtn');
+        const markAllPresentBtn = document.getElementById('markAllPresentBtn');
+        const reportMonthInput = document.getElementById('reportMonth');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+        const printReportBtn = document.getElementById('printReportBtn');
+        const reportOutput = document.getElementById('reportOutput');
+        const dashboardDateInput = document.getElementById('dashboardDate');
+        const generateDashboardBtn = document.getElementById('generateDashboardBtn');
+        const dashboardOutput = document.getElementById('dashboardOutput');
+        const resetAllBtn = document.getElementById('resetAllBtn');
+        const dashboardCard = document.getElementById('dashboard-card');
+        const dangerZoneCard = document.getElementById('danger-zone-card');
+        const managementCards = document.querySelectorAll('.management-card'); // Use querySelectorAll
 
         // ==== 0. Authentication & Roles ====
 
         async function handleAuthStateChanged(user) {
-            // **** NEW DEBUG LOG ****
             console.log("DEBUG: handleAuthStateChanged CALLED. User object:", user ? user.uid : 'null');
-
-             // Wait for DOM content to be fully loaded if not already
              if (document.readyState === 'loading') { await new Promise(resolve => window.addEventListener('DOMContentLoaded', resolve)); }
 
-             // Hide loading indicator as soon as this function starts
+             // Hide loading indicator IF it exists
              if (loadingIndicator) {
-                  console.log("DEBUG: Hiding loading indicator."); // DEBUG
+                  console.log("DEBUG: Hiding loading indicator.");
                   loadingIndicator.style.display = 'none';
              } else {
-                  console.error("DEBUG: loadingIndicator element not found when trying to hide!"); // DEBUG
+                  console.warn("DEBUG: loadingIndicator element not found when trying to hide!");
              }
 
 
@@ -119,92 +189,113 @@
             currentUserRole = null;
 
             if (user) {
-                console.log("DEBUG: User is logged in. Showing app content."); // DEBUG
+                console.log("DEBUG: User is logged in. Showing app content.");
                  if (loginScreen) loginScreen.style.display = 'none';
                  if (appContent) appContent.style.display = 'block';
 
-                 // --- Fetch Role ---
                  try {
                      if (!db) throw new Error("Firestore DB not initialized.");
-                     console.log("DEBUG: Checking user document in Firestore for UID:", user.uid); // DEBUG
+                     console.log("DEBUG: Checking user document in Firestore for UID:", user.uid);
                      const userDocRef = db.collection('users').doc(user.uid);
                      const userDoc = await userDocRef.get();
                      if (userDoc.exists && userDoc.data().role) {
                          currentUserRole = userDoc.data().role;
-                         console.log("DEBUG: User role determined:", currentUserRole); // DEBUG
+                         console.log("DEBUG: User role determined:", currentUserRole);
                          if (!userDoc.data().email && user.email) { await userDocRef.set({ email: user.email }, { merge: true }); }
                      } else {
-                         console.warn(`DEBUG: User doc/role missing for ${user.uid}. Creating/assigning default role 'teacher'.`); // DEBUG
+                         console.warn(`DEBUG: User doc/role missing for ${user.uid}. Creating/assigning default role 'teacher'.`);
                          await userDocRef.set({ email: user.email, role: 'teacher' }, { merge: true });
                          currentUserRole = 'teacher';
                      }
                  } catch (error) {
-                     console.error("DEBUG: Error fetching/setting user role:", error); // DEBUG
-                     currentUserRole = 'teacher'; // Fallback
+                     console.error("DEBUG: Error fetching/setting user role:", error);
+                     currentUserRole = 'teacher';
                      alert("Could not determine user role (Error: " + error.message + "). Defaulting to 'teacher'. Try refreshing.");
                  }
-                 // --- End Fetch Role ---
 
                 updateUIForRole();
 
                  if (!appState.isDataLoaded) {
-                     console.log("DEBUG: Initial data not loaded, calling loadInitialData()."); // DEBUG
+                     console.log("DEBUG: Initial data not loaded, calling loadInitialData().");
                      await loadInitialData();
                  } else {
-                      console.log("DEBUG: Initial data already loaded, repopulating UI elements."); // DEBUG
+                      console.log("DEBUG: Initial data already loaded, repopulating UI elements.");
                       populateAllSelectors();
                       setDefaultDate();
                       updateTableHeaders();
                  }
 
             } else { // User logged out
-                console.log("DEBUG: User is logged out. Showing login screen."); // DEBUG
+                console.log("DEBUG: User is logged out. Showing login screen.");
                  if (loginScreen) loginScreen.style.display = 'block';
                  if (appContent) appContent.style.display = 'none';
                 clearUI();
                 appState.isDataLoaded = false;
             }
-             console.log("DEBUG: handleAuthStateChanged FINISHED."); // DEBUG
+             console.log("DEBUG: handleAuthStateChanged FINISHED.");
         }
 
-        // ... (Rest of the functions: updateUIForRole, loginUser, logoutUser, loginWithGoogle, clearUI, loadInitialData, management functions, student functions, attendance functions, report/dashboard functions, resetAllData) ...
-        // (Make sure all function definitions are here, same as the previous complete code block)
+        function updateUIForRole() { /* ... Same logic ... */ }
+        async function loginUser() { /* ... Same logic ... */ }
+        async function logoutUser() { /* ... Same logic ... */ }
+        async function loginWithGoogle() { /* ... Same logic ... */ }
+        function clearUI() { /* ... Same logic ... */ }
+
+        // ==== 1. Data Loading ====
+        async function loadInitialData() { /* ... Same logic with debug logs ... */ }
+        function setSelectorsLoadingState(isLoading, isError = false) { /* ... Same logic ... */ }
+        function populateAllSelectors() { /* ... Same logic ... */ }
+
+        // ==== 2. Management Functions ====
+        function generateClassId(grade, className) { /* ... */ }
+        async function addNewClass() { /* ... Same logic ... */ }
+        function populateClassSelector() { /* ... Same logic with debug logs ... */ }
+        function handleClassChange() { /* ... */ }
+        async function addNewSubject() { /* ... Same logic ... */ }
+        function populateSubjectSelectors() { /* ... Same logic ... */ }
+        function handleSubjectChange() { /* ... */ }
+        async function addNewTeacher() { /* ... Same logic ... */ }
+        function populateTeacherSelectors() { /* ... Same logic ... */ }
+        function handleTeacherChange() { /* ... */ }
+        function formatClassId(classId) { /* ... */ }
+
+        // ==== 3. Student Management ====
+        function isStudentInClass(classId, studentName) { /* ... */ }
+        async function addStudent() { /* ... Same logic with debug logs ... */ }
+        async function renderStudentTable() { /* ... Same logic with debug logs ... */ }
+
+        // ==== 4. Date & Attendance ====
+        function updateTableHeaders() { /* ... Same logic ... */ }
+        function setDefaultDate() { /* ... Same logic ... */ }
+        async function checkAttendance(classId, subject, teacher, date, studentName) { /* ... Same logic ... */ }
+        function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) { /* ... Same logic ... */ }
+        async function saveAttendanceData() { /* ... Same logic ... */ }
+        async function clearWeekData() { /* ... Same logic (with confirmation) ... */ }
+        function calculateTotals() { /* ... Same logic ... */ }
+        function markAllPresent() { /* ... Same logic ... */ }
+
+        // ==== Reports & Dashboard ====
+        async function generateMonthlyReport() { /* ... Same logic ... */ }
+        function printReport() { /* ... Same logic ... */ }
+        async function generateDashboard() { /* ... Same logic ... */ }
+        function resetAllData() { /* ... Same (disabled) ... */ }
 
         // ==== 5. Initialization ====
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DEBUG: DOM content loaded.");
 
-             // --- Get ALL elements needed ---
-             // It's crucial ALL elements exist, otherwise attaching listeners might fail silently
-             const loginBtn = document.getElementById('loginBtn');
-             const logoutBtn = document.getElementById('logoutBtn');
-             const googleLoginBtn = document.getElementById('googleLoginBtn');
-             const addClassBtn = document.getElementById('addClassBtn');
-             const addSubjectBtn = document.getElementById('addSubjectBtn');
-             const addTeacherBtn = document.getElementById('addTeacherBtn');
-             const selectClass = document.getElementById('selectClass');
-             const selectSubject = document.getElementById('selectSubject');
-             const selectTeacher = document.getElementById('selectTeacher');
-             const addStudentBtn = document.getElementById('addStudentBtn');
-             const updateDatesBtn = document.getElementById('updateDatesBtn');
-             const saveBtn = document.getElementById('saveBtn');
-             const calculateBtn = document.getElementById('calculateBtn');
-             const clearWeekBtn = document.getElementById('clearWeekBtn');
-             const markAllPresentBtn = document.getElementById('markAllPresentBtn');
-             const generateReportBtn = document.getElementById('generateReportBtn');
-             const printReportBtn = document.getElementById('printReportBtn');
-             const generateDashboardBtn = document.getElementById('generateDashboardBtn');
-             const resetAllBtn = document.getElementById('resetAllBtn');
-             const loadingIndicator = document.getElementById('loadingIndicator'); // Re-get inside DOMContentLoaded
-             const loginScreen = document.getElementById('loginScreen');
-             const appContent = document.getElementById('appContent');
+            // --- Get elements needed BEFORE Firebase init (just UI structure) ---
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const loginScreen = document.getElementById('loginScreen');
+            const appContent = document.getElementById('appContent');
+             const loginBtn = document.getElementById('loginBtn'); // Get login button early
+             const logoutBtn = document.getElementById('logoutBtn'); // Get logout button early
+             const googleLoginBtn = document.getElementById('googleLoginBtn'); // Get Google button early
 
-
-            // --- Check if essential elements were found ---
             if (!loadingIndicator || !loginScreen || !appContent || !loginBtn || !logoutBtn || !googleLoginBtn ) {
-                 console.error("CRITICAL: Essential UI elements (loading/login/app) not found. Cannot proceed.");
+                 console.error("CRITICAL: Essential UI elements (loading/login/app/auth buttons) not found. Cannot proceed.");
                  if(loadingIndicator) loadingIndicator.textContent = "Error: App structure broken.";
-                 return; // Stop initialization
+                 return;
             }
             console.log("DEBUG: Essential DOM elements found.");
 
@@ -212,20 +303,38 @@
             loginScreen.style.display = 'none';
             appContent.style.display = 'none';
 
-            // --- Attempt to initialize Firebase ---
+            // --- Attempt to initialize Firebase FIRST ---
             const firebaseReady = initializeFirebase();
 
             if (firebaseReady) {
-                 console.log("DEBUG: Firebase ready. Attaching auth listener and SW.");
+                 console.log("DEBUG: Firebase is ready. Attaching auth listener and SW.");
                  auth.onAuthStateChanged(handleAuthStateChanged); // This triggers UI/Data Load
                  registerServiceWorker();
 
-                 // Add Login/Logout/Google button listeners
+                 // Add Login/Logout/Google button listeners (safe now)
                  loginBtn.addEventListener('click', loginUser);
                  logoutBtn.addEventListener('click', logoutUser);
                  googleLoginBtn.addEventListener('click', loginWithGoogle);
 
-                 // --- Other event listeners (Attach safely) ---
+                 // --- Attach Other event listeners safely ---
+                 // (Get other elements here - ensures they exist after DOMContentLoaded)
+                const addClassBtn = document.getElementById('addClassBtn');
+                const addSubjectBtn = document.getElementById('addSubjectBtn');
+                const addTeacherBtn = document.getElementById('addTeacherBtn');
+                const selectClass = document.getElementById('selectClass');
+                const selectSubject = document.getElementById('selectSubject');
+                const selectTeacher = document.getElementById('selectTeacher');
+                const addStudentBtn = document.getElementById('addStudentBtn');
+                const updateDatesBtn = document.getElementById('updateDatesBtn');
+                const saveBtn = document.getElementById('saveBtn');
+                const calculateBtn = document.getElementById('calculateBtn');
+                const clearWeekBtn = document.getElementById('clearWeekBtn');
+                const markAllPresentBtn = document.getElementById('markAllPresentBtn');
+                const generateReportBtn = document.getElementById('generateReportBtn');
+                const printReportBtn = document.getElementById('printReportBtn');
+                const generateDashboardBtn = document.getElementById('generateDashboardBtn');
+                const resetAllBtn = document.getElementById('resetAllBtn');
+
                 if(addClassBtn) addClassBtn.addEventListener('click', addNewClass); else console.warn("addClassBtn missing");
                 if(addSubjectBtn) addSubjectBtn.addEventListener('click', addNewSubject); else console.warn("addSubjectBtn missing");
                 if(addTeacherBtn) addTeacherBtn.addEventListener('click', addNewTeacher); else console.warn("addTeacherBtn missing");
@@ -243,9 +352,11 @@
                 if(generateDashboardBtn) generateDashboardBtn.addEventListener('click', generateDashboard); else console.warn("generateDashboardBtn missing");
                 if(resetAllBtn) resetAllBtn.addEventListener('click', resetAllData); else console.warn("resetAllBtn missing");
 
+
                 console.log("DEBUG: All event listeners attached.");
             } else {
                  console.error("STOPPING APP INITIALIZATION DUE TO FIREBASE FAILURE.");
+                 // Error message already shown by initializeFirebase function
             }
         });
     </script>
