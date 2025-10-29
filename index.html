@@ -189,15 +189,7 @@
       }
     </script>
     <script>
-        function registerServiceWorker() {
-            if ('serviceWorker' in navigator && firebaseInitialized) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('sw.js')
-                        .then(registration => { console.log('SW registered: ', registration.scope); })
-                        .catch(error => { console.log('SW registration failed: ', error); });
-                });
-            } else { console.log("SW not supported or Firebase not loaded."); }
-        }
+        console.log("DEBUG: Service Worker registration is SKIPPED.");
     </script>
 
     <script>
@@ -267,7 +259,6 @@
             // --- Helper to get element and log ---
             function getElementAndLog(id) {
                 const el = document.getElementById(id);
-                // ** This check is CRITICAL. If any are null, it means your HTML is broken/missing. **
                 if (!el) { console.error(`CRITICAL ERROR: Element with ID '${id}' NOT FOUND!`); }
                 return el;
             }
@@ -290,9 +281,9 @@
             const firebaseReady = initializeFirebase(); // Call global init
 
             if (firebaseReady) {
-                 console.log("DEBUG: Firebase ready. Attaching auth listener and SW.");
+                 console.log("DEBUG: Firebase ready. Attaching auth listener.");
                  auth.onAuthStateChanged(handleAuthStateChanged);
-                 registerServiceWorker();
+                 // registerServiceWorker(); // SKIPPED
                  attachEventListeners(); // Attach all listeners
                  console.log("DEBUG: Initialization sequence complete.");
             } else {
@@ -608,7 +599,7 @@
             async function generateDashboard() { /* ... Same complex Firestore query logic ... */ }
             function resetAllData() { /* ... Same (disabled) ... */ }
 
-            // ==== 6. NEW: Roster Modal Functions ====
+            // ==== 6. Roster Modal Functions ====
             function openRosterModal() {
                 console.log("DEBUG: Opening Roster Modal...");
                 if (!appState.isDataLoaded) { alert("Data is still loading, please wait."); return; }
@@ -617,7 +608,7 @@
                 const students = appState.rosters[selectedClassId] || [];
                 const classText = selectClass.options[selectClass.selectedIndex]?.textContent || formatClassId(selectedClassId);
                 if(rosterModalTitle) rosterModalTitle.textContent = `Roster for ${classText}`;
-                if(rosterList) rosterList.innerHTML = ''; // Clear old list
+                if(rosterList) rosterList.innerHTML = '';
                 if (students.length === 0) {
                     if(rosterList) rosterList.innerHTML = '<li>No students found in this class.</li>';
                 } else {
