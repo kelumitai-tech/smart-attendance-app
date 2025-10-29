@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Attendance Tracker</title>
+    <title>Smart Attendance Tracker (Firebase)</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#005A9C">
@@ -34,6 +34,17 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             line-height: 1.6;
+            display: flex; /* Use flexbox for centering loading */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure loading covers screen */
+        }
+
+        /* NEW: Loading Indicator */
+        #loadingIndicator {
+            font-size: 1.2em;
+            color: var(--primary-color);
+            text-align: center;
         }
 
         /* ==== 1. Header ==== */
@@ -52,6 +63,7 @@
 
         /* ==== 2. Layout (Single Column) ==== */
         .app-container {
+            width: 100%; /* Take full width */
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px 10px;
@@ -102,7 +114,7 @@
             color: #555;
         }
         
-        select, input[type="text"], input[type="date"], input[type="month"] {
+        select, input[type="text"], input[type="date"], input[type="month"], input[type="email"], input[type="password"] {
             width: 100%;
             display: block;
             padding: 14px;
@@ -119,7 +131,7 @@
             appearance: none;
         }
 
-        /* NEW: Gender Radio Button Styles */
+        /* Gender Radio Button Styles */
         .radio-group {
             display: flex;
             justify-content: flex-start;
@@ -161,7 +173,12 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        button:active {
+        button:disabled { /* Style for disabled buttons during loading */
+             background-color: #ccc;
+             cursor: not-allowed;
+             box-shadow: none;
+        }
+        button:active:not(:disabled) {
             transform: translateY(2px);
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
@@ -186,6 +203,8 @@
         #calculateBtn { background-color: #673AB7; }
         #clearWeekBtn { background-color: var(--warning-color); }
         #resetAllBtn { background-color: var(--danger-color); }
+        
+        #loginBtn, #logoutBtn { background-color: var(--primary-color); }
 
         /* ==== 4. Table Styles ==== */
         .table-responsive-wrapper {
@@ -208,6 +227,8 @@
         #reportOutput table, #dashboardOutput table { min-width: 0; }
         #reportOutput th, #dashboardOutput th { background-color: #512DA8; color: white; }
         #dashboardOutput th { background-color: #d81b60; }
+        #dashboardOutput tr:last-child { background-color: #f0f4ff; font-weight: bold; } /* Style total row */
+
 
         /* ==== 5. Danger Zone ==== */
         .danger-zone {
@@ -239,10 +260,31 @@
             color: #555;
             font-weight: 500;
         }
+        
+        /* Login Screen Styles */
+        #loginScreen {
+             padding: 30px;
+             text-align: center;
+        }
+        #loginScreen input[type="email"], #loginScreen input[type="password"] {
+            margin-bottom: 15px;
+        }
+        #loginError { /* Error message style */
+            color: var(--danger-color);
+            margin-top: 15px;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+        }
 
-        /* ==== 7. Mobile Responsive "Card" View (PORTRAIT) ==== */
+        /* ==== 7. Mobile Responsive "Card" View ==== */
         @media screen and (max-width: 767px) {
-            
+            body { /* Reset centering for app content */
+                display: block;
+                min-height: auto;
+            }
+            #loadingIndicator {
+                 margin-top: 50px; /* Add some space when loading */
+            }
             .table-responsive-wrapper {
                 overflow-x: visible;
                 border: none;
@@ -322,6 +364,13 @@
         
         /* ==== Desktop Responsiveness ==== */
         @media (min-width: 768px) {
+            body { /* Reset centering */
+                display: block;
+                 min-height: auto;
+            }
+             #loadingIndicator {
+                 margin-top: 50px;
+            }
             .main-header h1 {
                 font-size: 2em;
             }
@@ -334,179 +383,220 @@
 </head>
 <body>
 
-    <header class="main-header">
-        <h1>Smart Attendance Tracker</h1>
-    </header>
+    <div id="loadingIndicator">Loading Application...</div>
 
-    <main class="app-container">
-        <div class="card" id="class-manager-card">
-            <h2>Class Management</h2>
-            <div class="form-group">
-                <label for="selectGrade">Select Grade</label>
-                <select id="selectGrade">
-                    <option value="Grade 6">Grade 6</option>
-                    <option value... (rest of grades) ...>Grade 13</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="inputClassName">Class Name (e.g., A, B)</label>
-                <input type="text" id="inputClassName" placeholder="e.g., A">
-            </div>
-            <button id="addClassBtn">Add New Class</button>
-            <hr class="card-divider">
-            <div class="form-group">
-                <label for="selectClass">Select Active Class</label>
-                <select id="selectClass">
-                    <option value="">-- Add a class first --</option>
-                </select>
-            </div>
+    <div id="loginScreen" class="card" style="display: none; max-width: 400px; margin: 50px auto;">
+        <h2>Login</h2>
+        <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" placeholder="Enter your email">
         </div>
-        
-        <div class="card" id="subject-manager-card">
-            <h2>Subject Management</h2>
-            <div class="form-group">
-                <label for="inputSubjectName">New Subject Name</label>
-                <input type="text" id="inputSubjectName" placeholder="e.g., Mathematics, ICT">
-            </div>
-            <button id="addSubjectBtn">Add New Subject</button>
-            <hr class="card-divider">
-            <div class="form-group">
-                <label for="selectSubject">Select Active Subject</label>
-                <select id="selectSubject">
-                    <option value="">-- Add a subject first --</option>
-                </select>
-            </div>
+        <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="Enter your password">
         </div>
-        
-        <div class="card" id="teacher-manager-card">
-            <h2>Teacher Management</h2>
-            <div class="form-group">
-                <label for="inputTeacherName">New Teacher Name</label>
-                <input type="text" id="inputTeacherName" placeholder="e.g., Kelum Konara">
-            </div>
-            <button id="addTeacherBtn">Add New Teacher</button>
-            <hr class="card-divider">
-            <div class="form-group">
-                <label for="selectTeacher">Select Active Teacher</label>
-                <select id="selectTeacher">
-                    <option value="">-- Add a teacher first --</option>
-                </select>
-            </div>
-        </div>
+        <button id="loginBtn">Login</button>
+        <p id="loginError"></p> </div>
 
-        <div class="card" id="date-manager-card">
-            <h2>Date Selector</h2>
-            <div class="form-group">
-                <label for="startDate">Select Any Day of the Week</label>
-                <input type="date" id="startDate">
-            </div>
-            <button id="updateDatesBtn">Update Week (Mon-Fri)</button>
-        </div>
+    <div id="appContent" style="display: none;"> 
+        <header class="main-header">
+            <h1>Smart Attendance Tracker</h1>
+            <button id="logoutBtn" style="width: auto; position: absolute; top: 10px; right: 10px; padding: 8px 15px; font-size: 0.9em;">Logout</button>
+        </header>
 
-        <div class="card" id="student-manager-card">
-            <h2>Student Management</h2>
-            <div class="form-group">
-                <label for="studentNameInput">New Student Name</label>
-                <input type="text" id="studentNameInput" placeholder="Enter new student's name">
-            </div>
-            <div class="form-group" id="gender-group">
-                <label>Gender</label>
-                <div class="radio-group">
-                    <input type="radio" id="genderMale" name="studentGender" value="Male" checked>
-                    <label for="genderMale">Male</label>
-                    <input type="radio" id="genderFemale" name="studentGender" value="Female">
-                    <label for="genderFemale">Female</label>
+        <main class="app-container">
+            <div class="card" id="class-manager-card">
+                <h2>Class Management</h2>
+                <div class="form-group">
+                    <label for="selectGrade">Select Grade</label>
+                    <select id="selectGrade">
+                        <option value="Grade 6">Grade 6</option>
+                        <option value="Grade 7">Grade 7</option>
+                        <option value="Grade 8">Grade 8</option>
+                        <option value="Grade 9">Grade 9</option>
+                        <option value="Grade 10">Grade 10</option>
+                        <option value="Grade 11">Grade 11</option>
+                        <option value="Grade 12">Grade 12</option>
+                        <option value="Grade 13">Grade 13</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inputClassName">Class Name (e.g., A, B)</label>
+                    <input type="text" id="inputClassName" placeholder="e.g., A">
+                </div>
+                <button id="addClassBtn">Add New Class</button>
+                <hr class="card-divider">
+                <div class="form-group">
+                    <label for="selectClass">Select Active Class</label>
+                    <select id="selectClass">
+                        <option value="">-- Loading... --</option>
+                    </select>
                 </div>
             </div>
-            <button id="addStudentBtn">Add Student to Selected Class</button>
-        </div>
-
-        <div class="card" id="attendance-sheet-card">
-            <h2 id="attendance-sheet-title">Attendance Sheet</h2>
             
-            <div class="table-responsive-wrapper">
-                <table id="attendanceTable">
-                    <thead>
-                        <tr>
-                            <th>Student Name</th>
-                            <th>Day 1 (Mon)</th>
-                            <th>Day 2 (Tue)</th>
-                            <th>Day 3 (Wed)</th>
-                            <th>Day 4 (Thu)</th>
-                            <th>Day 5 (Fri)</th>
-                            <th>Total Present (Week)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attendanceTbody">
-                        </tbody>
-                </table>
-            </div>
-            
-            <p id="attendanceInfo" class="info-message" style="display:none;"></p>
-
-            <div class="button-group">
-                <button id="saveBtn">Save Attendance</button>
-                <button id="calculateBtn">Calculate Totals</button>
-                <button id="clearWeekBtn">Clear Week's Marks</button>
-            </div>
-        </div>
-        
-        <div class="card" id="dashboard-card">
-            <h2>Principal's Dashboard</h2>
-            <p>Select a date to see the daily attendance summary for all classes.</p>
-            <div class="form-group">
-                <label for="dashboardDate">Select Date</label>
-                <input type="date" id="dashboardDate">
-            </div>
-            <button id="generateDashboardBtn">Show Daily Totals</button>
-            
-            <div id="dashboardOutput" class="table-responsive-wrapper" style="margin-top: 20px;">
+            <div class="card" id="subject-manager-card">
+                <h2>Subject Management</h2>
+                <div class="form-group">
+                    <label for="inputSubjectName">New Subject Name</label>
+                    <input type="text" id="inputSubjectName" placeholder="e.g., Mathematics, ICT">
                 </div>
-        </div>
-        
-        <div class="card" id="report-card">
-            <h2>Teacher's Monthly Report</h2>
-            <p>Select class, subject, teacher, and month for the summary.</p>
-            
-            <div class="form-group">
-                <label for="reportSubject">Select Subject for Report</label>
-                <select id="reportSubject">
-                    <option value="">-- Select a subject --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="reportTeacher">Select Teacher for Report</label>
-                <select id="reportTeacher">
-                    <option value="">-- Select a teacher --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="reportMonth">Select Month</label>
-                <input type="month" id="reportMonth">
-            </div>
-            
-            <button id="generateReportBtn">Generate Report</button>
-            <button id="printReportBtn" style="margin-top: 10px;">Save Report as PDF</button>
-
-            <div id="reportOutput" class="table-responsive-wrapper" style="margin-top: 20px;">
+                <button id="addSubjectBtn">Add New Subject</button>
+                <hr class="card-divider">
+                <div class="form-group">
+                    <label for="selectSubject">Select Active Subject</label>
+                    <select id="selectSubject">
+                        <option value="">-- Loading... --</option>
+                    </select>
                 </div>
-        </div>
+            </div>
+            
+            <div class="card" id="teacher-manager-card">
+                <h2>Teacher Management</h2>
+                <div class="form-group">
+                    <label for="inputTeacherName">New Teacher Name</label>
+                    <input type="text" id="inputTeacherName" placeholder="e.g., Kelum Konara">
+                </div>
+                <button id="addTeacherBtn">Add New Teacher</button>
+                <hr class="card-divider">
+                <div class="form-group">
+                    <label for="selectTeacher">Select Active Teacher</label>
+                    <select id="selectTeacher">
+                        <option value="">-- Loading... --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card" id="date-manager-card">
+                <h2>Date Selector</h2>
+                <div class="form-group">
+                    <label for="startDate">Select Any Day of the Week</label>
+                    <input type="date" id="startDate">
+                </div>
+                <button id="updateDatesBtn">Update Week (Mon-Fri)</button>
+            </div>
+
+            <div class="card" id="student-manager-card">
+                <h2>Student Management</h2>
+                <div class="form-group">
+                    <label for="studentNameInput">New Student Name</label>
+                    <input type="text" id="studentNameInput" placeholder="Enter new student's name">
+                </div>
+                <div class="form-group" id="gender-group">
+                    <label>Gender</label>
+                    <div class="radio-group">
+                        <input type="radio" id="genderMale" name="studentGender" value="Male" checked>
+                        <label for="genderMale">Male</label>
+                        <input type="radio" id="genderFemale" name="studentGender" value="Female">
+                        <label for="genderFemale">Female</label>
+                    </div>
+                </div>
+                <button id="addStudentBtn">Add Student to Selected Class</button>
+            </div>
+
+            <div class="card" id="attendance-sheet-card">
+                <h2 id="attendance-sheet-title">Attendance Sheet</h2>
+                <div class="table-responsive-wrapper">
+                    <table id="attendanceTable">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Day 1 (Mon)</th>
+                                <th>Day 2 (Tue)</th>
+                                <th>Day 3 (Wed)</th>
+                                <th>Day 4 (Thu)</th>
+                                <th>Day 5 (Fri)</th>
+                                <th>Total Present (Week)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTbody"></tbody>
+                    </table>
+                </div>
+                <p id="attendanceInfo" class="info-message" style="display:none;"></p>
+                <div class="button-group">
+                    <button id="saveBtn">Save Attendance</button>
+                    <button id="calculateBtn">Calculate Totals</button>
+                    <button id="clearWeekBtn">Clear Week's Marks</button>
+                </div>
+            </div>
+            
+            <div class="card" id="dashboard-card">
+                <h2>Principal's Dashboard</h2>
+                <p>Select a date to see the daily attendance summary for all classes.</p>
+                <div class="form-group">
+                    <label for="dashboardDate">Select Date</label>
+                    <input type="date" id="dashboardDate">
+                </div>
+                <button id="generateDashboardBtn">Show Daily Totals</button>
+                <div id="dashboardOutput" class="table-responsive-wrapper" style="margin-top: 20px;"></div>
+            </div>
+            
+            <div class="card" id="report-card">
+                <h2>Teacher's Monthly Report</h2>
+                <p>Select class, subject, teacher, and month for the summary.</p>
+                <div class="form-group">
+                    <label for="reportSubject">Select Subject for Report</label>
+                    <select id="reportSubject"><option value="">-- Loading... --</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="reportTeacher">Select Teacher for Report</label>
+                    <select id="reportTeacher"><option value="">-- Loading... --</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="reportMonth">Select Month</label>
+                    <input type="month" id="reportMonth">
+                </div>
+                <button id="generateReportBtn">Generate Report</button>
+                <button id="printReportBtn" style="margin-top: 10px;">Save Report as PDF</button>
+                <div id="reportOutput" class="table-responsive-wrapper" style="margin-top: 20px;"></div>
+            </div>
+            
+            <div class="card danger-zone" id="danger-zone-card">
+                <h2>Danger Zone</h2>
+                <p>This button is currently disabled for safety. Deleting all Firestore data should be done carefully, preferably via the Firebase Console or a secured Cloud Function.</p>
+                <button id="resetAllBtn" disabled>RESET ALL DATA (Disabled)</button>
+            </div>
+        </main>
         
-        <div class="card danger-zone" id="danger-zone-card">
-            <h2>Danger Zone</h2>
-            <p>This will permanently delete ALL saved classes, subjects, teachers, students, and attendance records.</p>
-            <button id="resetAllBtn">RESET ALL DATA</button>
-        </div>
-    </main>
-    
-    <footer class="main-footer-credits">
-        Developer : Kelum Konara <br>
-        SmartSoft | The Mobile Apps Developer <br>
-        0714469232
-    </footer>
+        <footer class="main-footer-credits">
+            Developer : Kelum Konara <br>
+            SmartSoft | The Mobile Apps Developer <br>
+            0714469232
+        </footer>
+    </div> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
-        if ('serviceWorker' in navigator) {
+      // ==========================================================
+      // ==== IMPORTANT: REPLACE with your Firebase config! ====
+      // ==========================================================
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY", // <-- PASTE YOUR KEY HERE
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com", // <-- PASTE YOUR DOMAIN HERE
+        projectId: "YOUR_PROJECT_ID", // <-- PASTE YOUR PROJECT ID HERE
+        storageBucket: "YOUR_PROJECT_ID.appspot.com", // <-- PASTE YOUR BUCKET HERE
+        messagingSenderId: "YOUR_SENDER_ID", // <-- PASTE YOUR SENDER ID HERE
+        appId: "YOUR_APP_ID" // <-- PASTE YOUR APP ID HERE
+      };
+      // ==========================================================
+
+      // Initialize Firebase
+      let app, auth, db; 
+      let currentUser = null; // Store current user info
+      
+      try {
+          app = firebase.initializeApp(firebaseConfig);
+          auth = firebase.auth(); 
+          db = firebase.firestore(); 
+          console.log("Firebase Initialized Successfully");
+      } catch (e) {
+          console.error("Error initializing Firebase", e);
+          document.getElementById('loadingIndicator').textContent = "Error connecting to Firebase. Check config and connection.";
+          // Keep loading indicator visible on error
+      }
+    </script>
+    <script>
+        if ('serviceWorker' in navigator && typeof firebase !== 'undefined') {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
                     .then(registration => {
@@ -516,39 +606,48 @@
                         console.log('ServiceWorker registration failed: ', error);
                     });
             });
+        } else {
+             console.log("Service Worker not supported or Firebase not loaded.");
         }
     </script>
     
     <script>
-        // Global database object
-        let db = {
-            rosters: {},    // { "Grade10-A": [{name: "Kamal", gender: "Male"}] }
-            subjects: [],   // ["Mathematics"]
-            teachers: [],   // ["Kelum Konara"]
-            attendance: {}  // { "Grade10-A": { "2025-10-27": { "Mathematics": { "Kelum Konara": ["Kamal"] } } } }
+        // Global in-memory state
+        let appState = {
+            rosters: {},    
+            subjects: [],   
+            teachers: [],
+            isDataLoaded: false // Flag to track initial load
         };
 
         // --- Date helper arrays ---
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const DB_KEY = 'schoolAttendanceDB_v5'; // NEW VERSION KEY
+        // const DB_KEY = 'schoolAttendanceDB_v5'; // No longer needed
 
         // --- DOM Elements ---
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const loginScreen = document.getElementById('loginScreen');
+        const appContent = document.getElementById('appContent');
+        const loginEmailInput = document.getElementById('loginEmail');
+        const loginPasswordInput = document.getElementById('loginPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginError = document.getElementById('loginError'); // Error message p tag
+        
+        // ... (all other DOM element constants from v4) ...
         const selectGrade = document.getElementById('selectGrade');
         const inputClassName = document.getElementById('inputClassName');
         const addClassBtn = document.getElementById('addClassBtn');
         const selectClass = document.getElementById('selectClass');
-        
         const inputSubjectName = document.getElementById('inputSubjectName');
         const addSubjectBtn = document.getElementById('addSubjectBtn');
         const selectSubject = document.getElementById('selectSubject');
         const reportSubject = document.getElementById('reportSubject');
-        
         const inputTeacherName = document.getElementById('inputTeacherName');
         const addTeacherBtn = document.getElementById('addTeacherBtn');
         const selectTeacher = document.getElementById('selectTeacher');
         const reportTeacher = document.getElementById('reportTeacher');
-        
         const startDateInput = document.getElementById('startDate');
         const updateDatesBtn = document.getElementById('updateDatesBtn');
         const studentNameInput = document.getElementById('studentNameInput');
@@ -559,67 +658,186 @@
         const saveBtn = document.getElementById('saveBtn');
         const calculateBtn = document.getElementById('calculateBtn');
         const clearWeekBtn = document.getElementById('clearWeekBtn');
-        
-        // Report Elements
         const reportMonthInput = document.getElementById('reportMonth');
         const generateReportBtn = document.getElementById('generateReportBtn');
         const printReportBtn = document.getElementById('printReportBtn');
         const reportOutput = document.getElementById('reportOutput');
-        
-        // NEW Dashboard Elements
         const dashboardDateInput = document.getElementById('dashboardDate');
         const generateDashboardBtn = document.getElementById('generateDashboardBtn');
         const dashboardOutput = document.getElementById('dashboardOutput');
-        
         const resetAllBtn = document.getElementById('resetAllBtn');
 
-        // ==== 1. Data Persistence (localStorage) ====
-        function loadData() {
-            const data = localStorage.getItem(DB_KEY);
-            if (data) {
-                const parsedData = JSON.parse(data);
-                db.rosters = parsedData.rosters || {};
-                db.subjects = parsedData.subjects || [];
-                db.teachers = parsedData.teachers || [];
-                db.attendance = parsedData.attendance || {};
+        // ==== 0. Authentication ====
+        
+        function handleAuthStateChanged(user) {
+            loadingIndicator.style.display = 'none'; // Hide loading once auth state is known
+            currentUser = user; // Store user globally
+            if (user) {
+                console.log("User logged in:", user.uid, user.email);
+                loginScreen.style.display = 'none';
+                appContent.style.display = 'block'; // Show the main app content
+                if (!appState.isDataLoaded) { // Load data only once after login
+                    loadInitialData(); 
+                }
+            } else {
+                console.log("User logged out");
+                loginScreen.style.display = 'block'; // Show login screen
+                appContent.style.display = 'none'; // Hide main app content
+                clearUI();
+                appState.isDataLoaded = false; // Reset loaded flag on logout
             }
         }
-        function saveData() {
-            localStorage.setItem(DB_KEY, JSON.stringify(db));
+
+        async function loginUser() {
+             loginBtn.disabled = true; // Disable button during login
+             loginError.style.display = 'none'; // Hide previous errors
+             loginError.textContent = '';
+             
+             const email = loginEmailInput.value.trim();
+             const password = loginPasswordInput.value;
+
+             if (!email || !password) {
+                 loginError.textContent = "Please enter both email and password.";
+                 loginError.style.display = 'block';
+                 loginBtn.disabled = false;
+                 return;
+             }
+
+             try {
+                await auth.signInWithEmailAndPassword(email, password);
+                console.log("Login successful via function");
+                // Auth state change handler will manage UI display
+             } catch (error) {
+                console.error("Login failed:", error);
+                loginError.textContent = "Login failed: " + error.message;
+                loginError.style.display = 'block';
+             } finally {
+                 loginBtn.disabled = false; // Re-enable button
+             }
         }
 
-        // ==== 2. Class, Subject & Teacher Management ====
+        async function logoutUser() {
+             logoutBtn.disabled = true;
+             try {
+                await auth.signOut();
+                console.log("Logout successful via function");
+                // Auth state change handler will manage UI display
+             } catch (error) {
+                console.error("Logout failed:", error);
+                alert("Logout failed: " + error.message);
+             } finally {
+                 logoutBtn.disabled = false;
+             }
+        }
+        
+        function clearUI() {
+             selectClass.innerHTML = '<option value="">-- Login Required --</option>';
+             selectSubject.innerHTML = '<option value="">-- Login Required --</option>';
+             selectTeacher.innerHTML = '<option value="">-- Login Required --</option>';
+             reportSubject.innerHTML = '<option value="">-- Login Required --</option>';
+             reportTeacher.innerHTML = '<option value="">-- Login Required --</option>';
+             tableBody.innerHTML = '';
+             reportOutput.innerHTML = '';
+             dashboardOutput.innerHTML = '';
+             appState = { rosters: {}, subjects: [], teachers: [], isDataLoaded: false }; // Clear local state
+        }
+
+        // ==== 1. Data Loading (from Firestore) ====
+        async function loadInitialData() {
+            if (!currentUser || !db) return; // Ensure Firebase is ready and user is logged in
+            console.log("Loading initial data from Firestore...");
+            appState.isDataLoaded = false; // Mark as loading
+
+            // Show some loading state in dropdowns
+            selectClass.innerHTML = '<option value="">-- Loading Classes... --</option>';
+            selectSubject.innerHTML = '<option value="">-- Loading Subjects... --</option>';
+            selectTeacher.innerHTML = '<option value="">-- Loading Teachers... --</option>';
+            
+            try {
+                // Fetch Subjects, Teachers, Rosters in parallel
+                const [subjectsSnapshot, teachersSnapshot, rostersSnapshot] = await Promise.all([
+                    db.collection('meta').doc('subjects').get(),
+                    db.collection('meta').doc('teachers').get(),
+                    db.collection('rosters').get() // Fetch all class rosters
+                ]);
+
+                // Process Subjects
+                appState.subjects = subjectsSnapshot.exists ? (subjectsSnapshot.data().list || []) : [];
+                populateSubjectSelectors();
+
+                // Process Teachers
+                appState.teachers = teachersSnapshot.exists ? (teachersSnapshot.data().list || []) : [];
+                populateTeacherSelectors();
+
+                // Process Rosters
+                appState.rosters = {}; 
+                rostersSnapshot.forEach(doc => {
+                    appState.rosters[doc.id] = doc.data().students || [];
+                });
+                populateClassSelector();
+                
+                console.log("Initial data loaded:", appState);
+                appState.isDataLoaded = true; // Mark as loaded
+                
+                // Set defaults and render table
+                setDefaultDate(); 
+                updateTableHeaders(); // This includes renderStudentTable()
+
+            } catch (error) {
+                console.error("Error loading initial data: ", error);
+                alert("Error loading initial setup data. Please check your connection or contact support.");
+                // Optionally revert dropdowns to an error state
+                selectClass.innerHTML = '<option value="">-- Error Loading --</option>';
+                selectSubject.innerHTML = '<option value="">-- Error Loading --</option>';
+                selectTeacher.innerHTML = '<option value="">-- Error Loading --</option>';
+            }
+        }
+
+        // ==== 2. Class, Subject & Teacher Management (Firestore Writes) ====
         function generateClassId(grade, className) {
             return `${grade.replace(' ', '')}-${className.trim().toUpperCase()}`;
         }
-        function addNewClass() {
+        
+        async function addNewClass() {
+            if (!currentUser || !db) return;
+            addClassBtn.disabled = true;
             const grade = selectGrade.value;
             const className = inputClassName.value;
-            if (!className) { alert('Please enter a class name.'); return; }
+            if (!className) { alert('Please enter a class name.'); addClassBtn.disabled = false; return; }
             const classId = generateClassId(grade, className);
             
-            if (db.rosters[classId]) {
-                alert(`Class '${grade} - ${className}' already exists!`);
-            } else {
-                db.rosters[classId] = []; // This will now hold {name, gender} objects
-                db.attendance[classId] = {};
-                saveData();
-                populateClassSelector();
-                selectClass.value = classId;
-                handleClassChange();
-                alert(`Class '${grade} - ${className}' added successfully!`);
-                inputClassName.value = '';
+            try {
+                 const classRef = db.collection('rosters').doc(classId);
+                 const doc = await classRef.get();
+                 if (doc.exists) {
+                     alert(`Class '${formatClassId(classId)}' already exists!`);
+                 } else {
+                     await classRef.set({ students: [] }); 
+                     console.log(`Class ${classId} added to Firestore`);
+                     appState.rosters[classId] = []; // Update local state
+                     populateClassSelector();
+                     selectClass.value = classId;
+                     handleClassChange();
+                     alert(`Class '${formatClassId(classId)}' added successfully!`);
+                     inputClassName.value = '';
+                 }
+            } catch (error) {
+                 console.error("Error adding class: ", error);
+                 alert("Failed to add class. Please try again.");
+            } finally {
+                addClassBtn.disabled = false;
             }
         }
+        
         function populateClassSelector() {
             selectClass.innerHTML = '';
-            const classIds = Object.keys(db.rosters).sort();
+            const classIds = Object.keys(appState.rosters).sort();
             if (classIds.length === 0) {
                 selectClass.innerHTML = '<option value="">-- Add a class first --</option>';
                 return;
             }
             classIds.forEach(classId => {
-                const formattedName = formatClassId(classId); // Use helper
+                const formattedName = formatClassId(classId);
                 const option = document.createElement('option');
                 option.value = classId;
                 option.textContent = formattedName;
@@ -630,32 +848,47 @@
             renderStudentTable();
         }
         
-        function addNewSubject() {
+        async function addNewSubject() {
+            if (!currentUser || !db) return;
+            addSubjectBtn.disabled = true;
             const subjectName = inputSubjectName.value.trim();
-            if (!subjectName) { alert('Please enter a subject name.'); return; }
-            if (db.subjects.includes(subjectName)) {
-                alert('This subject already exists.'); return;
+            if (!subjectName) { alert('Please enter a subject name.'); addSubjectBtn.disabled = false; return; }
+            if (appState.subjects.includes(subjectName)) {
+                alert('This subject already exists.'); addSubjectBtn.disabled = false; return;
             }
-            db.subjects.push(subjectName);
-            db.subjects.sort();
-            saveData();
-            populateSubjectSelectors();
-            selectSubject.value = subjectName;
-            renderStudentTable();
-            alert(`Subject '${subjectName}' added successfully!`);
-            inputSubjectName.value = '';
+
+             try {
+                 const subjectsRef = db.collection('meta').doc('subjects');
+                 await subjectsRef.set({ 
+                     list: firebase.firestore.FieldValue.arrayUnion(subjectName) 
+                 }, { merge: true }); 
+                 
+                 console.log(`Subject ${subjectName} added to Firestore`);
+                 appState.subjects.push(subjectName); // Update local state
+                 appState.subjects.sort();
+                 populateSubjectSelectors();
+                 selectSubject.value = subjectName;
+                 renderStudentTable();
+                 alert(`Subject '${subjectName}' added successfully!`);
+                 inputSubjectName.value = '';
+             } catch (error) {
+                 console.error("Error adding subject: ", error);
+                 alert("Failed to add subject. Please try again.");
+             } finally {
+                 addSubjectBtn.disabled = false;
+             }
         }
         
         function populateSubjectSelectors() {
             selectSubject.innerHTML = '';
             reportSubject.innerHTML = '';
-            if (db.subjects.length === 0) {
+            if (appState.subjects.length === 0) {
                 selectSubject.innerHTML = '<option value="">-- Add a subject first --</option>';
                 reportSubject.innerHTML = '<option value="">-- Add a subject first --</option>';
                 return;
             }
             
-            db.subjects.forEach(subject => {
+            appState.subjects.forEach(subject => {
                 const option1 = document.createElement('option');
                 option1.value = subject;
                 option1.textContent = subject;
@@ -672,32 +905,47 @@
             renderStudentTable();
         }
         
-        function addNewTeacher() {
+        async function addNewTeacher() {
+            if (!currentUser || !db) return;
+            addTeacherBtn.disabled = true;
             const teacherName = inputTeacherName.value.trim();
-            if (!teacherName) { alert('Please enter a teacher name.'); return; }
-            if (db.teachers.includes(teacherName)) {
-                alert('This teacher already exists.'); return;
+            if (!teacherName) { alert('Please enter a teacher name.'); addTeacherBtn.disabled = false; return; }
+            if (appState.teachers.includes(teacherName)) {
+                alert('This teacher already exists.'); addTeacherBtn.disabled = false; return;
             }
-            db.teachers.push(teacherName);
-            db.teachers.sort();
-            saveData();
-            populateTeacherSelectors();
-            selectTeacher.value = teacherName;
-            renderStudentTable();
-            alert(`Teacher '${teacherName}' added successfully!`);
-            inputTeacherName.value = '';
+            
+            try {
+                 const teachersRef = db.collection('meta').doc('teachers');
+                 await teachersRef.set({ 
+                     list: firebase.firestore.FieldValue.arrayUnion(teacherName) 
+                 }, { merge: true });
+                 
+                 console.log(`Teacher ${teacherName} added to Firestore`);
+                 appState.teachers.push(teacherName); // Update local state
+                 appState.teachers.sort();
+                 populateTeacherSelectors();
+                 selectTeacher.value = teacherName;
+                 renderStudentTable();
+                 alert(`Teacher '${teacherName}' added successfully!`);
+                 inputTeacherName.value = '';
+            } catch (error) {
+                 console.error("Error adding teacher: ", error);
+                 alert("Failed to add teacher. Please try again.");
+            } finally {
+                addTeacherBtn.disabled = false;
+            }
         }
 
         function populateTeacherSelectors() {
             selectTeacher.innerHTML = '';
             reportTeacher.innerHTML = '';
-            if (db.teachers.length === 0) {
+            if (appState.teachers.length === 0) {
                 selectTeacher.innerHTML = '<option value="">-- Add a teacher first --</option>';
                 reportTeacher.innerHTML = '<option value="">-- Add a teacher first --</option>';
                 return;
             }
             
-            db.teachers.forEach(teacher => {
+            appState.teachers.forEach(teacher => {
                 const option1 = document.createElement('option');
                 option1.value = teacher;
                 option1.textContent = teacher;
@@ -714,64 +962,88 @@
             renderStudentTable();
         }
         
-        // NEW Helper
         function formatClassId(classId) {
+            // Helper to format classId like "Grade10-A" to "Grade 10 - A"
+            if (!classId) return "";
             return classId.replace('-', ' - ').replace(/([A-Za-z])(\d+)/, '$1 $2');
         }
 
-        // ==== 3. Student Management (MODIFIED) ====
+        // ==== 3. Student Management (Firestore Writes) ====
         
-        // NEW Helper
         function isStudentInClass(classId, studentName) {
-            if (!db.rosters[classId]) return false;
-            return db.rosters[classId].some(student => student.name.toLowerCase() === studentName.toLowerCase());
+            if (!appState.rosters[classId]) return false;
+            return appState.rosters[classId].some(student => student.name.toLowerCase() === studentName.toLowerCase());
         }
 
-        function addStudent() {
+        async function addStudent() {
+            if (!currentUser || !db) return;
+            addStudentBtn.disabled = true;
             const studentName = studentNameInput.value.trim();
             const selectedClassId = selectClass.value;
-            const gender = document.querySelector('input[name="studentGender"]:checked').value; // NEW
+            const gender = document.querySelector('input[name="studentGender"]:checked')?.value; // Safer check
             
-            if (!selectedClassId) { alert('Please select a class first.'); return; }
-            if (!studentName) { alert('Please enter a student name.'); return; }
-            if (isStudentInClass(selectedClassId, studentName)) { // MODIFIED Check
-                alert('A student with this name already exists in this class.'); return;
+            if (!selectedClassId) { alert('Please select a class first.'); addStudentBtn.disabled = false; return; }
+            if (!studentName) { alert('Please enter a student name.'); addStudentBtn.disabled = false; return; }
+            if (!gender) { alert('Please select a gender.'); addStudentBtn.disabled = false; return; } // Added gender check
+            if (isStudentInClass(selectedClassId, studentName)) {
+                alert('A student with this name already exists in this class.'); addStudentBtn.disabled = false; return;
             }
 
-            // MODIFIED: Push an object instead of a string
-            db.rosters[selectedClassId].push({ name: studentName, gender: gender });
-            
-            // MODIFIED: Sort by name property
-            db.rosters[selectedClassId].sort((a, b) => a.name.localeCompare(b.name));
-            
-            saveData();
-            renderStudentTable();
-            studentNameInput.value = '';
-            studentNameInput.focus();
+            const newStudent = { name: studentName, gender: gender };
+
+            try {
+                const classRef = db.collection('rosters').doc(selectedClassId);
+                // Check if class doc exists before updating
+                const classDoc = await classRef.get();
+                if (!classDoc.exists) {
+                     alert("Error: The selected class does not seem to exist in the database. Please add the class again or contact support.");
+                     addStudentBtn.disabled = false;
+                     return;
+                }
+                
+                await classRef.update({
+                    students: firebase.firestore.FieldValue.arrayUnion(newStudent)
+                });
+                
+                console.log(`Student ${studentName} added to class ${selectedClassId} in Firestore`);
+                // Update local state ONLY after successful DB write
+                if (!appState.rosters[selectedClassId]) appState.rosters[selectedClassId] = []; // Ensure array exists
+                appState.rosters[selectedClassId].push(newStudent);
+                appState.rosters[selectedClassId].sort((a, b) => a.name.localeCompare(b.name));
+                renderStudentTable(); // Re-render the table
+                studentNameInput.value = '';
+                studentNameInput.focus();
+            } catch (error) {
+                console.error("Error adding student: ", error);
+                alert("Failed to add student. Please try again.");
+            } finally {
+                 addStudentBtn.disabled = false;
+            }
         }
 
-        function renderStudentTable() {
+        async function renderStudentTable() { // Made async
             const classId = selectClass.value;
             const subject = selectSubject.value;
             const teacher = selectTeacher.value;
             
+            // Check selections and update info message
             if (!classId || !subject || !teacher) {
-                tableBody.innerHTML = '';
+                tableBody.innerHTML = ''; // Clear table immediately
                 attendanceInfo.style.display = 'block';
                 let missing = [];
                 if (!classId) missing.push("Class");
                 if (!subject) missing.push("Subject");
                 if (!teacher) missing.push("Teacher");
                 attendanceInfo.textContent = `Please select an Active ${missing.join(' and ')} to begin.`;
-                return;
+                return; // Stop rendering
             }
-            attendanceInfo.style.display = 'none';
+            attendanceInfo.style.display = 'none'; // Hide info message
             
-            const classText = selectClass.options[selectClass.selectedIndex].textContent;
+            const classText = selectClass.options[selectClass.selectedIndex]?.textContent || formatClassId(classId);
             attendanceSheetTitle.textContent = `Attendance: ${classText} (${subject} / ${teacher})`;
 
-            tableBody.innerHTML = '';
-            const students = db.rosters[classId] || []; // This is now an array of {name, gender}
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Loading attendance...</td></tr>'; // Show loading state
+            const students = appState.rosters[classId] || [];
             
             const headers = document.querySelectorAll('#attendanceTable thead th');
             const dayColumnCount = headers.length - 2;
@@ -779,10 +1051,12 @@
             const headerInfo = [];
             for (let i = 0; i < dayColumnCount; i++) {
                 const headerCell = headers[i + 1];
-                headerInfo.push({
-                    label: headerCell.textContent,
-                    date: headerCell.dataset.date
-                });
+                if (headerCell.dataset.date) { // Only process valid date headers
+                    headerInfo.push({
+                        label: headerCell.textContent,
+                        date: headerCell.dataset.date
+                    });
+                }
             }
             const totalLabel = headers[headers.length - 1].textContent;
 
@@ -791,44 +1065,73 @@
                  return;
             }
 
-            // MODIFIED: Loop through student objects
+            // Create promises for all attendance checks
+            const attendanceCheckPromises = [];
             students.forEach(student => {
-                const row = document.createElement('tr');
-                row.classList.add('student-row');
-                
-                const nameCell = document.createElement('td');
-                nameCell.textContent = student.name; // Use student.name
-                row.appendChild(nameCell);
-
                 headerInfo.forEach(header => {
-                    const checkCell = document.createElement('td');
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkCell.dataset.label = header.label; 
-                    if (header.date) {
-                        checkbox.checked = checkAttendance(classId, subject, teacher, header.date, student.name); // Use student.name
-                    }
-                    checkCell.appendChild(checkbox);
-                    row.appendChild(checkCell);
+                     attendanceCheckPromises.push(
+                         checkAttendance(classId, subject, teacher, header.date, student.name)
+                     );
                 });
-
-                const totalCell = document.createElement('td');
-                totalCell.classList.add('total-cell');
-                totalCell.textContent = '0';
-                totalCell.dataset.label = totalLabel;
-                row.appendChild(totalCell);
-
-                tableBody.appendChild(row);
             });
-            
-            calculateTotals();
+
+            try {
+                // Wait for all checks to complete
+                const attendanceResults = await Promise.all(attendanceCheckPromises);
+                let resultIndex = 0; 
+                
+                tableBody.innerHTML = ''; // Clear loading state
+
+                students.forEach(student => {
+                    const row = document.createElement('tr');
+                    row.classList.add('student-row');
+                    
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = student.name;
+                    row.appendChild(nameCell);
+
+                    headerInfo.forEach(header => {
+                        const checkCell = document.createElement('td');
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkCell.dataset.label = header.label; 
+                        checkbox.checked = attendanceResults[resultIndex++]; // Get pre-fetched result
+                        checkCell.appendChild(checkbox);
+                        row.appendChild(checkCell);
+                    });
+
+                    const totalCell = document.createElement('td');
+                    totalCell.classList.add('total-cell');
+                    totalCell.textContent = '0';
+                    totalCell.dataset.label = totalLabel;
+                    row.appendChild(totalCell);
+
+                    tableBody.appendChild(row);
+                });
+                
+                calculateTotals(); // Calculate totals after rendering
+
+            } catch (error) {
+                 console.error("Error fetching attendance data for table:", error);
+                 tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: red;">Error loading attendance data.</td></tr>';
+            }
         }
+
 
         // ==== 4. Date & Attendance Functions ====
         
         function updateTableHeaders() {
             const selectedDateStr = startDateInput.value;
-            if (!selectedDateStr) return;
+            if (!selectedDateStr) {
+                // Clear headers if no date selected? Or keep old ones? Let's clear.
+                 const headers = document.querySelectorAll('#attendanceTable thead th');
+                 for(let i = 1; i <= 5; i++) {
+                     headers[i].textContent = `Day ${i}`;
+                     headers[i].dataset.date = '';
+                 }
+                 renderStudentTable(); // Show message to select date
+                return;
+            }
 
             const startDate = new Date(selectedDateStr + "T12:00:00");
             const dayOfWeek = startDate.getDay();
@@ -840,7 +1143,7 @@
             startDateInput.value = monday.toISOString().split('T')[0];
 
             const headers = document.querySelectorAll('#attendanceTable thead th');
-            const dayColumnCount = headers.length - 2;
+            const dayColumnCount = 5; // Fixed Mon-Fri
             
             let currentDate = new Date(monday.getTime());
 
@@ -857,89 +1160,152 @@
                 currentDate.setDate(currentDate.getDate() + 1);
             }
             
-            renderStudentTable();
+            renderStudentTable(); // Re-render needed to fetch attendance for new dates
         }
         
         function setDefaultDate() {
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
             startDateInput.value = todayStr;
-            dashboardDateInput.value = todayStr; // NEW: Set dashboard date to today
+            dashboardDateInput.value = todayStr;
             reportMonthInput.value = today.toISOString().slice(0, 7);
         }
 
-        // Attendance DB still stores names as strings (simpler)
-        function checkAttendance(classId, subject, teacher, date, studentName) {
-            const presentList = db.attendance[classId]?.[date]?.[subject]?.[teacher];
-            if (!presentList) return false;
-            return presentList.includes(studentName);
+        async function checkAttendance(classId, subject, teacher, date, studentName) {
+             if (!db || !classId || !subject || !teacher || !date || !studentName) return false;
+             try {
+                 const docRef = db.collection('attendance').doc(classId)
+                                  .collection(date).doc(subject)
+                                  .collection(teacher).doc('presentStudents');
+                 const docSnap = await docRef.get();
+                 if (docSnap.exists) {
+                     const presentList = docSnap.data().names || [];
+                     return presentList.includes(studentName);
+                 } else {
+                     return false; 
+                 }
+             } catch (error) {
+                 console.error(`Error checking attendance for ${studentName} on ${date}: `, error);
+                 return false; 
+             }
         }
         
-        function updateAttendanceRecord(classId, subject, teacher, date, studentName, isPresent) {
-            if (!db.attendance[classId]) db.attendance[classId] = {};
-            if (!db.attendance[classId][date]) db.attendance[classId][date] = {};
-            if (!db.attendance[classId][date][subject]) db.attendance[classId][date][subject] = {};
-            if (!db.attendance[classId][date][subject][teacher]) db.attendance[classId][date][subject][teacher] = [];
-            
-            const presentList = db.attendance[classId][date][subject][teacher];
-            const studentIndex = presentList.indexOf(studentName);
-            if (isPresent && studentIndex === -1) {
-                presentList.push(studentName);
-            } else if (!isPresent && studentIndex > -1) {
-                presentList.splice(studentIndex, 1);
-            }
+        async function updateAttendanceRecord(batch, classId, subject, teacher, date, studentName, isPresent) {
+            // This function now expects a Firestore batch object
+             if (!batch || !classId || !subject || !teacher || !date || !studentName) return;
+             
+             try {
+                 const docRef = db.collection('attendance').doc(classId)
+                                  .collection(date).doc(subject)
+                                  .collection(teacher).doc('presentStudents');
+                 
+                 // Add the operation to the batch
+                 batch.set(docRef, {
+                     names: isPresent ? firebase.firestore.FieldValue.arrayUnion(studentName)
+                                      : firebase.firestore.FieldValue.arrayRemove(studentName)
+                 }, { merge: true }); 
+
+             } catch (error) {
+                 console.error(`Error preparing update for ${studentName} on ${date}: `, error);
+                 throw error; // Re-throw error to stop the batch commit if needed
+             }
         }
 
-        function saveAttendanceData() {
+        async function saveAttendanceData() {
+            if (!currentUser || !db) return;
+            saveBtn.disabled = true;
             const selectedClassId = selectClass.value;
             const selectedSubject = selectSubject.value;
             const selectedTeacher = selectTeacher.value;
             if (!selectedClassId || !selectedSubject || !selectedTeacher) {
-                alert('Please select a class, subject, and teacher first.'); return;
+                alert('Please select a class, subject, and teacher first.'); saveBtn.disabled = false; return;
             }
             
             const headers = document.querySelectorAll('#attendanceTable thead th');
             const rows = document.querySelectorAll('#attendanceTable tr.student-row');
 
-            rows.forEach(row => {
-                const studentName = row.cells[0].textContent; // Read name from table cell
-                const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-                checkboxes.forEach((checkbox, index) => {
-                    const date = headers[index + 1].dataset.date;
-                    if (date) {
-                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, checkbox.checked);
-                    }
+            // Use a Firestore Batch Write
+            const batch = db.batch();
+            let operationsCount = 0;
+
+            try {
+                rows.forEach(row => {
+                    const studentName = row.cells[0].textContent;
+                    const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach((checkbox, index) => {
+                        const date = headers[index + 1].dataset.date;
+                        if (date) {
+                            // Add update operation to the batch
+                            updateAttendanceRecord(batch, selectedClassId, selectedSubject, selectedTeacher, date, studentName, checkbox.checked);
+                            operationsCount++;
+                        }
+                    });
                 });
-            });
-            saveData();
-            alert('Attendance data saved!');
+
+                if (operationsCount > 0) {
+                     await batch.commit(); // Commit all updates at once
+                     console.log("Batch attendance save successful.");
+                     alert('Attendance data saved!');
+                } else {
+                     alert('No attendance data to save.');
+                }
+            } catch (error) {
+                 console.error("Error saving attendance data:", error);
+                 alert("Error saving attendance data. Please try again.");
+            } finally {
+                saveBtn.disabled = false;
+            }
         }
 
-        function clearWeekData() {
-            if (!confirm("Are you sure you want to clear all marks for this week?")) return;
+        async function clearWeekData() {
+            if (!currentUser || !db) return;
+            if (!confirm("Are you sure you want to clear all marks for this week for the selected class/subject/teacher?")) return;
+            
+            clearWeekBtn.disabled = true;
             const selectedClassId = selectClass.value;
             const selectedSubject = selectSubject.value;
             const selectedTeacher = selectTeacher.value;
-            if (!selectedClassId || !selectedSubject || !selectedTeacher) return;
+            if (!selectedClassId || !selectedSubject || !selectedTeacher) { clearWeekBtn.disabled = false; return; }
             
             const headers = document.querySelectorAll('#attendanceTable thead th');
             const rows = document.querySelectorAll('#attendanceTable tr.student-row');
             
-            rows.forEach(row => {
-                const studentName = row.cells[0].textContent;
-                const checkboxes = row.querySelectorAll('input[type="checkbox"]');
-                checkboxes.forEach((checkbox, index) => {
-                    const date = headers[index + 1].dataset.date;
-                    if (date) {
-                        checkbox.checked = false;
-                        updateAttendanceRecord(selectedClassId, selectedSubject, selectedTeacher, date, studentName, false);
-                    }
+            const batch = db.batch();
+            let operationsCount = 0;
+
+            try {
+                rows.forEach(row => {
+                    const studentName = row.cells[0].textContent;
+                    const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach((checkbox, index) => {
+                        const date = headers[index + 1].dataset.date;
+                        if (date) {
+                            checkbox.checked = false; // Update UI immediately
+                            // Add arrayRemove operation to the batch
+                            updateAttendanceRecord(batch, selectedClassId, selectedSubject, selectedTeacher, date, studentName, false);
+                            operationsCount++;
+                        }
+                    });
                 });
-            });
-            saveData();
-            calculateTotals();
-            alert("This week's marks cleared.");
+
+                if (operationsCount > 0) {
+                     await batch.commit();
+                     calculateTotals(); // Update totals in UI
+                     alert("This week's marks cleared.");
+                     console.log("Batch attendance clear successful.");
+                } else {
+                     alert('No attendance data found for this week to clear.');
+                }
+            } catch (error) {
+                console.error("Error clearing week data:", error);
+                alert("Error clearing attendance data. Please try again.");
+                // Note: UI checkboxes were unchecked, might need to re-render to get actual state
+                renderStudentTable(); 
+            } finally {
+                 clearWeekBtn.disabled = false;
+            }
         }
+
 
         function calculateTotals() {
             const rows = document.querySelectorAll('#attendanceTable tr.student-row');
@@ -950,56 +1316,89 @@
             });
         }
         
-        // MODIFIED: generateMonthlyReport uses student.name
-        function generateMonthlyReport() {
-            const selectedClassId = selectClass.value;
+        async function generateMonthlyReport() {
+            if (!currentUser || !db) return;
+            generateReportBtn.disabled = true;
+            reportOutput.innerHTML = '<p>Generating report...</p>'; 
+
+            const selectedClassId = selectClass.value; // Use active class
             const selectedSubject = reportSubject.value;
             const selectedTeacher = reportTeacher.value;
             const selectedMonth = reportMonthInput.value;
             
-            if (!selectedClassId) { alert('Please select an active class first.'); return; }
-            if (!selectedSubject) { alert('Please select a subject for the report.'); return; }
-            if (!selectedTeacher) { alert('Please select a teacher for the report.'); return; }
-            if (!selectedMonth) { alert('Please select a month.'); return; }
+            if (!selectedClassId) { alert('Please select an active class first.'); reportOutput.innerHTML = ''; generateReportBtn.disabled = false; return; }
+            if (!selectedSubject) { alert('Please select a subject for the report.'); reportOutput.innerHTML = ''; generateReportBtn.disabled = false; return; }
+            if (!selectedTeacher) { alert('Please select a teacher for the report.'); reportOutput.innerHTML = ''; generateReportBtn.disabled = false; return; }
+            if (!selectedMonth) { alert('Please select a month.'); reportOutput.innerHTML = ''; generateReportBtn.disabled = false; return; }
             
-            const students = db.rosters[selectedClassId] || []; // Array of {name, gender}
-            const classAttendance = db.attendance[selectedClassId] || {};
+            const students = appState.rosters[selectedClassId] || [];
             const report = {};
-            students.forEach(student => { report[student.name] = 0; }); // Use student.name
+            students.forEach(student => { report[student.name] = 0; });
             
-            const monthDates = Object.keys(classAttendance).filter(date => date.startsWith(selectedMonth));
-            
-            monthDates.forEach(date => {
-                const presentList = classAttendance[date]?.[selectedSubject]?.[selectedTeacher] || [];
-                presentList.forEach(studentName => { // studentName is a string
-                    if (report.hasOwnProperty(studentName)) {
-                        report[studentName]++;
-                    }
-                });
-            });
-            
-            if (students.length === 0) {
-                reportOutput.innerHTML = '<p>No students in this class.</p>'; return;
+            try {
+                 // --- Firestore Querying ---
+                 // Calculate start and end date strings for the month
+                 const startDate = new Date(selectedMonth + "-01T12:00:00");
+                 const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0); // Last day of month
+                 
+                 const queryPromises = [];
+                 
+                 // Create a query for each day in the month
+                 for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                      const dateStr = d.toISOString().split('T')[0];
+                      const docRef = db.collection('attendance').doc(selectedClassId)
+                                       .collection(dateStr).doc(selectedSubject)
+                                       .collection(selectedTeacher).doc('presentStudents');
+                      queryPromises.push(docRef.get());
+                 }
+
+                 // Execute all queries
+                 const querySnapshots = await Promise.all(queryPromises);
+
+                 // Process results
+                 querySnapshots.forEach(docSnap => {
+                     if (docSnap.exists) {
+                          const presentList = docSnap.data().names || [];
+                          presentList.forEach(studentName => {
+                               if (report.hasOwnProperty(studentName)) {
+                                    report[studentName]++;
+                               }
+                          });
+                     }
+                 });
+                 // --- End Firestore Querying ---
+                 
+                 // --- Report Generation ---
+                 if (students.length === 0) {
+                     reportOutput.innerHTML = '<p>No students in this class.</p>'; 
+                 } else {
+                     const classText = selectClass.options[selectClass.selectedIndex]?.textContent || formatClassId(selectedClassId);
+                     let tableHtml = `
+                         <h2>Monthly Attendance Report</h2>
+                         <h3>Class: ${classText}</h3>
+                         <h3>Subject: ${selectedSubject}</h3>
+                         <h3>Teacher: ${selectedTeacher}</h3>
+                         <h3>Month: ${selectedMonth}</h3>
+                         <table class="report-table"><thead><tr>
+                         <th>Student Name</th><th>Total Days Present</th>
+                         </tr></thead><tbody>`;
+                         
+                     students.forEach(student => {
+                         tableHtml += `<tr><td>${student.name}</td>
+                             <td style="text-align:center;">${report[student.name]}</td></tr>`;
+                     });
+                     tableHtml += '</tbody></table>';
+                     reportOutput.innerHTML = tableHtml;
+                 }
+                 // --- End Report Generation ---
+
+            } catch (error) {
+                 console.error("Error generating monthly report:", error);
+                 alert("Error generating report. Please try again.");
+                 reportOutput.innerHTML = '<p style="color: red;">Error loading report data.</p>';
+            } finally {
+                 generateReportBtn.disabled = false;
             }
-            
-            const classText = selectClass.options[selectClass.selectedIndex].textContent;
-            
-            let tableHtml = `
-                <h2>Monthly Attendance Report</h2>
-                <h3>Class: ${classText}</h3>
-                <h3>Subject: ${selectedSubject}</h3>
-                <h3>Teacher: ${selectedTeacher}</h3>
-                <h3>Month: ${selectedMonth}</h3>
-                <table class="report-table"><thead><tr>
-                <th>Student Name</th><th>Total Days Present</th>
-                </tr></thead><tbody>`;
-                
-            students.forEach(student => { // Loop objects
-                tableHtml += `<tr><td>${student.name}</td>
-                    <td style="text-align:center;">${report[student.name]}</td></tr>`; // Use student.name
-            });
-            tableHtml += '</tbody></table>';
-            reportOutput.innerHTML = tableHtml;
         }
         
         function printReport() {
@@ -1015,9 +1414,10 @@
                     body { font-family: Arial, sans-serif; margin: 20px; }
                     table { width: 100%; border-collapse: collapse; }
                     th, td { border: 1px solid #333; padding: 8px; text-align: center; }
-                    th { background-color: #f0f0f0; }
+                    th { background-color: #f0f0f0; -webkit-print-color-adjust: exact; color-adjust: exact; }
                     td:first-child { text-align: left; }
                     h2, h3 { text-align: center; color: #000; }
+                    @page { size: A4 portrait; margin: 20mm; }
                 </style>
             `);
             printWindow.document.write('</head><body>');
@@ -1025,141 +1425,189 @@
             printWindow.document.write('</body></html>');
             printWindow.document.close();
             setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 250);
+                 try {
+                     printWindow.print();
+                     printWindow.close();
+                 } catch (e) {
+                     console.error("Print failed:", e);
+                     // Close window even if print fails or is cancelled
+                     printWindow.close(); 
+                 }
+            }, 300); // Increased timeout slightly
         }
         
-        // ===========================================
-        // ==== NEW: PRINCIPAL'S DASHBOARD FUNCTION ====
-        // ===========================================
-        function generateDashboard() {
+        async function generateDashboard() {
+            if (!currentUser || !db) return;
+            generateDashboardBtn.disabled = true;
+            dashboardOutput.innerHTML = '<p>Generating dashboard...</p>';
+
             const date = dashboardDateInput.value;
             if (!date) {
                 alert('Please select a date for the dashboard.');
+                dashboardOutput.innerHTML = '';
+                generateDashboardBtn.disabled = false;
                 return;
             }
 
-            const classIds = Object.keys(db.rosters);
+            const classIds = Object.keys(appState.rosters);
             if (classIds.length === 0) {
                 dashboardOutput.innerHTML = '<p>No classes found in the system.</p>';
+                generateDashboardBtn.disabled = false;
                 return;
             }
             
             let results = {};
             let grandTotal = { totalMale: 0, totalFemale: 0, presentMale: 0, presentFemale: 0 };
-
-            classIds.forEach(classId => {
-                const studentRoster = db.rosters[classId] || []; // [{name, gender}, ...]
-                const dayAttendance = db.attendance[classId]?.[date]; // {"Maths": {"Kelum": ["Kamal"]}, ...}
-                
-                results[classId] = { totalMale: 0, totalFemale: 0, presentMale: 0, presentFemale: 0 };
-
-                // Create a Set of all present students for this day, across all subjects/teachers
-                let presentToday = new Set();
-                if (dayAttendance) {
-                    Object.values(dayAttendance).forEach(subject => {
-                        Object.values(subject).forEach(teacherList => {
-                            teacherList.forEach(studentName => presentToday.add(studentName));
-                        });
-                    });
-                }
-
-                // Loop through the master roster to get totals and check presence
-                studentRoster.forEach(student => {
-                    if (student.gender === 'Male') {
-                        results[classId].totalMale++;
-                        grandTotal.totalMale++;
-                        if (presentToday.has(student.name)) {
-                            results[classId].presentMale++;
-                            grandTotal.presentMale++;
-                        }
-                    } else if (student.gender === 'Female') {
-                        results[classId].totalFemale++;
-                        grandTotal.totalFemale++;
-                        if (presentToday.has(student.name)) {
-                            results[classId].presentFemale++;
-                            grandTotal.presentFemale++;
-                        }
-                    }
-                });
-            });
-
-            // Build the HTML table
-            let tableHtml = `
-                <h2>Daily Attendance Summary</h2>
-                <h3>Date: ${date}</h3>
-                <table class="dashboard-table">
-                    <thead>
-                        <tr>
-                            <th>Class</th>
-                            <th>Male (Present/Total)</th>
-                            <th>Female (Present/Total)</th>
-                            <th>Total (Present/Total)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            classIds.sort().forEach(classId => {
-                const data = results[classId];
-                const pMale = data.presentMale;
-                const tMale = data.totalMale;
-                const pFemale = data.presentFemale;
-                const tFemale = data.totalFemale;
-                const pTotal = pMale + pFemale;
-                const tTotal = tMale + tFemale;
-                
-                tableHtml += `
-                    <tr>
-                        <td>${formatClassId(classId)}</td>
-                        <td>${pMale} / ${tMale}</td>
-                        <td>${pFemale} / ${tFemale}</td>
-                        <td><b>${pTotal} / ${tTotal}</b></td>
-                    </tr>
-                `;
-            });
             
-            // Add Grand Total Row
-            const gpMale = grandTotal.presentMale;
-            const gtMale = grandTotal.totalMale;
-            const gpFemale = grandTotal.presentFemale;
-            const gtFemale = grandTotal.totalFemale;
-            const gpTotal = gpMale + gpFemale;
-            const gtTotal = gtMale + gtFemale;
-            
-            tableHtml += `
-                    <tr style="background-color: #f0f4ff; font-weight: bold;">
-                        <td>SCHOOL TOTAL</td>
-                        <td>${gpMale} / ${gtMale}</td>
-                        <td>${gpFemale} / ${gtFemale}</td>
-                        <td>${gpTotal} / ${gtTotal}</td>
-                    </tr>
-            `;
+            try {
+                 // Fetch attendance data for ALL classes for the selected date in parallel
+                 const attendancePromises = classIds.map(classId => 
+                     db.collection('attendance').doc(classId).collection(date).get()
+                 );
+                 const attendanceSnapshots = await Promise.all(attendancePromises);
 
-            tableHtml += '</tbody></table>';
-            dashboardOutput.innerHTML = tableHtml;
+                 // Process the fetched data
+                 for (let i = 0; i < classIds.length; i++) {
+                     const classId = classIds[i];
+                     const studentRoster = appState.rosters[classId] || [];
+                     results[classId] = { totalMale: 0, totalFemale: 0, presentMale: 0, presentFemale: 0 };
+                     
+                     let presentToday = new Set(); // Students present in this class today
+                     
+                     // Get subject docs for this class on this date
+                     const subjectDocs = attendanceSnapshots[i].docs; 
+                     
+                     const subjectPromises = subjectDocs.map(subjectDoc => subjectDoc.ref.listCollections());
+                     const teacherCollectionRefsArray = await Promise.all(subjectPromises);
+
+                     const presentDocPromises = [];
+                     teacherCollectionRefsArray.flat().forEach(teacherCollRef => {
+                         presentDocPromises.push(teacherCollRef.doc('presentStudents').get());
+                     });
+                     
+                     const presentDocSnapshots = await Promise.all(presentDocPromises);
+
+                     presentDocSnapshots.forEach(presentDoc => {
+                         if (presentDoc.exists) {
+                              const presentList = presentDoc.data().names || [];
+                              presentList.forEach(name => presentToday.add(name));
+                         }
+                     });
+
+                     // Now calculate totals for this class
+                     studentRoster.forEach(student => {
+                         if (student.gender === 'Male') {
+                             results[classId].totalMale++;
+                             grandTotal.totalMale++;
+                             if (presentToday.has(student.name)) {
+                                 results[classId].presentMale++;
+                                 grandTotal.presentMale++;
+                             }
+                         } else if (student.gender === 'Female') {
+                             results[classId].totalFemale++;
+                             grandTotal.totalFemale++;
+                             if (presentToday.has(student.name)) {
+                                 results[classId].presentFemale++;
+                                 grandTotal.presentFemale++;
+                             }
+                         }
+                     });
+                 } // End loop through classes
+
+                 // --- Dashboard Table Generation ---
+                 let tableHtml = `
+                     <h2>Daily Attendance Summary</h2>
+                     <h3>Date: ${date}</h3>
+                     <table class="dashboard-table">
+                         <thead>
+                             <tr>
+                                 <th>Class</th>
+                                 <th>Male (Present/Total)</th>
+                                 <th>Female (Present/Total)</th>
+                                 <th>Total (Present/Total)</th>
+                             </tr>
+                         </thead>
+                         <tbody>
+                 `;
+
+                 classIds.sort().forEach(classId => {
+                     const data = results[classId];
+                     const pMale = data.presentMale;
+                     const tMale = data.totalMale;
+                     const pFemale = data.presentFemale;
+                     const tFemale = data.totalFemale;
+                     const pTotal = pMale + pFemale;
+                     const tTotal = tMale + tFemale;
+                     
+                     tableHtml += `
+                         <tr>
+                             <td>${formatClassId(classId)}</td>
+                             <td>${pMale} / ${tMale}</td>
+                             <td>${pFemale} / ${tFemale}</td>
+                             <td><b>${pTotal} / ${tTotal}</b></td>
+                         </tr>
+                     `;
+                 });
+                 
+                 const gpMale = grandTotal.presentMale;
+                 const gtMale = grandTotal.totalMale;
+                 const gpFemale = grandTotal.presentFemale;
+                 const gtFemale = grandTotal.totalFemale;
+                 const gpTotal = gpMale + gpFemale;
+                 const gtTotal = gtMale + gtFemale;
+                 
+                 tableHtml += `
+                         <tr>
+                             <td>SCHOOL TOTAL</td>
+                             <td>${gpMale} / ${gtMale}</td>
+                             <td>${gpFemale} / ${gtFemale}</td>
+                             <td>${gpTotal} / ${gtTotal}</td>
+                         </tr>
+                 `;
+
+                 tableHtml += '</tbody></table>';
+                 dashboardOutput.innerHTML = tableHtml;
+                 // --- End Dashboard Table Generation ---
+
+            } catch (error) {
+                 console.error("Error generating dashboard:", error);
+                 alert("Error generating dashboard data. Please try again.");
+                 dashboardOutput.innerHTML = '<p style="color: red;">Error loading dashboard data.</p>';
+            } finally {
+                 generateDashboardBtn.disabled = false;
+            }
         }
         
         
         function resetAllData() {
-            if (confirm("DANGER! This will permanently delete ALL data. Are you sure?")) {
-                localStorage.removeItem(DB_KEY);
-                db = { rosters: {}, subjects: [], teachers: [], attendance: {} };
-                location.reload();
-            }
+            // Disabled for safety. Implement with extreme caution using Cloud Functions or Firebase Console.
+            alert("Data reset function is disabled for safety. Please use Firebase Console or a secure backend function.");
+            console.warn("Reset All Data function called but is disabled.");
         }
 
         // ==== 5. Initialization ====
         document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-            populateClassSelector();
-            populateSubjectSelectors();
-            populateTeacherSelectors();
-            setDefaultDate();
-            updateTableHeaders();
             
-            // Event listeners
+            // Initial UI state: show loading, hide login and app content
+            loadingIndicator.style.display = 'block';
+            loginScreen.style.display = 'none';
+            appContent.style.display = 'none';
+
+            if (typeof firebase === 'undefined') {
+                 console.error("Firebase is not loaded! Check SDK URLs and internet connection.");
+                 loadingIndicator.textContent = "Error loading application resources. Please refresh.";
+                 // Stop further execution if Firebase didn't load
+                 return; 
+            }
+            
+            // Listen for authentication state changes
+            auth.onAuthStateChanged(handleAuthStateChanged);
+
+            // Add Login/Logout button listeners
+            loginBtn.addEventListener('click', loginUser);
+            logoutBtn.addEventListener('click', logoutUser);
+
+            // --- Other event listeners (will only be effective when #appContent is visible) ---
             addClassBtn.addEventListener('click', addNewClass);
             addSubjectBtn.addEventListener('click', addNewSubject);
             addTeacherBtn.addEventListener('click', addNewTeacher);
@@ -1174,14 +1622,13 @@
             calculateBtn.addEventListener('click', calculateTotals);
             clearWeekBtn.addEventListener('click', clearWeekData);
             
-            // Report/Dashboard Listeners
             generateReportBtn.addEventListener('click', generateMonthlyReport);
             printReportBtn.addEventListener('click', printReport);
-            generateDashboardBtn.addEventListener('click', generateDashboard); // NEW
+            generateDashboardBtn.addEventListener('click', generateDashboard);
             
             resetAllBtn.addEventListener('click', resetAllData);
             
-            renderStudentTable();
+            // Initial data load and rendering are now triggered by the auth state change handler (handleAuthStateChanged)
         });
     </script>
 
