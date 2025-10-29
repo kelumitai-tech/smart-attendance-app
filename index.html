@@ -607,6 +607,33 @@
             async function generateDashboard() { /* ... Same complex Firestore query logic ... */ }
             function resetAllData() { /* ... Same (disabled) ... */ }
 
+            // ==== 6. NEW: Roster Modal Functions ====
+            function openRosterModal() {
+                console.log("DEBUG: Opening Roster Modal...");
+                if (!appState.isDataLoaded) { alert("Data is still loading, please wait."); return; }
+                const selectedClassId = selectClass.value;
+                if (!selectedClassId) { alert("Please select an active class first."); return; }
+                const students = appState.rosters[selectedClassId] || [];
+                const classText = selectClass.options[selectClass.selectedIndex]?.textContent || formatClassId(selectedClassId);
+                if(rosterModalTitle) rosterModalTitle.textContent = `Roster for ${classText}`;
+                if(rosterList) rosterList.innerHTML = ''; // Clear old list
+                if (students.length === 0) {
+                    if(rosterList) rosterList.innerHTML = '<li>No students found in this class.</li>';
+                } else {
+                    students.forEach(student => {
+                        const li = document.createElement('li');
+                        li.textContent = student.name;
+                        const genderSpan = document.createElement('span');
+                        genderSpan.textContent = `(${student.gender})`;
+                        li.appendChild(genderSpan);
+                        if(rosterList) rosterList.appendChild(li);
+                    });
+                }
+                if(rosterModal) rosterModal.style.display = 'block';
+            }
+            function closeModal() { if(rosterModal) rosterModal.style.display = 'none'; }
+
+
             // --- Helper to Attach Event Listeners ---
             function attachEventListeners() {
                  console.log("DEBUG: Inside attachEventListeners function.");
@@ -636,35 +663,6 @@
                  if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal); else console.warn("Listener not attached: closeModalBtn missing");
                  if(rosterModal) rosterModal.addEventListener('click', function(event) { if (event.target == rosterModal) { closeModal(); } }); else console.warn("Listener not attached: rosterModal missing");
             }
-
-            // ==== NEW: Roster Modal Functions ====
-            function openRosterModal() {
-                console.log("DEBUG: Opening Roster Modal...");
-                if (!appState.isDataLoaded) { alert("Data is still loading, please wait."); return; }
-                const selectedClassId = selectClass.value;
-                if (!selectedClassId) { alert("Please select an active class first."); return; }
-                const students = appState.rosters[selectedClassId] || [];
-                const classText = selectClass.options[selectClass.selectedIndex]?.textContent || formatClassId(selectedClassId);
-
-                if(rosterModalTitle) rosterModalTitle.textContent = `Roster for ${classText}`;
-                if(rosterList) rosterList.innerHTML = ''; // Clear old list
-
-                if (students.length === 0) {
-                    if(rosterList) rosterList.innerHTML = '<li>No students found in this class.</li>';
-                } else {
-                    students.forEach(student => {
-                        const li = document.createElement('li');
-                        li.textContent = student.name;
-                        const genderSpan = document.createElement('span');
-                        genderSpan.textContent = `(${student.gender})`;
-                        li.appendChild(genderSpan);
-                        if(rosterList) rosterList.appendChild(li);
-                    });
-                }
-                if(rosterModal) rosterModal.style.display = 'block';
-            }
-            function closeModal() { if(rosterModal) rosterModal.style.display = 'none'; }
-
 
         }); // End of DOMContentLoaded
     </script>
