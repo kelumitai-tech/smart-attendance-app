@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -88,6 +87,8 @@
         .btn-google:hover {
             background: #c23321;
         }
+        .btn-secondary { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
         .error-msg, .success-msg {
             padding: 12px;
             border-radius: 8px;
@@ -169,8 +170,6 @@
             background: white;
             color: #005A9C;
         }
-        .btn-secondary { background: #4CAF50; color: white; }
-        .btn-danger { background: #f44336; color: white; }
         .info-box {
             background: #e3f2fd;
             padding: 15px;
@@ -204,6 +203,13 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
+        }
+        .student-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #005A9C;
         }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
@@ -511,71 +517,74 @@
             currentUser: null
         };
 
-        // Initialize when page loads
+        // Initialize
         window.onload = function() {
-            document.getElementById('loginBtn').onclick = doLogin;
-            document.getElementById('googleBtn').onclick = googleLogin;
-            document.getElementById('logoutBtn').onclick = doLogout;
-            
-            var navButtons = document.querySelectorAll('.nav-tab');
-            for (var i = 0; i < navButtons.length; i++) {
-                navButtons[i].onclick = function() {
-                    showTab(this.getAttribute('data-tab'));
-                };
-            }
-            
-            document.getElementById('studentFilter').onkeyup = filterStudents;
-            document.getElementById('teacherFilter').onkeyup = filterTeachers;
-            document.getElementById('subjectFilter').onkeyup = filterSubjects;
-            document.getElementById('gradeFilter').onkeyup = filterGrades;
-            document.getElementById('filterStudentClass').onchange = filterStudents;
-            
-            document.getElementById('addStudentBtn').onclick = addStudent;
-            document.getElementById('addTeacherBtn').onclick = addTeacher;
-            document.getElementById('addSubjectBtn').onclick = addSubject;
-            document.getElementById('addClassBtn').onclick = addClass;
-            
-            document.getElementById('loadAttendanceBtn').onclick = loadAttendance;
-            document.getElementById('markAllBtn').onclick = markAllPresent;
-            document.getElementById('saveAttendanceBtn').onclick = saveAttendance;
-            document.getElementById('clearWeekBtn').onclick = clearWeek;
-            document.getElementById('generateReportBtn').onclick = generateReport;
-            
-            // Set today's date
-            var today = new Date().toISOString().split('T')[0];
-            document.getElementById('startDate').value = today;
-            
-            // Initialize selectors
+            setupEventListeners();
+            setTodayDate();
             updateSelectors();
         };
 
-        // Login function - FIXED
+        function setupEventListeners() {
+            document.getElementById('loginBtn').addEventListener('click', doLogin);
+            document.getElementById('googleBtn').addEventListener('click', googleLogin);
+            document.getElementById('logoutBtn').addEventListener('click', doLogout);
+            
+            var navButtons = document.querySelectorAll('.nav-tab');
+            navButtons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    showTab(this.getAttribute('data-tab'));
+                });
+            });
+            
+            document.getElementById('studentFilter').addEventListener('keyup', filterStudents);
+            document.getElementById('teacherFilter').addEventListener('keyup', filterTeachers);
+            document.getElementById('subjectFilter').addEventListener('keyup', filterSubjects);
+            document.getElementById('gradeFilter').addEventListener('keyup', filterGrades);
+            document.getElementById('filterStudentClass').addEventListener('change', filterStudents);
+            
+            document.getElementById('addStudentBtn').addEventListener('click', addStudent);
+            document.getElementById('addTeacherBtn').addEventListener('click', addTeacher);
+            document.getElementById('addSubjectBtn').addEventListener('click', addSubject);
+            document.getElementById('addClassBtn').addEventListener('click', addClass);
+            
+            document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendance);
+            document.getElementById('markAllBtn').addEventListener('click', markAllPresent);
+            document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
+            document.getElementById('clearWeekBtn').addEventListener('click', clearWeek);
+            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+        }
+
+        function setTodayDate() {
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+        }
+
+        // LOGIN FUNCTION
         function doLogin() {
             var email = document.getElementById('loginEmail').value.trim();
             var password = document.getElementById('loginPassword').value.trim();
             var role = document.getElementById('loginRole').value;
             var errorMsg = document.getElementById('loginError');
             
-            // Validate inputs
             if (!email || !password) {
                 errorMsg.textContent = 'Please enter both email and password';
                 errorMsg.style.display = 'block';
                 return;
             }
             
-            // Simple demo authentication
-            if (email === 'demo@school.com' && password === 'demo123') {
+            // For demo - accept any email/password with minimum length
+            if (email.length > 5 && password.length > 3) {
                 appData.currentUser = { email: email, role: role };
                 showApp(role);
                 errorMsg.style.display = 'none';
             } else {
-                errorMsg.textContent = 'Invalid email or password. Use demo@school.com / demo123';
+                errorMsg.textContent = 'Invalid credentials. Email must be valid and password at least 4 characters.';
                 errorMsg.style.display = 'block';
             }
         }
 
         function googleLogin() {
-            alert('Google Sign-In: This feature requires Firebase Authentication setup.\n\nFor demo purposes, use:\nEmail: demo@school.com\nPassword: demo123');
+            alert('Google Sign-In feature requires Firebase Authentication setup.\n\nFor now, use regular email/password login.');
         }
 
         function showApp(role) {
@@ -583,24 +592,19 @@
             document.getElementById('appContent').style.display = 'block';
             document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal' : 'Teacher';
             
-            // Show/hide principal-only features
             var principalElements = document.querySelectorAll('.principal-only');
-            for (var i = 0; i < principalElements.length; i++) {
-                principalElements[i].style.display = role === 'principal' ? 'block' : 'none';
-            }
+            principalElements.forEach(function(el) {
+                el.style.display = role === 'principal' ? 'block' : 'none';
+            });
             
-            updateSelectors();
-            updateStudentsList();
-            updateTeachersList();
-            updateSubjectsList();
-            updateGradesList();
-            updateDashboard();
+            updateAll();
         }
 
         function doLogout() {
             appData.currentUser = null;
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('appContent').style.display = 'none';
+            document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
         }
 
@@ -608,12 +612,8 @@
             var tabs = document.querySelectorAll('.tab-content');
             var navTabs = document.querySelectorAll('.nav-tab');
             
-            for (var i = 0; i < tabs.length; i++) {
-                tabs[i].classList.remove('active');
-            }
-            for (var i = 0; i < navTabs.length; i++) {
-                navTabs[i].classList.remove('active');
-            }
+            tabs.forEach(function(tab) { tab.classList.remove('active'); });
+            navTabs.forEach(function(tab) { tab.classList.remove('active'); });
             
             document.getElementById(tabName).classList.add('active');
             var activeTab = document.querySelector('[data-tab="' + tabName + '"]');
@@ -621,33 +621,34 @@
         }
 
         function updateSelectors() {
-            var classSelect = document.getElementById('selectClass');
-            var subjectSelect = document.getElementById('selectSubject');
-            var studentGradeSelect = document.getElementById('studentGrade');
-            var teacherSubjectSelect = document.getElementById('teacherSubject');
-            var reportClassSelect = document.getElementById('reportClass');
-            var reportSubjectSelect = document.getElementById('reportSubject');
-            var filterStudentClass = document.getElementById('filterStudentClass');
-            
-            // Update class selectors
             var classOptions = '<option value="">-- Select Class --</option>';
-            for (var i = 0; i < appData.grades.length; i++) {
-                var fullClass = appData.grades[i].grade + ' - ' + appData.grades[i].class;
+            appData.grades.forEach(function(g) {
+                var fullClass = g.grade + ' - ' + g.class;
                 classOptions += '<option value="' + fullClass + '">' + fullClass + '</option>';
-            }
-            classSelect.innerHTML = classOptions;
-            studentGradeSelect.innerHTML = classOptions;
-            reportClassSelect.innerHTML = classOptions;
-            filterStudentClass.innerHTML = '<option value="">All Classes</option>' + classOptions;
+            });
             
-            // Update subject selectors
+            document.getElementById('selectClass').innerHTML = classOptions;
+            document.getElementById('studentGrade').innerHTML = classOptions;
+            document.getElementById('reportClass').innerHTML = classOptions;
+            document.getElementById('filterStudentClass').innerHTML = '<option value="">All Classes</option>' + classOptions;
+            
             var subjectOptions = '<option value="">-- Select Subject --</option>';
-            for (var i = 0; i < appData.subjects.length; i++) {
-                subjectOptions += '<option value="' + appData.subjects[i] + '">' + appData.subjects[i] + '</option>';
-            }
-            subjectSelect.innerHTML = subjectOptions;
-            teacherSubjectSelect.innerHTML = subjectOptions;
-            reportSubjectSelect.innerHTML = subjectOptions;
+            appData.subjects.forEach(function(s) {
+                subjectOptions += '<option value="' + s + '">' + s + '</option>';
+            });
+            
+            document.getElementById('selectSubject').innerHTML = subjectOptions;
+            document.getElementById('teacherSubject').innerHTML = subjectOptions;
+            document.getElementById('reportSubject').innerHTML = subjectOptions;
+        }
+
+        function updateAll() {
+            updateSelectors();
+            updateStudentsList();
+            updateTeachersList();
+            updateSubjectsList();
+            updateGradesList();
+            updateDashboard();
         }
 
         function loadAttendance() {
@@ -668,12 +669,11 @@
             });
             
             if (classStudents.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students found in this class</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
                 return;
             }
             
-            for (var i = 0; i < classStudents.length; i++) {
-                var student = classStudents[i];
+            classStudents.forEach(function(student) {
                 var key = selectedClass + '_' + selectedSubject + '_' + date + '_' + student.id;
                 var attendance = appData.attendance[key] || [false, false, false, false, false];
                 
@@ -681,5 +681,44 @@
                 html += '<td>' + student.id + '</td>';
                 html += '<td>' + student.name + '</td>';
                 
-                for (var j = 0; j < 5; j++) {
-                    html += '<td><input type="checkbox" class="attendance-checkbox" data-student="' + student.id + '" data-day="' + j + '" ' + (attendance[j] ? 'checked' : '') + '></td>';
+                for (var i = 0; i < 5; i++) {
+                    html += '<td><input type="checkbox" class="attendance-checkbox" data-student="' + student.id + '" data-day="' + i + '" ' + (attendance[i] ? 'checked' : '') + '></td>';
+                }
+                
+                var total = attendance.filter(function(a) { return a; }).length;
+                html += '<td><strong>' + total + '/5</strong></td>';
+                html += '</tr>';
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        function markAllPresent() {
+            var checkboxes = document.querySelectorAll('.attendance-checkbox');
+            checkboxes.forEach(function(cb) { cb.checked = true; });
+        }
+
+        function clearWeek() {
+            var checkboxes = document.querySelectorAll('.attendance-checkbox');
+            checkboxes.forEach(function(cb) { cb.checked = false; });
+        }
+
+        function saveAttendance() {
+            var selectedClass = document.getElementById('selectClass').value;
+            var selectedSubject = document.getElementById('selectSubject').value;
+            var date = document.getElementById('startDate').value;
+            
+            if (!selectedClass || !selectedSubject) {
+                alert('Please select class and subject first');
+                return;
+            }
+            
+            var rows = document.querySelectorAll('#attendanceTbody tr');
+            var saved = 0;
+            
+            rows.forEach(function(row) {
+                var cells = row.querySelectorAll('td');
+                if (cells.length > 1) {
+                    var studentId = cells[0].textContent;
+                    var checkboxes = row.querySelectorAll('.attendance-checkbox');
+                    var
