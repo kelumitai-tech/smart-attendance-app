@@ -644,28 +644,33 @@
 
         // Login
         document.getElementById('loginBtn').addEventListener('click', () => {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
             const role = document.getElementById('loginRole').value;
             
-            if (email && password) {
-                appData.currentUser = { email };
-                appData.userRole = role;
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('appContent').style.display = 'block';
-                document.getElementById('roleBadge').textContent = role === 'principal' ? '👨‍💼 Principal' : '👨‍🏫 Teacher';
-                
-                // Show/hide principal features
-                if (role === 'principal') {
-                    document.querySelectorAll('.principal-only').forEach(el => el.style.display = 'block');
-                }
-                
-                initializeData();
-            } else {
-                const error = document.getElementById('loginError');
-                error.textContent = 'Please enter email and password';
+            // Clear any previous errors
+            const error = document.getElementById('loginError');
+            error.style.display = 'none';
+            
+            if (!email || !password) {
+                error.textContent = 'Please enter both email and password';
                 error.style.display = 'block';
+                return;
             }
+            
+            // Simple validation for demo
+            appData.currentUser = { email };
+            appData.userRole = role;
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('roleBadge').textContent = role === 'principal' ? '👨‍💼 Principal' : '👨‍🏫 Teacher';
+            
+            // Show/hide principal features
+            if (role === 'principal') {
+                document.querySelectorAll('.principal-only').forEach(el => el.style.display = 'block');
+            }
+            
+            initializeData();
         });
 
         // Google login
