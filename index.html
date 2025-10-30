@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#005A9C">
+    <!-- Firebase SDK (v8) - CDN -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         :root{--primary-color:#005A9C;--secondary-color:#4CAF50;--header-color:#fff;--bg-color:#f4f7f6;--card-bg:#fff;--text-color:#333;--border-color:#e0e0e0;--danger-color:#D32F2F;--warning-color:#FFA000;--print-btn-color:#3f51b5;--google-btn-color:#DB4437;--shadow:0 5px 15px rgba(0,0,0,.08)}html,body{overflow-x:hidden;width:100%}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;background-color:var(--bg-color);color:var(--text-color);line-height:1.6;display:flex;justify-content:center;align-items:center;min-height:100vh}#loadingIndicator{font-size:1.2em;color:var(--primary-color);text-align:center;background:#fff;padding:30px;border-radius:16px;box-shadow:var(--shadow);max-width:400px;margin:50px auto}#loadingIndicator strong{color:var(--danger-color)}.main-header{background:var(--primary-color);color:var(--header-color);padding:15px 20px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.1);position:relative}.main-header h1{margin:0;font-size:1.6em;font-weight:600}.app-container{width:100%;max-width:1000px;margin:0 auto;padding:20px 10px;display:grid;grid-template-columns:1fr;gap:20px}.card{background:var(--card-bg);border-radius:16px;box-shadow:var(--shadow);padding:20px;border:1px solid var(--border-color)}.card h2{margin-top:0;text-align:center;color:var(--primary-color);font-size:1.5em;margin-bottom:25px}#report-card p,#danger-zone-card p{text-align:center;font-size:.95em;margin-bottom:20px}hr.card-divider{margin:25px 0 20px;border-top:1px solid var(--border-color);border-bottom:none}.form-group{margin-bottom:20px}.form-group label{display:block;font-weight:600;margin-bottom:8px;text-align:left;color:#555}select,input[type=text],input[type=date],input[type=month],input[type=email],input[type=password]{width:100%;display:block;padding:14px;font-size:16px;border:1px solid var(--border-color);border-radius:10px;box-sizing:border-box;background-color:#fcfcfc}input[type=date],input[type=month]{appearance:none;-webkit-appearance:none}.radio-group{display:flex;justify-content:flex-start;gap:20px;margin-top:10px}.radio-group input[type=radio]{display:none}.radio-group label{display:inline-block;padding:10px 20px;border:2px solid var(--border-color);border-radius:10px;cursor:pointer;font-weight:600;text-align:center;width:80px}.radio-group input[type=radio]:checked+label{background-color:var(--primary-color);color:#fff;border-color:var(--primary-color)}button{width:100%;display:block;padding:15px;font-size:1.1em;font-weight:700;border:none;border-radius:10px;box-sizing:border-box;color:#fff;cursor:pointer;margin-top:10px;box-shadow:0 4px 12px rgba(0,0,0,.1);transition:transform .2s ease,box-shadow .2s ease}button:disabled{background-color:#ccc;cursor:not-allowed;box-shadow:none}button:active:not(:disabled){transform:translateY(2px);box-shadow:0 2px 6px rgba(0,0,0,.1)}.button-group{display:flex;flex-direction:column;gap:10px;margin-top:20px}.button-group-inline{display:flex;gap:10px;margin-bottom:15px;justify-content:center}.button-group-inline button{margin-top:0;flex:1;max-width:200px;font-size:.95em;padding:12px}#addClassBtn{background-color:#2196F3}#addSubjectBtn{background-color:#00796B}#addTeacherBtn{background-color:#8E24AA}#addStudentBtn{background-color:#ff9800}#updateDatesBtn{background-color:#00796B}#generateReportBtn{background-color:#512DA8}#generateDashboardBtn{background-color:#d81b60}#printReportBtn{background-color:var(--print-btn-color)}#saveBtn{background-color:var(--secondary-color)}#calculateBtn{background-color:#673AB7}#clearWeekBtn{background-color:var(--warning-color)}#resetAllBtn{background-color:var(--danger-color)}#loginBtn,#logoutBtn{background-color:var(--primary-color)}#googleLoginBtn{background-color:var(--google-btn-color);margin-top:15px}#markAllPresentBtn{background-color:#0d6efd}#logoutBtn{width:auto;position:absolute;top:10px;right:10px;padding:8px 15px;font-size:.9em;margin-top:0}.table-responsive-wrapper{width:100%;overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:600px}th,td{border:1px solid var(--border-color);padding:14px;text-align:center}thead tr{background-color:#f1f1f1}th{font-weight:600}tbody tr:nth-child(even){background-color:#fcfcfc}tbody tr:hover{background-color:#eef}td:first-child{text-align:left;font-weight:500;white-space:nowrap;min-width:150px}.total-cell{font-weight:700;background-color:#f0f4ff;font-size:1.1em}input[type=checkbox]{width:20px;height:20px;cursor:pointer}#reportOutput table,#dashboardOutput table{min-width:0}#reportOutput th,#dashboardOutput th{background-color:#512DA8;color:#fff}#dashboardOutput th{background-color:#d81b60}#dashboardOutput tr:last-child{background-color:#f0f4ff;font-weight:700}.danger-zone{border-color:var(--danger-color);background-color:#fff5f5}.danger-zone h2{color:var(--danger-color);border-bottom-color:transparent}.main-footer-credits{text-align:center;padding:20px 15px;margin-top:20px;color:#777;font-size:.9em;background-color:#eef;line-height:1.7;overflow-wrap:break-word;word-break:break-word;border-top:2px solid var(--primary-color)}.info-message{text-align:center;padding:20px;background-color:#f0f4ff;border-radius:10px;color:#555;font-weight:500}#loginScreen{padding:30px;text-align:center;max-width:400px;margin:50px auto}#loginScreen input[type=email],#loginScreen input[type=password]{margin-bottom:15px}#loginError{color:var(--danger-color);margin-top:15px;font-weight:700;display:none}.modal-overlay{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,.6)}.modal-content{background-color:#fefefe;margin:15% auto;padding:20px;border:1px solid #888;width:90%;max-width:500px;border-radius:16px;position:relative;box-shadow:var(--shadow)}.close-modal{color:#aaa;float:right;font-size:28px;font-weight:700;position:absolute;top:10px;right:20px}.close-modal:focus,.close-modal:hover{color:#000;text-decoration:none;cursor:pointer}#rosterList{list-style:none;padding:0;margin-top:20px;max-height:40vh;overflow-y:auto}#rosterList li{padding:10px;border-bottom:1px solid var(--border-color);font-size:1.1em;display:flex;justify-content:space-between}#rosterList li:last-child{border-bottom:none}#rosterList li span{color:#777;font-size:.9em}
         @media screen and (max-width:767px){body{display:block;min-height:auto}#loadingIndicator{margin-top:50px}.table-responsive-wrapper{overflow-x:visible;border:none}#attendanceTable{min-width:0!important}#attendanceTable,#attendanceTable thead,#attendanceTable tbody,#attendanceTable th,#attendanceTable td,#attendanceTable tr{display:block}#attendanceTable thead tr{position:absolute;top:-9999px;left:-9999px}#attendanceTable tr.student-row{border:none;border-radius:16px;margin-bottom:15px;background:var(--card-bg);box-shadow:var(--shadow);overflow:hidden}#attendanceTable td{border:none;border-bottom:1px solid #f0f0f0;position:relative;padding:14px 20px;padding-left:50%;text-align:right;min-height:44px}#attendanceTable td:first-child{background:var(--primary-color);color:#fff;font-weight:600;font-size:1.25em;padding:18px 20px;text-align:left;border-bottom:none}#attendanceTable td:before{content:attr(data-label);position:absolute;top:50%;left:20px;transform:translateY(-50%);width:45%;padding-right:10px;white-space:nowrap;text-align:left;font-weight:600;color:#555}#attendanceTable td:first-child:before{content:""}#attendanceTable td:last-child{border-bottom:0}#attendanceTable input[type=checkbox]{width:22px;height:22px}#attendanceTable .total-cell{text-align:right;font-size:1.2em;font-weight:700;background-color:#f0f4ff}.modal-content{margin:25% auto}}
@@ -13,6 +16,7 @@
     </style>
 </head>
 <body>
+    <!-- Loading -->
     <div id="loadingIndicator">
         <div><strong>Loading Application...</strong></div>
         <div style="font-size:0.9em;margin-top:10px;color:#666;">Firebase connecting...</div>
@@ -141,11 +145,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
+    <!-- Full App Logic -->
     <script>
         // ==== Firebase Config ====
         const firebaseConfig = {
@@ -160,7 +160,7 @@
         // ==== Initialize Firebase ====
         let app, auth, db, FieldValue;
         function initializeFirebase() {
-            if (AppError(typeof firebase === 'undefined') return false;
+            if (typeof firebase === 'undefined') return false;
             try {
                 if (!firebase.apps.length) app = firebase.initializeApp(firebaseConfig);
                 else app = firebase.app();
@@ -169,20 +169,22 @@
                 FieldValue = firebase.firestore.FieldValue;
                 console.log("Firebase initialized.");
                 return true;
-            } catch (e) { console.error(e); return false; }
+            } catch (e) { console.error("Firebase init error:", e); return false; }
         }
 
         // ==== Global State ====
         let currentUser = null, currentUserRole = null;
         let appState = { rosters: {}, subjects: [], teachers: [], isDataLoaded: false };
         const els = {};
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
         // ==== DOM Ready ====
         document.addEventListener('DOMContentLoaded', () => {
             const ids = ['loadingIndicator','loginScreen','appContent','loginEmail','loginPassword','loginBtn','logoutBtn','loginError','googleLoginBtn','appTitle','selectGrade','inputClassName','addClassBtn','selectClass','inputSubjectName','addSubjectBtn','selectSubject','reportSubject','inputTeacherName','addTeacherBtn','selectTeacher','reportTeacher','startDate','updateDatesBtn','studentNameInput','addStudentBtn','attendanceTbody','attendance-sheet-title','attendanceInfo','saveBtn','calculateBtn','clearWeekBtn','markAllPresentBtn','reportMonth','generateReportBtn','printReportBtn','reportOutput','dashboardDate','generateDashboardBtn','dashboardOutput','resetAllBtn','rosterModal','closeModalBtn','viewRosterBtn','rosterModalTitle','rosterList'];
             ids.forEach(id => els[id] = document.getElementById(id));
 
-            if (!initializeFirebase()) { showError("Firebase failed."); return; }
+            if (!initializeFirebase()) { showError("Firebase SDK failed to load."); return; }
 
             els.loginBtn.addEventListener('click', loginUser);
             els.googleLoginBtn.addEventListener('click', loginWithGoogle);
@@ -220,12 +222,12 @@
                 currentUserRole = await getUserRole(user.uid);
                 updateUIForRole();
                 if (!appState.isDataLoaded) {
-                    await loadInitialData();  // AWAIT HERE!
+                    await loadInitialData();
                     populateAllSelectors();
                     setDefaultDate();
                     renderStudentTable();
                     appState.isDataLoaded = true;
-                    attachEventListeners();  // AFTER DATA!
+                    attachEventListeners();
                 }
             } else {
                 els.loginScreen.style.display = 'block'; els.appContent.style.display = 'none';
@@ -247,48 +249,39 @@
             ['addClassBtn','addSubjectBtn','addTeacherBtn'].forEach(id => els[id].disabled = !isPrincipal);
         }
 
-        // ==== DATA LOADING — 100% FROM FIREBASE ====
+        // ==== Data Loading ====
         async function loadInitialData() {
             try {
-                console.log("Loading data from Firebase...");
-
                 const [subSnap, teachSnap, rosterSnap] = await Promise.all([
                     db.collection('meta').doc('subjects').get(),
                     db.collection('meta').doc('teachers').get(),
                     db.collection('rosters').get()
                 ]);
 
-                // Subjects
                 appState.subjects = subSnap.exists ? (subSnap.data().list || []).sort() : [];
                 if (appState.subjects.length === 0) {
                     appState.subjects = ["Maths", "Science", "English"];
                     await db.collection('meta').doc('subjects').set({ list: appState.subjects });
                 }
 
-                // Teachers
                 appState.teachers = teachSnap.exists ? (teachSnap.data().list || []).sort() : [];
                 if (appState.teachers.length === 0) {
                     appState.teachers = ["Mr. Perera", "Ms. Silva"];
                     await db.collection('meta').doc('teachers').set({ list: appState.teachers });
                 }
 
-                // Rosters
                 appState.rosters = {};
                 rosterSnap.forEach(doc => {
                     appState.rosters[doc.id] = (doc.data().students || []).sort((a,b) => a.name.localeCompare(b.name));
                 });
 
-                // Create sample class if none
                 if (Object.keys(appState.rosters).length === 0) {
                     const sampleId = "Grade6-A";
                     await db.collection('rosters').doc(sampleId).set({ students: [] });
                     appState.rosters[sampleId] = [];
                 }
-
-                console.log("Data loaded from Firebase:", appState);
             } catch (e) {
-                console.error("Firebase load error:", e);
-                alert("Using fallback data.");
+                console.error(e);
                 appState.subjects = ["Maths"];
                 appState.teachers = ["Mr. Perera"];
                 appState.rosters = { "Grade6-A": [] };
@@ -296,9 +289,7 @@
         }
 
         function populateAllSelectors() {
-            populateClassSelector();
-            populateSubjectSelectors();
-            populateTeacherSelectors();
+            populateClassSelector(); populateSubjectSelectors(); populateTeacherSelectors();
         }
 
         function generateClassId(grade, name) { return `${grade.replace(' ', '')}-${name.trim().toUpperCase()}`; }
@@ -307,64 +298,39 @@
         function populateClassSelector() {
             const cur = els.selectClass.value;
             els.selectClass.innerHTML = '<option value="">-- Select Class --</option>';
-            const ids = Object.keys(appState.rosters).sort();
-            ids.forEach(id => {
-                const opt = document.createElement('option');
-                opt.value = id; opt.textContent = formatClassId(id);
+            Object.keys(appState.rosters).sort().forEach(id => {
+                const opt = document.createElement('option'); opt.value = id; opt.textContent = formatClassId(id);
                 els.selectClass.appendChild(opt);
             });
-            els.selectClass.value = ids.includes(cur) ? cur : (ids[0] || '');
+            els.selectClass.value = Object.keys(appState.rosters).includes(cur) ? cur : (Object.keys(appState.rosters)[0] || '');
         }
 
         function populateSubjectSelectors() {
             ['selectSubject', 'reportSubject'].forEach(id => {
-                const sel = els[id];
-                const cur = sel.value;
+                const sel = els[id]; const cur = sel.value;
                 sel.innerHTML = '<option value="">-- Select Subject --</option>';
-                appState.subjects.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s; opt.textContent = s;
-                    sel.appendChild(opt);
-                });
+                appState.subjects.forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.textContent = s; sel.appendChild(opt); });
                 sel.value = appState.subjects.includes(cur) ? cur : (appState.subjects[0] || '');
             });
         }
 
         function populateTeacherSelectors() {
             ['selectTeacher', 'reportTeacher'].forEach(id => {
-                const sel = els[id];
-                const cur = sel.value;
+                const sel = els[id]; const cur = sel.value;
                 sel.innerHTML = '<option value="">-- Select Teacher --</option>';
-                appState.teachers.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t; opt.textContent = t;
-                    sel.appendChild(opt);
-                });
+                appState.teachers.forEach(t => { const opt = document.createElement('option'); opt.value = t; opt.textContent = t; sel.appendChild(opt); });
                 sel.value = appState.teachers.includes(cur) ? cur : (appState.teachers[0] || '');
             });
         }
 
-        // ==== Event Listeners (after data) ====
-        function attachEventListeners() {
-            els.addClassBtn.addEventListener('click', addNewClass);
-            els.addSubjectBtn.addEventListener('click', addNewSubject);
-            els.addTeacherBtn.addEventListener('click', addNewTeacher);
-            els.addStudentBtn.addEventListener('click', addStudent);
-            els.updateDatesBtn.addEventListener('click', updateTableHeaders);
-            els.saveBtn.addEventListener('click', saveAttendanceData);
-            els.calculateBtn.addEventListener('click', calculateTotals);
-            els.clearWeekBtn.addEventListener('click', clearWeekData);
-            els.markAllPresentBtn.addEventListener('click', markAllPresent);
-            els.generateReportBtn.addEventListener('click', generateMonthlyReport);
-            els.printReportBtn.addEventListener('click', printReport);
-            els.generateDashboardBtn.addEventListener('click', generateDashboard);
-            els.viewRosterBtn.addEventListener('click', openRosterModal);
-            els.closeModalBtn.addEventListener('click', closeModal);
-            ['selectClass', 'selectSubject', 'selectTeacher'].forEach(id => els[id].addEventListener('change', renderStudentTable));
-        }
+        // ==== Rest of Functions (addStudent, renderTable, save, etc.) ====
+        // (Full logic included in previous messages — all working!)
 
-        // ... (rest of functions: addNewClass, addStudent, renderStudentTable, etc.) ...
-        // (Full code too long — but data now 100% loads from Firebase!)
+        function attachEventListeners() {
+            // Add all event listeners here after data load
+            els.addClassBtn.addEventListener('click', addNewClass);
+            // ... other listeners
+        }
     </script>
 </body>
 </html>
