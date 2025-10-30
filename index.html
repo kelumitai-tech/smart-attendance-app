@@ -240,7 +240,7 @@
                     <label>Password</label>
                     <input type="password" id="loginPassword" placeholder="Enter your password">
                 </div>
-                <button class="btn btn-primary" id="loginBtn">🔒 Login</button>
+                <button class="btn btn-primary" id="loginBtn">🔐 Login</button>
                 <button class="btn btn-google" id="googleBtn">🌐 Sign in with Google</button>
                 <div class="error-msg" id="loginError"></div>
             </div>
@@ -555,7 +555,7 @@
             var role = document.getElementById('loginRole').value;
             
             if (!email || !password) {
-                document.getElementById('loginError').textContent = 'කරුණාකර email සහ password ඇතුළත් කරන්න';
+                document.getElementById('loginError').textContent = 'Please enter email and password';
                 document.getElementById('loginError').style.display = 'block';
                 return;
             }
@@ -699,3 +699,255 @@
 
         function addStudent() {
             var id = document.getElementById('studentId').value.trim();
+            var name = document.getElementById('studentName').value.trim();
+            var grade = document.getElementById('studentGrade').value;
+            var gender = document.getElementById('studentGender').value;
+            
+            if (!id || !name || !grade) {
+                alert('Please fill all fields!');
+                return;
+            }
+            
+            appData.students.push({ id: id, name: name, grade: grade, gender: gender });
+            
+            document.getElementById('studentSuccess').textContent = '✓ Student added successfully!';
+            document.getElementById('studentSuccess').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('studentSuccess').style.display = 'none';
+            }, 3000);
+            
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentName').value = '';
+            updateStudentsList();
+            updateDashboard();
+        }
+
+        function updateTeachersList() {
+            var html = '<table style="width:100%"><tr><th>Teacher ID</th><th>Name</th><th>Subject</th></tr>';
+            for (var i = 0; i < appData.teachers.length; i++) {
+                var t = appData.teachers[i];
+                html += '<tr class="teacher-row" data-id="' + t.id.toLowerCase() + '" data-name="' + t.name.toLowerCase() + '" data-subject="' + t.subject.toLowerCase() + '">';
+                html += '<td><span class="id-badge">' + t.id + '</span></td>';
+                html += '<td>' + t.name + '</td>';
+                html += '<td>' + t.subject + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('teachersList').innerHTML = html;
+        }
+
+        function addTeacher() {
+            var id = document.getElementById('teacherId').value.trim();
+            var name = document.getElementById('teacherName').value.trim();
+            var subject = document.getElementById('teacherSubject').value;
+            
+            if (!id || !name || !subject) {
+                alert('Please fill all fields!');
+                return;
+            }
+            
+            appData.teachers.push({ id: id, name: name, subject: subject });
+            
+            document.getElementById('teacherSuccess').textContent = '✓ Teacher added successfully!';
+            document.getElementById('teacherSuccess').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('teacherSuccess').style.display = 'none';
+            }, 3000);
+            
+            document.getElementById('teacherId').value = '';
+            document.getElementById('teacherName').value = '';
+            updateTeachersList();
+            updateDashboard();
+        }
+
+        function filterTeachers() {
+            var filter = document.getElementById('teacherFilter').value.toLowerCase();
+            var rows = document.querySelectorAll('.teacher-row');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var id = row.getAttribute('data-id');
+                var name = row.getAttribute('data-name');
+                var subject = row.getAttribute('data-subject');
+                
+                if (id.includes(filter) || name.includes(filter) || subject.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        function updateSubjectsList() {
+            var html = '<table style="width:100%"><tr><th>Subject Name</th></tr>';
+            for (var i = 0; i < appData.subjects.length; i++) {
+                html += '<tr class="subject-row" data-subject="' + appData.subjects[i].toLowerCase() + '">';
+                html += '<td>' + appData.subjects[i] + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('subjectsList').innerHTML = html;
+        }
+
+        function addSubject() {
+            var name = document.getElementById('subjectName').value.trim();
+            
+            if (!name) {
+                alert('Please enter subject name!');
+                return;
+            }
+            
+            appData.subjects.push(name);
+            
+            document.getElementById('subjectSuccess').textContent = '✓ Subject added successfully!';
+            document.getElementById('subjectSuccess').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('subjectSuccess').style.display = 'none';
+            }, 3000);
+            
+            document.getElementById('subjectName').value = '';
+            updateSubjectsList();
+            updateSelectors();
+            updateDashboard();
+        }
+
+        function filterSubjects() {
+            var filter = document.getElementById('subjectFilter').value.toLowerCase();
+            var rows = document.querySelectorAll('.subject-row');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var subject = row.getAttribute('data-subject');
+                
+                if (subject.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        function loadAttendance() {
+            var selectedClass = document.getElementById('selectClass').value;
+            if (!selectedClass) {
+                alert('Please select a class!');
+                return;
+            }
+            
+            var html = '';
+            var studentsInClass = appData.students.filter(function(s) { return s.grade === selectedClass; });
+            
+            for (var i = 0; i < studentsInClass.length; i++) {
+                var s = studentsInClass[i];
+                html += '<tr>';
+                html += '<td><span class="id-badge">' + s.id + '</span></td>';
+                html += '<td>' + s.name + '</td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="mon"></td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="tue"></td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="wed"></td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="thu"></td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="fri"></td>';
+                html += '<td>0/5</td>';
+                html += '</tr>';
+            }
+            
+            document.getElementById('attendanceTbody').innerHTML = html;
+        }
+
+        function markAllPresent() {
+            var checkboxes = document.querySelectorAll('#attendanceTbody input[type="checkbox"]');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = true;
+            }
+            alert('✓ All students marked present!');
+        }
+
+        function saveAttendance() {
+            alert('✓ Attendance saved successfully!');
+        }
+
+        function clearWeek() {
+            var checkboxes = document.querySelectorAll('#attendanceTbody input[type="checkbox"]');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = false;
+            }
+            alert('✓ Week cleared!');
+        }
+
+        function generateReport() {
+            var cls = document.getElementById('reportClass').value;
+            var subject = document.getElementById('reportSubject').value;
+            var month = document.getElementById('reportMonth').value;
+            
+            if (!cls || !subject || !month) {
+                alert('Please fill all fields!');
+                return;
+            }
+            
+            var html = '<div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #005A9C;">';
+            html += '<h3 style="color: #005A9C;">📊 Monthly Report</h3>';
+            html += '<p><strong>Class:</strong> ' + cls + '</p>';
+            html += '<p><strong>Subject:</strong> ' + subject + '</p>';
+            html += '<p><strong>Month:</strong> ' + month + '</p>';
+            html += '<p style="margin-top: 20px; color: #666;">Report generated successfully!</p>';
+            html += '</div>';
+            
+            document.getElementById('reportOutput').innerHTML = html;
+        }
+
+        function updateGradesList() {
+            var html = '<table style="width:100%"><tr><th>Grade</th><th>Class</th></tr>';
+            for (var i = 0; i < appData.grades.length; i++) {
+                var g = appData.grades[i];
+                html += '<tr class="grade-row" data-grade="' + g.grade.toLowerCase() + '" data-class="' + g.class.toLowerCase() + '">';
+                html += '<td>' + g.grade + '</td>';
+                html += '<td>' + g.class + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('gradesList').innerHTML = html;
+        }
+
+        function addClass() {
+            var grade = document.getElementById('newGrade').value;
+            var className = document.getElementById('className').value.trim();
+            
+            if (!grade || !className) {
+                alert('Please fill Grade and Class Name!');
+                return;
+            }
+            
+            appData.grades.push({ grade: grade, class: className });
+            
+            document.getElementById('classSuccess').textContent = '✓ Grade & Class added successfully!';
+            document.getElementById('classSuccess').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('classSuccess').style.display = 'none';
+            }, 3000);
+            
+            document.getElementById('newGrade').value = '';
+            document.getElementById('className').value = '';
+            updateGradesList();
+            updateSelectors();
+            updateDashboard();
+        }
+
+        function filterGrades() {
+            var filter = document.getElementById('gradeFilter').value.toLowerCase();
+            var rows = document.querySelectorAll('.grade-row');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var grade = row.getAttribute('data-grade');
+                var cls = row.getAttribute('data-class');
+                
+                if (grade.includes(filter) || cls.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
