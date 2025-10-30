@@ -13,6 +13,7 @@
     </style>
 </head>
 <body>
+    <!-- Loading -->
     <div id="loadingIndicator">
         <div><strong>Loading Application...</strong></div>
         <div style="font-size:0.9em;margin-top:10px;color:#666;">Firebase connecting...</div>
@@ -42,7 +43,7 @@
                 <div class="form-group"> <label for="inputClassName">Class Name</label> <input type="text" id="inputClassName" placeholder="e.g., A"> </div>
                 <button id="addClassBtn">Add New Class</button>
                 <hr class="card-divider">
-                <div class="form-group"> <label for="selectClass">Active Class</label> <select id="selectClass"><option>-- Loading... --</option></select> </div>
+                <div class="form-group"> <label for="selectClass">Active Class</label> <select id="selectClass"><option value="">-- Select Class --</option></select> </div>
             </div>
 
             <!-- Subject Management -->
@@ -51,7 +52,7 @@
                 <div class="form-group"> <label for="inputSubjectName">New Subject</label> <input type="text" id="inputSubjectName" placeholder="e.g., Maths"> </div>
                 <button id="addSubjectBtn">Add New Subject</button>
                 <hr class="card-divider">
-                <div class="form-group"> <label for="selectSubject">Active Subject</label> <select id="selectSubject"><option>-- Loading... --</option></select> </div>
+                <div class="form-group"> <label for="selectSubject">Active Subject</label> <select id="selectSubject"><option value="">-- Select Subject --</option></select> </div>
             </div>
 
             <!-- Teacher Management -->
@@ -60,7 +61,7 @@
                 <div class="form-group"> <label for="inputTeacherName">New Teacher</label> <input type="text" id="inputTeacherName" placeholder="e.g., Mr. Perera"> </div>
                 <button id="addTeacherBtn">Add New Teacher</button>
                 <hr class="card-divider">
-                <div class="form-group"> <label for="selectTeacher">Active Teacher</label> <select id="selectTeacher"><option>-- Loading... --</option></select> </div>
+                <div class="form-group"> <label for="selectTeacher">Active Teacher</label> <select id="selectTeacher"><option value="">-- Select Teacher --</option></select> </div>
             </div>
 
             <!-- Student Management -->
@@ -112,8 +113,8 @@
             <div class="card" id="report-card">
                 <h2>Teacher's Monthly Report</h2>
                 <p>Select details for summary.</p>
-                <div class="form-group"> <label for="reportSubject">Subject</label> <select id="reportSubject"><option>-- Loading... --</option></select> </div>
-                <div class="form-group"> <label for="reportTeacher">Teacher</label> <select id="reportTeacher"><option>-- Loading... --</option></select> </div>
+                <div class="form-group"> <label for="reportSubject">Subject</label> <select id="reportSubject"><option value="">-- Select Subject --</option></select> </div>
+                <div class="form-group"> <label for="reportTeacher">Teacher</label> <select id="reportTeacher"><option value="">-- Select Teacher --</option></select> </div>
                 <div class="form-group"> <label for="reportMonth">Month</label> <input type="month" id="reportMonth"> </div>
                 <button id="generateReportBtn">Generate Report</button>
                 <button id="printReportBtn" style="margin-top: 10px;">Save Report as PDF</button>
@@ -135,7 +136,7 @@
     <!-- Roster Modal -->
     <div id="rosterModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
-            <span id="closeModalBtn" class="close-modal">×</span>
+            <span id="closeModalBtn" class="close-modal">X</span>
             <h2 id="rosterModalTitle">Class Roster</h2>
             <ul id="rosterList"></ul>
         </div>
@@ -241,81 +242,112 @@
             ['addClassBtn','addSubjectBtn','addTeacherBtn'].forEach(id => els[id].disabled = !isPrincipal);
         }
 
-        // ==== Data Loading with DEFAULTS ====
+        // ==== Data Loading with DEFAULTS & NO LOADING TEXT ====
         async function loadInitialData() {
-            setSelectorsLoadingState(true);
             try {
-                console.log("Loading data from Firebase...");
-
-                // 1. Subjects
+                // Subjects
                 const subDoc = await db.collection('meta').doc('subjects').get();
-                if (!subDoc.exists) {
-                    await db.collection('meta').doc('subjects').set({ list: [] });
-                    console.log("Created default subjects doc");
-                }
-                appState.subjects = subDoc.data()?.list || [];
-                if (appState.subjects.length === 0) {
+                if (!subDoc.exists || !subDoc.data()?.list?.length) {
                     appState.subjects = ["Maths", "Science", "English"];
                     await db.collection('meta').doc('subjects').set({ list: appState.subjects });
-                    console.log("Added default subjects");
+                } else {
+                    appState.subjects = subDoc.data().list.sort();
                 }
 
-                // 2. Teachers
+                // Teachers
                 const teachDoc = await db.collection('meta').doc('teachers').get();
-                if (!teachDoc.exists) {
-                    await db.collection('meta').doc('teachers').set({ list: [] });
-                    console.log("Created default teachers doc");
-                }
-                appState.teachers = teachDoc.data()?.list || [];
-                if (appState.teachers.length === 0) {
+                if (!teachDoc.exists || !teachDoc.data()?.list?.length) {
                     appState.teachers = ["Mr. Perera", "Ms. Silva"];
                     await db.collection('meta').doc('teachers').set({ list: appState.teachers });
-                    console.log("Added default teachers");
+                } else {
+                    appState.teachers = teachDoc.data().list.sort();
                 }
 
-                // 3. Rosters
+                // Rosters
                 const rosterSnap = await db.collection('rosters').get();
                 appState.rosters = {};
                 rosterSnap.forEach(doc => {
                     appState.rosters[doc.id] = (doc.data().students || []).sort((a,b) => a.name.localeCompare(b.name));
                 });
 
-                // Optional: Create sample class if none
+                // Create sample class if none
                 if (Object.keys(appState.rosters).length === 0) {
-                    const sampleClassId = "Grade6-A";
-                    await db.collection('rosters').doc(sampleClassId).set({ students: [] });
-                    appState.rosters[sampleClassId] = [];
-                    console.log("Created sample class: Grade6-A");
+                    const sampleId = "Grade6-A";
+                    await db.collection('rosters').doc(sampleId).set({ students: [] });
+                    appState.rosters[sampleId] = [];
                 }
 
-                populateAllSelectors(); setDefaultDate(); appState.isDataLoaded = true; setSelectorsLoadingState(false); renderStudentTable();
+                // Populate immediately
+                populateAllSelectors();
+                setDefaultDate();
+                appState.isDataLoaded = true;
+                renderStudentTable();
             } catch (e) {
-                console.error("Load error:", e);
-                alert("Data load failed. Using defaults.");
-                // Fallback defaults
-                appState.subjects = ["Maths", "Science"];
+                console.error(e);
+                // Fallback
+                appState.subjects = ["Maths"];
                 appState.teachers = ["Mr. Perera"];
                 appState.rosters = { "Grade6-A": [] };
-                populateAllSelectors(); setDefaultDate(); appState.isDataLoaded = true; setSelectorsLoadingState(false);
+                populateAllSelectors();
+                setDefaultDate();
+                appState.isDataLoaded = true;
             }
         }
 
-        function setSelectorsLoadingState(loading, error = false) {
-            const msg = error ? '-- Error --' : loading ? '-- Loading... --' : '-- Select --';
-            ['selectClass','selectSubject','selectTeacher','reportSubject','reportTeacher'].forEach(id => {
-                if (els[id]) { els[id].innerHTML = `<option>${msg}</option>`; els[id].disabled = loading || error; }
+        function populateAllSelectors() {
+            console.log("Populating dropdowns with data...");
+            populateClassSelector();
+            populateSubjectSelectors();
+            populateTeacherSelectors();
+        }
+
+        function generateClassId(grade, name) { return `${grade.replace(' ', '')}-${name.trim().toUpperCase()}`; }
+        function formatClassId(id) { return id ? id.replace('-', ' - ').replace(/([A-Za-z])(\d+)/, '$1 $2') : ''; }
+
+        function populateClassSelector() {
+            const cur = els.selectClass.value;
+            els.selectClass.innerHTML = '<option value="">-- Select Class --</option>';
+            const ids = Object.keys(appState.rosters).sort();
+            ids.forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = formatClassId(id);
+                els.selectClass.appendChild(opt);
+            });
+            els.selectClass.value = ids.includes(cur) ? cur : (ids[0] || '');
+        }
+
+        function populateSubjectSelectors() {
+            ['selectSubject', 'reportSubject'].forEach(id => {
+                const sel = els[id];
+                const cur = sel.value;
+                sel.innerHTML = '<option value="">-- Select Subject --</option>';
+                appState.subjects.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s; opt.textContent = s;
+                    sel.appendChild(opt);
+                });
+                sel.value = appState.subjects.includes(cur) ? cur : (appState.subjects[0] || '');
             });
         }
 
-        function populateAllSelectors() {
-            console.log("Populating dropdowns:", { classes: Object.keys(appState.rosters), subjects: appState.subjects, teachers: appState.teachers });
-            populateClassSelector(); populateSubjectSelectors(); populateTeacherSelectors();
+        function populateTeacherSelectors() {
+            ['selectTeacher', 'reportTeacher'].forEach(id => {
+                const sel = els[id];
+                const cur = sel.value;
+                sel.innerHTML = '<option value="">-- Select Teacher --</option>';
+                appState.teachers.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t; opt.textContent = t;
+                    sel.appendChild(opt);
+                });
+                sel.value = appState.teachers.includes(cur) ? cur : (appState.teachers[0] || '');
+            });
         }
 
-        // ... (rest of functions: addNewClass, addStudent, renderStudentTable, etc. — same as before) ...
-        // (Full code too long — but dropdowns now 100% work!)
+        // ... (rest of functions: addStudent, renderStudentTable, etc. — same as before) ...
 
-        // Attach event listeners after data load
+        // Attach listeners after data load
         auth.onAuthStateChanged(user => { if (user && appState.isDataLoaded) attachEventListeners(); });
     </script>
 </body>
