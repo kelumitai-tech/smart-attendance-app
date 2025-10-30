@@ -265,6 +265,7 @@
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
                 <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
+                <button class="nav-tab principal-only" data-tab="grades">🎓 Grades</button>
                 <button class="nav-tab principal-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
@@ -450,6 +451,40 @@
                     <div id="subjectsList" style="background: white; padding: 20px; border-radius: 8px;"></div>
                 </div>
             </div>
+
+            <!-- Grades Tab -->
+            <div class="tab-content principal-only" id="grades">
+                <div class="card">
+                    <h3>Add New Grade & Class</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select id="newGrade">
+                                <option value="">-- Select Grade --</option>
+                                <option value="Grade 6">Grade 6</option>
+                                <option value="Grade 7">Grade 7</option>
+                                <option value="Grade 8">Grade 8</option>
+                                <option value="Grade 9">Grade 9</option>
+                                <option value="Grade 10">Grade 10</option>
+                                <option value="Grade 11">Grade 11</option>
+                                <option value="Grade 12">Grade 12</option>
+                                <option value="Grade 13">Grade 13</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Class Name</label>
+                            <input type="text" id="className" placeholder="e.g., A, B, C">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="addClassBtn">Add Grade & Class</button>
+                    <div class="success-msg" id="classSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Grades & Classes List</h3>
+                    <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
+                    <div id="gradesList" style="background: white; padding: 20px; border-radius: 8px;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -497,12 +532,14 @@
             document.getElementById('studentFilter').onkeyup = filterStudents;
             document.getElementById('teacherFilter').onkeyup = filterTeachers;
             document.getElementById('subjectFilter').onkeyup = filterSubjects;
+            document.getElementById('gradeFilter').onkeyup = filterGrades;
             document.getElementById('filterStudentClass').onchange = filterStudents;
             
             // Add buttons
             document.getElementById('addStudentBtn').onclick = addStudent;
             document.getElementById('addTeacherBtn').onclick = addTeacher;
             document.getElementById('addSubjectBtn').onclick = addSubject;
+            document.getElementById('addClassBtn').onclick = addClass;
             
             // Attendance
             document.getElementById('loadAttendanceBtn').onclick = loadAttendance;
@@ -620,6 +657,7 @@
             updateStudentsList();
             updateTeachersList();
             updateSubjectsList();
+            updateGradesList();
         }
 
         function updateStudentsList() {
@@ -855,6 +893,60 @@
             html += '</div>';
             
             document.getElementById('reportOutput').innerHTML = html;
+        }
+
+        function updateGradesList() {
+            var html = '<table style="width:100%"><tr><th>Grade</th><th>Class</th></tr>';
+            for (var i = 0; i < appData.grades.length; i++) {
+                var g = appData.grades[i];
+                html += '<tr class="grade-row" data-grade="' + g.grade.toLowerCase() + '" data-class="' + g.class.toLowerCase() + '">';
+                html += '<td>' + g.grade + '</td>';
+                html += '<td>' + g.class + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('gradesList').innerHTML = html;
+        }
+
+        function addClass() {
+            var grade = document.getElementById('newGrade').value;
+            var className = document.getElementById('className').value.trim();
+            
+            if (!grade || !className) {
+                alert('කරුණාකර Grade සහ Class Name පුරවන්න!');
+                return;
+            }
+            
+            appData.grades.push({ grade: grade, class: className });
+            
+            document.getElementById('classSuccess').textContent = '✓ Grade & Class එකතු කරන ලදී!';
+            document.getElementById('classSuccess').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('classSuccess').style.display = 'none';
+            }, 3000);
+            
+            document.getElementById('newGrade').value = '';
+            document.getElementById('className').value = '';
+            updateGradesList();
+            updateSelectors();
+            updateDashboard();
+        }
+
+        function filterGrades() {
+            var filter = document.getElementById('gradeFilter').value.toLowerCase();
+            var rows = document.querySelectorAll('.grade-row');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var grade = row.getAttribute('data-grade');
+                var cls = row.getAttribute('data-class');
+                
+                if (grade.includes(filter) || cls.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
         }
     </script>
 </body>
