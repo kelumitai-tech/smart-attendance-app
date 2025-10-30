@@ -265,13 +265,13 @@
             <div class="role-badge" id="roleBadge">Teacher</div>
             
             <div class="nav-tabs">
-                <button class="nav-tab active" onclick="showTab('attendance')">📋 Attendance</button>
-                <button class="nav-tab" onclick="showTab('students')">👥 Students</button>
-                <button class="nav-tab" onclick="showTab('reports')">📊 Reports</button>
-                <button class="nav-tab principal-only" onclick="showTab('dashboard')">🎯 Dashboard</button>
-                <button class="nav-tab principal-only" onclick="showTab('teachers')">👨‍🏫 Teachers</button>
-                <button class="nav-tab principal-only" onclick="showTab('grades')">🎓 Grades</button>
-                <button class="nav-tab principal-only" onclick="showTab('subjects')">📚 Subjects</button>
+                <button class="nav-tab active" onclick="showTab(event, 'attendance')">📋 Attendance</button>
+                <button class="nav-tab" onclick="showTab(event, 'students')">👥 Students</button>
+                <button class="nav-tab" onclick="showTab(event, 'reports')">📊 Reports</button>
+                <button class="nav-tab principal-only" onclick="showTab(event, 'dashboard')">🎯 Dashboard</button>
+                <button class="nav-tab principal-only" onclick="showTab(event, 'teachers')">👨‍🏫 Teachers</button>
+                <button class="nav-tab principal-only" onclick="showTab(event, 'grades')">🎓 Grades</button>
+                <button class="nav-tab principal-only" onclick="showTab(event, 'subjects')">📚 Subjects</button>
             </div>
 
             <!-- Attendance Tab -->
@@ -531,6 +531,7 @@
                 return;
             }
             
+            document.getElementById('loginError').style.display = 'none';
             performLogin(role);
         }
 
@@ -563,7 +564,7 @@
             }
         }
 
-        function showTab(tabName) {
+        function showTab(e, tabName) {
             var tabs = document.querySelectorAll('.nav-tab');
             var contents = document.querySelectorAll('.tab-content');
             
@@ -574,7 +575,7 @@
                 contents[i].classList.remove('active');
             }
             
-            event.target.classList.add('active');
+            e.target.classList.add('active');
             document.getElementById(tabName).classList.add('active');
         }
 
@@ -702,5 +703,4 @@
             document.getElementById('gradesList').innerHTML = html;
         }
 
-        function updateSubjectsList() {
-            var html = '<table style
+        function update
