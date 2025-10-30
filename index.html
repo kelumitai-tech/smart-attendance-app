@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -200,6 +201,19 @@
             color: #1565c0;
             font-weight: 600;
         }
+        .filter-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
         }
@@ -225,14 +239,14 @@
                 </div>
                 <div class="form-group">
                     <label>Email Address</label>
-                    <input type="text" id="loginEmail" value="demo@school.com">
+                    <input type="email" id="loginEmail" value="demo@school.com">
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="text" id="loginPassword" value="demo123">
+                    <input type="password" id="loginPassword" value="demo123">
                 </div>
-                <button class="btn btn-primary" onclick="doLogin()">Login Now</button>
-                <button class="btn btn-google" onclick="quickLogin()">🔐 Quick Demo Login</button>
+                <button class="btn btn-primary" onclick="doLogin()">🔐 Login Now</button>
+                <button class="btn btn-google" onclick="googleLogin()">🔐 Sign in with Google (Demo)</button>
                 <div class="error-msg" id="loginError"></div>
                 <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
                     <p style="margin: 0; color: #856404; font-size: 0.9em; text-align: center;">
@@ -273,7 +287,7 @@
                     <div class="info-box">Select class, subject, and date to mark attendance</div>
                     <div class="form-group">
                         <label>Select Class</label>
-                        <select id="selectClass"></select>
+                        <select id="selectClass" onchange="loadAttendance()"></select>
                     </div>
                     <div class="form-group">
                         <label>Select Subject</label>
@@ -348,6 +362,7 @@
 
                 <div class="card">
                     <h3>Student List</h3>
+                    <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by ID, Name, or Grade..." onkeyup="filterStudents()">
                     <div id="studentList" style="background: white; padding: 20px; border-radius: 8px;"></div>
                 </div>
             </div>
@@ -390,6 +405,20 @@
                         <h2 id="totalSubjects">0</h2>
                     </div>
                 </div>
+                
+                <div class="card">
+                    <h3>Students by Grade</h3>
+                    <div class="chart-container">
+                        <canvas id="studentsChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Attendance Overview</h3>
+                    <div class="chart-container">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
             </div>
 
             <!-- Teachers Tab -->
@@ -415,6 +444,7 @@
                 </div>
                 <div class="card">
                     <h3>Teachers List</h3>
+                    <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject..." onkeyup="filterTeachers()">
                     <div id="teachersList" style="background: white; padding: 20px; border-radius: 8px;"></div>
                 </div>
             </div>
@@ -461,6 +491,7 @@
                 </div>
                 <div class="card">
                     <h3>Subjects List</h3>
+                    <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects..." onkeyup="filterSubjects()">
                     <div id="subjectsList" style="background: white; padding: 20px; border-radius: 8px;"></div>
                 </div>
             </div>
@@ -468,19 +499,20 @@
     </div>
 
     <script>
-        // App Data
         var appData = {
             students: [
                 { id: 'S001', name: 'Amal Perera', grade: 'Grade 6 - A', gender: 'Male' },
                 { id: 'S002', name: 'Sithara Silva', grade: 'Grade 6 - A', gender: 'Female' },
                 { id: 'S003', name: 'Kasun Fernando', grade: 'Grade 7 - A', gender: 'Male' },
                 { id: 'S004', name: 'Nimali Jayawardena', grade: 'Grade 7 - A', gender: 'Female' },
-                { id: 'S005', name: 'Ruwan Bandara', grade: 'Grade 8 - A', gender: 'Male' }
+                { id: 'S005', name: 'Ruwan Bandara', grade: 'Grade 8 - A', gender: 'Male' },
+                { id: 'S006', name: 'Dilini Rathnayake', grade: 'Grade 8 - A', gender: 'Female' }
             ],
             teachers: [
                 { id: 'T001', name: 'Mr. Perera', subject: 'Mathematics' },
                 { id: 'T002', name: 'Ms. Silva', subject: 'Science' },
-                { id: 'T003', name: 'Mrs. Fernando', subject: 'English' }
+                { id: 'T003', name: 'Mrs. Fernando', subject: 'English' },
+                { id: 'T004', name: 'Mr. Bandara', subject: 'History' }
             ],
             grades: [
                 { grade: 'Grade 6', class: 'A' },
@@ -490,18 +522,36 @@
             subjects: ['Mathematics', 'Science', 'English', 'History', 'Geography']
         };
 
-        // Login Function
+        var studentsChart = null;
+        var attendanceChart = null;
+
         function doLogin() {
             var email = document.getElementById('loginEmail').value;
             var password = document.getElementById('loginPassword').value;
             var role = document.getElementById('loginRole').value;
             
             if (!email || !password) {
-                document.getElementById('loginError').textContent = 'Please enter credentials';
+                document.getElementById('loginError').textContent = 'කරුණාකර email සහ password ඇතුලත් කරන්න';
                 document.getElementById('loginError').style.display = 'block';
                 return;
             }
             
+            if (password !== 'demo123') {
+                document.getElementById('loginError').textContent = 'වැරදි password එකක්! (demo123 භාවිතා කරන්න)';
+                document.getElementById('loginError').style.display = 'block';
+                return;
+            }
+            
+            performLogin(role);
+        }
+
+        function googleLogin() {
+            var role = document.getElementById('loginRole').value;
+            alert('Google Login සාර්ථකයි! ✓\nDemo account එකෙන් login වෙනවා...');
+            performLogin(role);
+        }
+
+        function performLogin(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             document.getElementById('roleBadge').textContent = role === 'principal' ? '👨‍💼 Principal' : '👨‍🏫 Teacher';
@@ -514,10 +564,6 @@
             }
             
             initializeApp();
-        }
-
-        function quickLogin() {
-            doLogin();
         }
 
         function doLogout() {
@@ -548,12 +594,12 @@
             updateSelectors();
             updateDashboard();
             updateLists();
+            createCharts();
             document.getElementById('startDate').valueAsDate = new Date();
             document.getElementById('reportMonth').valueAsDate = new Date();
         }
 
         function updateSelectors() {
-            // Classes
             var classSelect = document.getElementById('selectClass');
             var studentGradeSelect = document.getElementById('studentGrade');
             classSelect.innerHTML = '<option value="">-- Select Class --</option>';
@@ -565,7 +611,6 @@
                 studentGradeSelect.innerHTML += '<option value="' + value + '">' + value + '</option>';
             }
             
-            // Subjects
             var subjectSelects = ['selectSubject', 'reportSubject', 'teacherSubject'];
             for (var j = 0; j < subjectSelects.length; j++) {
                 var sel = document.getElementById(subjectSelects[j]);
@@ -584,224 +629,71 @@
         }
 
         function updateLists() {
-            // Students
+            updateStudentsList();
+            updateTeachersList();
+            updateGradesList();
+            updateSubjectsList();
+        }
+
+        function updateStudentsList() {
             var html = '<table style="width:100%"><tr><th>ID</th><th>Name</th><th>Grade</th><th>Gender</th></tr>';
             for (var i = 0; i < appData.students.length; i++) {
                 var s = appData.students[i];
-                html += '<tr><td>' + s.id + '</td><td>' + s.name + '</td><td>' + s.grade + '</td><td>' + s.gender + '</td></tr>';
+                html += '<tr class="student-row" data-id="' + s.id + '" data-name="' + s.name.toLowerCase() + '" data-grade="' + s.grade.toLowerCase() + '">';
+                html += '<td><span class="id-badge">' + s.id + '</span></td>';
+                html += '<td>' + s.name + '</td>';
+                html += '<td>' + s.grade + '</td>';
+                html += '<td>' + s.gender + '</td>';
+                html += '</tr>';
             }
             html += '</table>';
             document.getElementById('studentList').innerHTML = html;
+        }
+
+        function filterStudents() {
+            var filter = document.getElementById('studentFilter').value.toLowerCase();
+            var rows = document.querySelectorAll('.student-row');
             
-            // Teachers
-            html = '<table style="width:100%"><tr><th>ID</th><th>Name</th><th>Subject</th></tr>';
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var id = row.getAttribute('data-id').toLowerCase();
+                var name = row.getAttribute('data-name');
+                var grade = row.getAttribute('data-grade');
+                
+                if (id.includes(filter) || name.includes(filter) || grade.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        function updateTeachersList() {
+            var html = '<table style="width:100%"><tr><th>ID</th><th>Name</th><th>Subject</th></tr>';
             for (var i = 0; i < appData.teachers.length; i++) {
                 var t = appData.teachers[i];
-                html += '<tr><td>' + t.id + '</td><td>' + t.name + '</td><td>' + t.subject + '</td></tr>';
+                html += '<tr class="teacher-row" data-id="' + t.id + '" data-name="' + t.name.toLowerCase() + '" data-subject="' + t.subject.toLowerCase() + '">';
+                html += '<td><span class="id-badge">' + t.id + '</span></td>';
+                html += '<td>' + t.name + '</td>';
+                html += '<td>' + t.subject + '</td>';
+                html += '</tr>';
             }
             html += '</table>';
             document.getElementById('teachersList').innerHTML = html;
-            
-            // Grades
-            html = '<table style="width:100%"><tr><th>Grade</th><th>Class</th></tr>';
-            for (var i = 0; i < appData.grades.length; i++) {
-                var g = appData.grades[i];
-                html += '<tr><td>' + g.grade + '</td><td>' + g.class + '</td></tr>';
-            }
-            html += '</table>';
-            document.getElementById('gradesList').innerHTML = html;
-            
-            // Subjects
-            html = '<ul style="list-style:none; padding:0;">';
-            for (var i = 0; i < appData.subjects.length; i++) {
-                html += '<li style="padding:10px; border-bottom:1px solid #eee;">' + appData.subjects[i] + '</li>';
-            }
-            html += '</ul>';
-            document.getElementById('subjectsList').innerHTML = html;
         }
 
-        function loadAttendance() {
-            var selectedClass = document.getElementById('selectClass').value;
-            if (!selectedClass) {
-                alert('Please select a class');
-                return;
-            }
+        function filterTeachers() {
+            var filter = document.getElementById('teacherFilter').value.toLowerCase();
+            var rows = document.querySelectorAll('.teacher-row');
             
-            var students = appData.students.filter(function(s) {
-                return s.grade === selectedClass;
-            });
-            
-            var html = '';
-            for (var i = 0; i < students.length; i++) {
-                var s = students[i];
-                html += '<tr>';
-                html += '<td><span class="id-badge">' + s.id + '</span></td>';
-                html += '<td><strong>' + s.name + '</strong></td>';
-                html += '<td><input type="checkbox" class="att-check" data-student="' + i + '" data-day="0"></td>';
-                html += '<td><input type="checkbox" class="att-check" data-student="' + i + '" data-day="1"></td>';
-                html += '<td><input type="checkbox" class="att-check" data-student="' + i + '" data-day="2"></td>';
-                html += '<td><input type="checkbox" class="att-check" data-student="' + i + '" data-day="3"></td>';
-                html += '<td><input type="checkbox" class="att-check" data-student="' + i + '" data-day="4"></td>';
-                html += '<td><strong id="total-' + i + '">0</strong></td>';
-                html += '</tr>';
-            }
-            
-            document.getElementById('attendanceTbody').innerHTML = html;
-            
-            var checkboxes = document.querySelectorAll('.att-check');
-            for (var i = 0; i < checkboxes.length; i++) {
-                checkboxes[i].onclick = calculateTotals;
-            }
-        }
-
-        function calculateTotals() {
-            var selectedClass = document.getElementById('selectClass').value;
-            var students = appData.students.filter(function(s) {
-                return s.grade === selectedClass;
-            });
-            
-            for (var i = 0; i < students.length; i++) {
-                var total = 0;
-                for (var day = 0; day < 5; day++) {
-                    var cb = document.querySelector('.att-check[data-student="' + i + '"][data-day="' + day + '"]');
-                    if (cb && cb.checked) total++;
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var id = row.getAttribute('data-id').toLowerCase();
+                var name = row.getAttribute('data-name');
+                var subject = row.getAttribute('data-subject');
+                
+                if (id.includes(filter) || name.includes(filter) || subject.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
                 }
-                var totalEl = document.getElementById('total-' + i);
-                if (totalEl) totalEl.textContent = total;
-            }
-        }
-
-        function markAllPresent() {
-            var checkboxes = document.querySelectorAll('.att-check');
-            for (var i = 0; i < checkboxes.length; i++) {
-                checkboxes[i].checked = true;
-            }
-            calculateTotals();
-        }
-
-        function clearWeek() {
-            if (confirm('Clear all attendance?')) {
-                var checkboxes = document.querySelectorAll('.att-check');
-                for (var i = 0; i < checkboxes.length; i++) {
-                    checkboxes[i].checked = false;
-                }
-                calculateTotals();
-            }
-        }
-
-        function saveAttendance() {
-            alert('Attendance saved successfully! ✓');
-        }
-
-        function addStudent() {
-            var id = document.getElementById('studentId').value;
-            var name = document.getElementById('studentName').value;
-            var grade = document.getElementById('studentGrade').value;
-            var gender = document.getElementById('studentGender').value;
-            
-            if (!id || !name || !grade) {
-                alert('Please fill all fields');
-                return;
-            }
-            
-            appData.students.push({ id: id, name: name, grade: grade, gender: gender });
-            document.getElementById('studentId').value = '';
-            document.getElementById('studentName').value = '';
-            showSuccess('studentSuccess', 'Student added!');
-            updateLists();
-            updateDashboard();
-        }
-
-        function addTeacher() {
-            var id = document.getElementById('teacherId').value;
-            var name = document.getElementById('teacherName').value;
-            var subject = document.getElementById('teacherSubject').value;
-            
-            if (!id || !name || !subject) {
-                alert('Please fill all fields');
-                return;
-            }
-            
-            appData.teachers.push({ id: id, name: name, subject: subject });
-            document.getElementById('teacherId').value = '';
-            document.getElementById('teacherName').value = '';
-            showSuccess('teacherSuccess', 'Teacher added!');
-            updateLists();
-            updateDashboard();
-        }
-
-        function addClass() {
-            var grade = document.getElementById('newGrade').value;
-            var className = document.getElementById('className').value;
-            
-            if (!grade || !className) {
-                alert('Please fill all fields');
-                return;
-            }
-            
-            appData.grades.push({ grade: grade, class: className });
-            document.getElementById('className').value = '';
-            showSuccess('classSuccess', 'Class added!');
-            updateSelectors();
-            updateLists();
-            updateDashboard();
-        }
-
-        function addSubject() {
-            var subject = document.getElementById('subjectName').value;
-            
-            if (!subject) {
-                alert('Please enter subject name');
-                return;
-            }
-            
-            appData.subjects.push(subject);
-            document.getElementById('subjectName').value = '';
-            showSuccess('subjectSuccess', 'Subject added!');
-            updateSelectors();
-            updateLists();
-            updateDashboard();
-        }
-
-        function generateReport() {
-            var subject = document.getElementById('reportSubject').value;
-            var month = document.getElementById('reportMonth').value;
-            
-            if (!subject || !month) {
-                alert('Please select subject and month');
-                return;
-            }
-            
-            var html = '<div style="background: white; padding: 20px; border-radius: 8px;">';
-            html += '<h4>Monthly Attendance Report</h4>';
-            html += '<p><strong>Subject:</strong> ' + subject + ' | <strong>Month:</strong> ' + month + '</p>';
-            html += '<table style="width: 100%; margin-top: 20px;">';
-            html += '<tr><th>Student ID</th><th>Name</th><th>Days Present</th><th>Percentage</th></tr>';
-            
-            for (var i = 0; i < appData.students.length; i++) {
-                var s = appData.students[i];
-                var days = Math.floor(Math.random() * 18) + 5;
-                var percentage = Math.floor((days / 22) * 100);
-                html += '<tr>';
-                html += '<td>' + s.id + '</td>';
-                html += '<td>' + s.name + '</td>';
-                html += '<td>' + days + '/22</td>';
-                html += '<td>' + percentage + '%</td>';
-                html += '</tr>';
-            }
-            
-            html += '</table></div>';
-            document.getElementById('reportOutput').innerHTML = html;
-        }
-
-        function showSuccess(elementId, message) {
-            var el = document.getElementById(elementId);
-            el.textContent = message;
-            el.style.display = 'block';
-            setTimeout(function() {
-                el.style.display = 'none';
-            }, 3000);
-        }
-    </script>
-</body>
-</html>
