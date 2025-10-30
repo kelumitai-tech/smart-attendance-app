@@ -38,6 +38,16 @@
             opacity: 0.9;
             font-size: 0.9em;
         }
+        .header .role-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            border: 2px solid white;
+        }
         .content {
             padding: 40px;
         }
@@ -54,15 +64,16 @@
             color: #333;
             font-weight: 600;
         }
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
             transition: border-color 0.3s;
+            background: white;
         }
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #005A9C;
         }
@@ -95,14 +106,20 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(219,68,55,0.3);
         }
-        .error-msg {
-            background: #fee;
-            color: #c00;
+        .error-msg, .success-msg {
             padding: 12px;
             border-radius: 8px;
             margin-top: 15px;
             display: none;
             text-align: center;
+        }
+        .error-msg {
+            background: #fee;
+            color: #c00;
+        }
+        .success-msg {
+            background: #e7f5e7;
+            color: #2e7d32;
         }
         .app-main {
             display: none;
@@ -194,14 +211,6 @@
             background: white;
             color: #005A9C;
         }
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            background: white;
-        }
         .btn-secondary {
             background: #4CAF50;
             color: white;
@@ -216,6 +225,13 @@
         .btn-danger:hover {
             background: #da190b;
         }
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: #e68900;
+        }
         .info-box {
             background: #e3f2fd;
             padding: 15px;
@@ -223,18 +239,60 @@
             color: #1565c0;
             margin-bottom: 20px;
         }
-        .loading {
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
             text-align: center;
-            padding: 40px;
         }
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
+        .stats-card h2 {
+            font-size: 3em;
+            margin: 10px 0;
         }
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
+        .stats-card p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .principal-only {
+            display: none;
+        }
+        .id-badge {
+            display: inline-block;
+            background: #e3f2fd;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            color: #1565c0;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .action-btn {
+            padding: 6px 12px;
+            margin: 0 4px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        .action-btn-edit {
+            background: #2196F3;
+            color: white;
+        }
+        .action-btn-delete {
+            background: #f44336;
+            color: white;
+        }
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -250,6 +308,13 @@
             <div class="login-box">
                 <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Welcome Back</h2>
                 <div class="form-group">
+                    <label for="loginRole">Login As</label>
+                    <select id="loginRole">
+                        <option value="teacher">Teacher</option>
+                        <option value="principal">Principal (Admin)</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="loginEmail">Email Address</label>
                     <input type="email" id="loginEmail" placeholder="Enter your email">
                 </div>
@@ -261,17 +326,29 @@
                 <button class="btn btn-google" id="googleLoginBtn">🔐 Sign in with Google</button>
                 <div class="error-msg" id="loginError"></div>
             </div>
+            
+            <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
+                <p style="color: #666; font-size: 0.9em; line-height: 1.8;">
+                    <strong style="color: #005A9C;">Developer:</strong> Kelum Konara<br>
+                    <strong style="color: #005A9C;">SmartSoft</strong> | The Mobile Apps Developer<br>
+                    📞 <strong>0714469232</strong>
+                </p>
+            </footer>
         </div>
 
         <!-- Main App -->
         <div class="content app-main" id="appContent">
             <button class="logout-btn" id="logoutBtn">Logout</button>
+            <div class="role-badge" id="roleBadge">Teacher</div>
             
-            <div class="nav-tabs">
+            <div class="nav-tabs" id="mainTabs">
                 <button class="nav-tab active" data-tab="attendance">📋 Attendance</button>
                 <button class="nav-tab" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
-                <button class="nav-tab" data-tab="settings">⚙️ Settings</button>
+                <button class="nav-tab principal-only" data-tab="dashboard">🎯 Principal Dashboard</button>
+                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
+                <button class="nav-tab principal-only" data-tab="grades">🎓 Grades & Classes</button>
+                <button class="nav-tab principal-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
             <!-- Attendance Tab -->
@@ -285,18 +362,12 @@
                         <label>Select Class</label>
                         <select id="selectClass">
                             <option value="">-- Select Class --</option>
-                            <option value="Grade6-A">Grade 6 - A</option>
-                            <option value="Grade7-A">Grade 7 - A</option>
-                            <option value="Grade8-A">Grade 8 - A</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Select Subject</label>
                         <select id="selectSubject">
                             <option value="">-- Select Subject --</option>
-                            <option value="Maths">Maths</option>
-                            <option value="Science">Science</option>
-                            <option value="English">English</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -311,6 +382,7 @@
                     <table id="attendanceTable">
                         <thead>
                             <tr>
+                                <th>Student ID</th>
                                 <th>Student Name</th>
                                 <th>Mon</th>
                                 <th>Tue</th>
@@ -322,13 +394,13 @@
                         </thead>
                         <tbody id="attendanceTbody">
                             <tr>
-                                <td colspan="7" style="text-align: center; padding: 40px; color: #999;">
+                                <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
                                     Select class and subject to view students
                                 </td>
                             </tr>
                         </tbody>
                     </table>
-                    <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
                         <button class="btn btn-secondary" id="markAllPresentBtn">✓ Mark All Present</button>
                         <button class="btn btn-primary" id="saveBtn">💾 Save Attendance</button>
                         <button class="btn btn-danger" id="clearWeekBtn">✗ Clear Week</button>
@@ -340,23 +412,41 @@
             <div class="tab-content" id="students">
                 <div class="card">
                     <h3>Add New Student</h3>
-                    <div class="form-group">
-                        <label>Student Name</label>
-                        <input type="text" id="studentNameInput" placeholder="Enter student name">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Student ID</label>
+                            <input type="text" id="studentId" placeholder="e.g., S001">
+                        </div>
+                        <div class="form-group">
+                            <label>Student Name</label>
+                            <input type="text" id="studentNameInput" placeholder="Enter student name">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Gender</label>
-                        <select id="studentGender">
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                        </select>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select id="studentGrade">
+                                <option value="">-- Select Grade --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="studentGender">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
                     </div>
                     <button class="btn btn-primary" id="addStudentBtn">Add Student</button>
+                    <div class="success-msg" id="studentSuccess"></div>
                 </div>
 
                 <div class="card">
                     <h3>Student List</h3>
-                    <div id="studentList" style="background: white; padding: 20px; border-radius: 8px;">
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" id="searchStudent" placeholder="🔍 Search by name or ID..." style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    </div>
+                    <div id="studentList" style="background: white; padding: 20px; border-radius: 8px; max-height: 500px; overflow-y: auto;">
                         <p style="text-align: center; color: #999;">No students added yet</p>
                     </div>
                 </div>
@@ -370,9 +460,6 @@
                         <label>Subject</label>
                         <select id="reportSubject">
                             <option value="">-- Select Subject --</option>
-                            <option value="Maths">Maths</option>
-                            <option value="Science">Science</option>
-                            <option value="English">English</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -384,51 +471,166 @@
                 </div>
             </div>
 
-            <!-- Settings Tab -->
-            <div class="tab-content" id="settings">
+            <!-- Principal Dashboard -->
+            <div class="tab-content principal-only" id="dashboard">
+                <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
+                
+                <div class="grid-2" style="margin-bottom: 30px;">
+                    <div class="stats-card">
+                        <p>Total Students</p>
+                        <h2 id="totalStudents">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <p>Total Teachers</p>
+                        <h2 id="totalTeachers">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <p>Total Grades</p>
+                        <h2 id="totalGrades">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <p>Total Subjects</p>
+                        <h2 id="totalSubjects">0</h2>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Today's Attendance Summary</h3>
+                    <div id="todayAttendance">
+                        <p style="text-align: center; color: #999; padding: 20px;">Loading attendance data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teachers Management -->
+            <div class="tab-content principal-only" id="teachers">
+                <div class="card">
+                    <h3>Add New Teacher</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Teacher ID</label>
+                            <input type="text" id="teacherId" placeholder="e.g., T001">
+                        </div>
+                        <div class="form-group">
+                            <label>Teacher Name</label>
+                            <input type="text" id="teacherName" placeholder="Enter teacher name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select id="teacherSubject">
+                            <option value="">-- Select Subject --</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="addTeacherBtn">Add Teacher</button>
+                    <div class="success-msg" id="teacherSuccess"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Teachers List</h3>
+                    <div id="teachersList" style="background: white; padding: 20px; border-radius: 8px;">
+                        <p style="text-align: center; color: #999;">No teachers added yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grades & Classes -->
+            <div class="tab-content principal-only" id="grades">
+                <div class="card">
+                    <h3>Add New Grade & Class</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select id="newGrade">
+                                <option value="Grade 6">Grade 6</option>
+                                <option value="Grade 7">Grade 7</option>
+                                <option value="Grade 8">Grade 8</option>
+                                <option value="Grade 9">Grade 9</option>
+                                <option value="Grade 10">Grade 10</option>
+                                <option value="Grade 11">Grade 11</option>
+                                <option value="Grade 12">Grade 12</option>
+                                <option value="Grade 13">Grade 13</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Class Name</label>
+                            <input type="text" id="className" placeholder="e.g., A, B, C">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="addClassBtn">Add Class</button>
+                    <div class="success-msg" id="classSuccess"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Grades & Classes List</h3>
+                    <div id="gradesList" style="background: white; padding: 20px; border-radius: 8px;">
+                        <p style="text-align: center; color: #999;">No classes added yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subjects -->
+            <div class="tab-content principal-only" id="subjects">
                 <div class="card">
                     <h3>Add New Subject</h3>
                     <div class="form-group">
                         <label>Subject Name</label>
-                        <input type="text" id="inputSubjectName" placeholder="e.g., History">
+                        <input type="text" id="subjectName" placeholder="e.g., Mathematics">
                     </div>
                     <button class="btn btn-primary" id="addSubjectBtn">Add Subject</button>
+                    <div class="success-msg" id="subjectSuccess"></div>
                 </div>
 
                 <div class="card">
-                    <h3>Add New Class</h3>
-                    <div class="form-group">
-                        <label>Grade</label>
-                        <select id="selectGrade">
-                            <option value="Grade 6">6</option>
-                            <option value="Grade 7">7</option>
-                            <option value="Grade 8">8</option>
-                            <option value="Grade 9">9</option>
-                            <option value="Grade 10">10</option>
-                        </select>
+                    <h3>Subjects List</h3>
+                    <div id="subjectsList" style="background: white; padding: 20px; border-radius: 8px;">
+                        <p style="text-align: center; color: #999;">No subjects added yet</p>
                     </div>
-                    <div class="form-group">
-                        <label>Class Name</label>
-                        <input type="text" id="inputClassName" placeholder="e.g., A">
-                    </div>
-                    <button class="btn btn-primary" id="addClassBtn">Add Class</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Demo mode - simulates Firebase functionality
-        console.log('Smart Attendance Tracker - Demo Mode');
-        
-        let currentUser = null;
-        let students = [
-            { name: 'Amal Perera', gender: 'Male' },
-            { name: 'Sithara Silva', gender: 'Female' },
-            { name: 'Kasun Fernando', gender: 'Male' },
-            { name: 'Nimali Jayawardena', gender: 'Female' },
-            { name: 'Ruwan Bandara', gender: 'Male' }
-        ];
+        // Application State
+        let appData = {
+            currentUser: null,
+            userRole: null,
+            students: [],
+            teachers: [],
+            grades: [],
+            subjects: ['Mathematics', 'Science', 'English', 'History', 'Geography'],
+            attendance: {}
+        };
+
+        // Initialize default data
+        function initializeData() {
+            // Default grades
+            appData.grades = [
+                { grade: 'Grade 6', class: 'A' },
+                { grade: 'Grade 7', class: 'A' },
+                { grade: 'Grade 8', class: 'A' }
+            ];
+
+            // Default students
+            appData.students = [
+                { id: 'S001', name: 'Amal Perera', grade: 'Grade 6 - A', gender: 'Male' },
+                { id: 'S002', name: 'Sithara Silva', grade: 'Grade 6 - A', gender: 'Female' },
+                { id: 'S003', name: 'Kasun Fernando', grade: 'Grade 7 - A', gender: 'Male' },
+                { id: 'S004', name: 'Nimali Jayawardena', grade: 'Grade 7 - A', gender: 'Female' },
+                { id: 'S005', name: 'Ruwan Bandara', grade: 'Grade 8 - A', gender: 'Male' }
+            ];
+
+            // Default teachers
+            appData.teachers = [
+                { id: 'T001', name: 'Mr. Perera', subject: 'Mathematics' },
+                { id: 'T002', name: 'Ms. Silva', subject: 'Science' },
+                { id: 'T003', name: 'Mrs. Fernando', subject: 'English' }
+            ];
+
+            updateAllSelectors();
+            updateDashboardStats();
+        }
 
         // Tab switching
         document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -444,12 +646,21 @@
         document.getElementById('loginBtn').addEventListener('click', () => {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
+            const role = document.getElementById('loginRole').value;
             
             if (email && password) {
-                currentUser = { email };
+                appData.currentUser = { email };
+                appData.userRole = role;
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContent').style.display = 'block';
-                loadStudentTable();
+                document.getElementById('roleBadge').textContent = role === 'principal' ? '👨‍💼 Principal' : '👨‍🏫 Teacher';
+                
+                // Show/hide principal features
+                if (role === 'principal') {
+                    document.querySelectorAll('.principal-only').forEach(el => el.style.display = 'block');
+                }
+                
+                initializeData();
             } else {
                 const error = document.getElementById('loginError');
                 error.textContent = 'Please enter email and password';
@@ -459,153 +670,112 @@
 
         // Google login
         document.getElementById('googleLoginBtn').addEventListener('click', () => {
-            currentUser = { email: 'demo@school.com' };
+            const role = document.getElementById('loginRole').value;
+            appData.currentUser = { email: 'demo@school.com' };
+            appData.userRole = role;
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
-            loadStudentTable();
+            document.getElementById('roleBadge').textContent = role === 'principal' ? '👨‍💼 Principal' : '👨‍🏫 Teacher';
+            
+            if (role === 'principal') {
+                document.querySelectorAll('.principal-only').forEach(el => el.style.display = 'block');
+            }
+            
+            initializeData();
         });
 
         // Logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
-            currentUser = null;
+            appData.currentUser = null;
+            appData.userRole = null;
             document.getElementById('appContent').style.display = 'none';
             document.getElementById('loginScreen').style.display = 'block';
+            document.querySelectorAll('.principal-only').forEach(el => el.style.display = 'none');
         });
+
+        // Update all selectors
+        function updateAllSelectors() {
+            updateClassSelector();
+            updateSubjectSelector();
+            updateStudentGradeSelector();
+            updateTeacherSubjectSelector();
+            updateStudentList();
+            updateTeachersList();
+            updateGradesList();
+            updateSubjectsList();
+        }
+
+        function updateClassSelector() {
+            const selects = ['selectClass'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                const current = select.value;
+                select.innerHTML = '<option value="">-- Select Class --</option>';
+                appData.grades.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = `${g.grade} - ${g.class}`;
+                    opt.textContent = `${g.grade} - ${g.class}`;
+                    select.appendChild(opt);
+                });
+                if (current) select.value = current;
+            });
+        }
+
+        function updateSubjectSelector() {
+            const selects = ['selectSubject', 'reportSubject', 'teacherSubject'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                const current = select.value;
+                select.innerHTML = '<option value="">-- Select Subject --</option>';
+                appData.subjects.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    select.appendChild(opt);
+                });
+                if (current) select.value = current;
+            });
+        }
+
+        function updateStudentGradeSelector() {
+            const select = document.getElementById('studentGrade');
+            select.innerHTML = '<option value="">-- Select Grade --</option>';
+            appData.grades.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = `${g.grade} - ${g.class}`;
+                opt.textContent = `${g.grade} - ${g.class}`;
+                select.appendChild(opt);
+            });
+        }
+
+        function updateTeacherSubjectSelector() {
+            const select = document.getElementById('teacherSubject');
+            select.innerHTML = '<option value="">-- Select Subject --</option>';
+            appData.subjects.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                select.appendChild(opt);
+            });
+        }
 
         // Load attendance table
         function loadStudentTable() {
+            const selectedClass = document.getElementById('selectClass').value;
             const tbody = document.getElementById('attendanceTbody');
-            tbody.innerHTML = students.map((student, idx) => `
-                <tr>
-                    <td><strong>${student.name}</strong></td>
-                    <td><input type="checkbox" class="checkbox" data-student="${idx}" data-day="0"></td>
-                    <td><input type="checkbox" class="checkbox" data-student="${idx}" data-day="1"></td>
-                    <td><input type="checkbox" class="checkbox" data-student="${idx}" data-day="2"></td>
-                    <td><input type="checkbox" class="checkbox" data-student="${idx}" data-day="3"></td>
-                    <td><input type="checkbox" class="checkbox" data-student="${idx}" data-day="4"></td>
-                    <td><strong id="total-${idx}">0</strong></td>
-                </tr>
-            `).join('');
-
-            // Calculate totals on checkbox change
-            document.querySelectorAll('.checkbox').forEach(cb => {
-                cb.addEventListener('change', calculateTotals);
-            });
-        }
-
-        // Calculate totals
-        function calculateTotals() {
-            students.forEach((student, idx) => {
-                let total = 0;
-                for (let day = 0; day < 5; day++) {
-                    const cb = document.querySelector(`input[data-student="${idx}"][data-day="${day}"]`);
-                    if (cb && cb.checked) total++;
-                }
-                document.getElementById(`total-${idx}`).textContent = total;
-            });
-        }
-
-        // Mark all present
-        document.getElementById('markAllPresentBtn').addEventListener('click', () => {
-            document.querySelectorAll('.checkbox').forEach(cb => cb.checked = true);
-            calculateTotals();
-        });
-
-        // Clear week
-        document.getElementById('clearWeekBtn').addEventListener('click', () => {
-            if (confirm('Clear all attendance marks?')) {
-                document.querySelectorAll('.checkbox').forEach(cb => cb.checked = false);
-                calculateTotals();
-            }
-        });
-
-        // Save attendance
-        document.getElementById('saveBtn').addEventListener('click', () => {
-            alert('Attendance saved successfully! ✓');
-        });
-
-        // Add student
-        document.getElementById('addStudentBtn').addEventListener('click', () => {
-            const name = document.getElementById('studentNameInput').value.trim();
-            const gender = document.getElementById('studentGender').value;
             
-            if (name) {
-                students.push({ name, gender });
-                document.getElementById('studentNameInput').value = '';
-                loadStudentTable();
-                updateStudentList();
-                alert(`Student "${name}" added successfully!`);
+            if (!selectedClass) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Please select a class</td></tr>';
+                return;
             }
-        });
 
-        // Update student list
-        function updateStudentList() {
-            const list = document.getElementById('studentList');
-            if (students.length === 0) {
-                list.innerHTML = '<p style="text-align: center; color: #999;">No students added yet</p>';
-            } else {
-                list.innerHTML = '<ul style="list-style: none;">' + 
-                    students.map(s => `<li style="padding: 10px; border-bottom: 1px solid #eee;">
-                        <strong>${s.name}</strong> - ${s.gender}
-                    </li>`).join('') + '</ul>';
+            const studentsInClass = appData.students.filter(s => s.grade === selectedClass);
+            
+            if (studentsInClass.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
+                return;
             }
-        }
 
-        // Set default date
-        document.getElementById('startDate').valueAsDate = new Date();
-        document.getElementById('reportMonth').valueAsDate = new Date();
-
-        // Load initial student list
-        updateStudentList();
-
-        // Update dates button
-        document.getElementById('updateDatesBtn').addEventListener('click', () => {
-            loadStudentTable();
-            alert('Attendance sheet loaded!');
-        });
-
-        // Generate report
-        document.getElementById('generateReportBtn').addEventListener('click', () => {
-            const output = document.getElementById('reportOutput');
-            output.innerHTML = `
-                <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
-                    <h4>Monthly Attendance Report</h4>
-                    <table style="width: 100%; margin-top: 20px;">
-                        <tr>
-                            <th>Student</th>
-                            <th>Days Present</th>
-                            <th>Percentage</th>
-                        </tr>
-                        ${students.map(s => `
-                            <tr>
-                                <td>${s.name}</td>
-                                <td>${Math.floor(Math.random() * 20) + 5}/22</td>
-                                <td>${Math.floor(Math.random() * 30) + 70}%</td>
-                            </tr>
-                        `).join('')}
-                    </table>
-                </div>
-            `;
-        });
-
-        // Add class
-        document.getElementById('addClassBtn').addEventListener('click', () => {
-            const grade = document.getElementById('selectGrade').value;
-            const name = document.getElementById('inputClassName').value.trim();
-            if (name) {
-                alert(`Class ${grade} - ${name} added successfully!`);
-                document.getElementById('inputClassName').value = '';
-            }
-        });
-
-        // Add subject
-        document.getElementById('addSubjectBtn').addEventListener('click', () => {
-            const subject = document.getElementById('inputSubjectName').value.trim();
-            if (subject) {
-                alert(`Subject "${subject}" added successfully!`);
-                document.getElementById('inputSubjectName').value = '';
-            }
-        });
-    </script>
-</body>
-</html>
+            tbody.innerHTML = studentsInClass.map((student, idx) => `
+                <tr>
+                    <td><span class="id-badge">${student
