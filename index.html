@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -220,6 +226,11 @@
             cursor: pointer;
             float: right;
         }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             .nav-tabs { flex-direction: column; }
@@ -260,8 +271,8 @@
             
             <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
                 <p style="color: #666; font-size: 0.9em; line-height: 1.8;">
-                    <strong style="color: #005A9C;">Developer:</strong> Kelum Konara<br>
-                    <strong style="color: #005A9C;">SmartSoft</strong> | The Mobile Apps Developer<br>
+                    <strong style="color: #005A9C;"> Developer:</strong> Kelum Konara<br>
+                    <strong style="color: #005A9C;"> SmartSoft</strong> | The Mobile Apps Developer<br>
                     📞 <strong>0714469232</strong>
                 </p>
             </footer>
@@ -371,7 +382,7 @@
                         </select>
                     </div>
                     <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
-                    <div id="studentList"></div>
+                    <div id="studentList" class="loading">Loading students...</div>
                 </div>
             </div>
 
@@ -443,7 +454,7 @@
                 <div class="card">
                     <h3>Teachers List</h3>
                     <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
-                    <div id="teachersList"></div>
+                    <div id="teachersList" class="loading">Loading teachers...</div>
                 </div>
             </div>
 
@@ -461,7 +472,7 @@
                 <div class="card">
                     <h3>Subjects List</h3>
                     <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects...">
-                    <div id="subjectsList"></div>
+                    <div id="subjectsList" class="loading">Loading subjects...</div>
                 </div>
             </div>
 
@@ -495,63 +506,111 @@
                 <div class="card">
                     <h3>Grades & Classes List</h3>
                     <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
-                    <div id="gradesList"></div>
+                    <div id="gradesList" class="loading">Loading grades...</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Application data with sample data
+        // Firebase Configuration - Replace with your actual Firebase config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Application data structure
         var appData = {
-            students: [
-                { id: 'S001', name: 'Amal Perera', grade: 'Grade 6 - A', gender: 'Male' },
-                { id: 'S002', name: 'Sithara Silva', grade: 'Grade 6 - A', gender: 'Female' },
-                { id: 'S003', name: 'Kasun Fernando', grade: 'Grade 7 - A', gender: 'Male' },
-                { id: 'S004', name: 'Nimali Jayawardena', grade: 'Grade 7 - A', gender: 'Female' },
-                { id: 'S005', name: 'Ruwan Bandara', grade: 'Grade 8 - A', gender: 'Male' },
-                { id: 'S006', name: 'Dilini Rathnayake', grade: 'Grade 8 - A', gender: 'Female' }
-            ],
-            teachers: [
-                { id: 'T001', name: 'Mr. Perera', subject: 'Mathematics' },
-                { id: 'T002', name: 'Ms. Silva', subject: 'Science' },
-                { id: 'T003', name: 'Mrs. Fernando', subject: 'English' },
-                { id: 'T004', name: 'Mr. Bandara', subject: 'History' }
-            ],
-            grades: [
-                { grade: 'Grade 6', class: 'A' },
-                { grade: 'Grade 7', class: 'A' },
-                { grade: 'Grade 8', class: 'A' }
-            ],
-            subjects: ['Mathematics', 'Science', 'English', 'History', 'Geography'],
+            students: [],
+            teachers: [],
+            grades: [],
+            subjects: [],
             attendance: {},
             currentUser: null
         };
 
         // Valid users for login
         const validUsers = {
-            'teacher@school.com': { password: '123456', role: 'teacher' },
-            'principal@school.com': { password: '123456', role: 'principal' }
+            'teacher@school.com': { password: '1234', role: 'teacher' },
+            'principal@school.com': { password: '1234', role: 'principal' }
         };
 
-        // Load data from localStorage
-        function loadData() {
-            var saved = localStorage.getItem('attendanceData');
-            if (saved) {
-                var parsed = JSON.parse(saved);
-                // Merge with default data to ensure all properties exist
-                appData = {...appData, ...parsed};
+        // Load data from Firestore
+        async function loadData() {
+            try {
+                // Load students
+                const studentsSnapshot = await db.collection('students').get();
+                appData.students = studentsSnapshot.docs.map(doc => doc.data());
+                
+                // Load teachers
+                const teachersSnapshot = await db.collection('teachers').get();
+                appData.teachers = teachersSnapshot.docs.map(doc => doc.data());
+                
+                // Load grades
+                const gradesSnapshot = await db.collection('grades').get();
+                appData.grades = gradesSnapshot.docs.map(doc => doc.data());
+                
+                // Load subjects
+                const subjectsSnapshot = await db.collection('subjects').get();
+                appData.subjects = subjectsSnapshot.docs.map(doc => doc.data());
+                
+                // Load attendance (limited to recent records for performance)
+                const attendanceSnapshot = await db.collection('attendance')
+                    .orderBy('timestamp', 'desc')
+                    .limit(100)
+                    .get();
+                
+                appData.attendance = {};
+                attendanceSnapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    const key = data.class + '_' + data.subject + '_' + data.date + '_' + data.studentId;
+                    appData.attendance[key] = data.attendance;
+                });
+                
+                console.log('Data loaded successfully from Firestore');
+            } catch (error) {
+                console.error('Error loading data:', error);
             }
         }
 
-        // Save data to localStorage
-        function saveData() {
-            localStorage.setItem('attendanceData', JSON.stringify(appData));
+        // Save data to Firestore
+        async function saveData(collection, data, idField = 'id') {
+            try {
+                if (data[idField]) {
+                    await db.collection(collection).doc(data[idField]).set(data);
+                } else {
+                    await db.collection(collection).add(data);
+                }
+                return true;
+            } catch (error) {
+                console.error('Error saving data:', error);
+                return false;
+            }
+        }
+
+        // Delete data from Firestore
+        async function deleteData(collection, id) {
+            try {
+                await db.collection(collection).doc(id).delete();
+                return true;
+            } catch (error) {
+                console.error('Error deleting data:', error);
+                return false;
+            }
         }
 
         // Initialize the application
-        window.onload = function() {
-            loadData();
+        window.onload = async function() {
+            await loadData();
             setupEventListeners();
             setTodayDate();
             updateSelectors();
@@ -621,7 +680,7 @@
 
         // Google login simulation
         function googleLogin() {
-            alert('Google Sign-In requires Firebase setup.\n\nFor demo, use:\nTeacher: teacher@school.com / 1234\nPrincipal: principal@school.com / 1234');
+            alert('Google Sign-In requires Firebase Authentication setup.\n\nFor demo, use:\nTeacher: teacher@school.com / 1234\nPrincipal: principal@school.com / 1234');
         }
 
         // Show the main application
@@ -749,8 +808,8 @@
             });
         }
 
-        // Save attendance data
-        function saveAttendance() {
+        // Save attendance data to Firestore
+        async function saveAttendance() {
             var selectedClass = document.getElementById('selectClass').value;
             var selectedSubject = document.getElementById('selectSubject').value;
             var date = document.getElementById('startDate').value;
@@ -761,6 +820,8 @@
             }
             
             var rows = document.querySelectorAll('#attendanceTbody tr');
+            let savePromises = [];
+            
             rows.forEach(function(row) {
                 var studentId = row.querySelector('td');
                 if (studentId) {
@@ -770,18 +831,32 @@
                     checkboxes.forEach(function(cb) {
                         attendance.push(cb.checked);
                     });
+                    
                     var key = selectedClass + '_' + selectedSubject + '_' + date + '_' + id;
                     appData.attendance[key] = attendance;
+                    
+                    // Save to Firestore
+                    const attendanceData = {
+                        class: selectedClass,
+                        subject: selectedSubject,
+                        date: date,
+                        studentId: id,
+                        attendance: attendance,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    savePromises.push(saveData('attendance', attendanceData, key));
                 }
             });
             
-            saveData();
-            alert('Attendance saved successfully!');
+            // Wait for all saves to complete
+            await Promise.all(savePromises);
+            alert('Attendance saved successfully to cloud!');
             loadAttendance(); // Refresh to show updated totals
         }
 
         // Generate attendance report
-        function generateReport() {
+        async function generateReport() {
             var selectedClass = document.getElementById('reportClass').value;
             var selectedSubject = document.getElementById('reportSubject').value;
             var month = document.getElementById('reportMonth').value;
@@ -800,36 +875,43 @@
                 return;
             }
             
+            // Query Firestore for attendance data for the selected month
+            const startDate = month + '-01';
+            const endDate = month + '-31';
+            
+            const attendanceSnapshot = await db.collection('attendance')
+                .where('class', '==', selectedClass)
+                .where('subject', '==', selectedSubject)
+                .where('date', '>=', startDate)
+                .where('date', '<=', endDate)
+                .get();
+            
+            // Process attendance data
+            const attendanceByStudent = {};
+            attendanceSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                if (!attendanceByStudent[data.studentId]) {
+                    attendanceByStudent[data.studentId] = { present: 0, total: 0 };
+                }
+                
+                data.attendance.forEach(day => {
+                    attendanceByStudent[data.studentId].total++;
+                    if (day) attendanceByStudent[data.studentId].present++;
+                });
+            });
+            
             var html = '<h3>Attendance Report: ' + selectedClass + ' - ' + selectedSubject + ' (' + month + ')</h3>';
             html += '<div style="overflow-x: auto;"><table><thead><tr><th>Student ID</th><th>Name</th><th>Total Present</th><th>Total Absent</th><th>Attendance %</th></tr></thead><tbody>';
             
             classStudents.forEach(function(student) {
-                // Calculate attendance based on stored data
-                var presentDays = 0;
-                var totalDays = 0;
-                
-                // Count attendance for the selected month
-                for (var key in appData.attendance) {
-                    if (key.includes(student.id) && key.includes(selectedClass) && key.includes(selectedSubject)) {
-                        var attendanceRecord = appData.attendance[key];
-                        presentDays += attendanceRecord.filter(Boolean).length;
-                        totalDays += 5; // 5 days per week
-                    }
-                }
-                
-                // If no data found, use mock data
-                if (totalDays === 0) {
-                    presentDays = Math.floor(Math.random() * 20) + 10; // Mock data
-                    totalDays = 22; // Mock total school days
-                }
-                
-                var percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
+                const stats = attendanceByStudent[student.id] || { present: 0, total: 0 };
+                const percentage = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : 0;
                 
                 html += '<tr>';
                 html += '<td>' + student.id + '</td>';
                 html += '<td>' + student.name + '</td>';
-                html += '<td>' + presentDays + '</td>';
-                html += '<td>' + (totalDays - presentDays) + '</td>';
+                html += '<td>' + stats.present + '</td>';
+                html += '<td>' + (stats.total - stats.present) + '</td>';
                 html += '<td><strong>' + percentage + '%</strong></td>';
                 html += '</tr>';
             });
@@ -838,8 +920,8 @@
             document.getElementById('reportOutput').innerHTML = html;
         }
 
-        // Add a new student
-        function addStudent() {
+        // Add a new student to Firestore
+        async function addStudent() {
             var id = document.getElementById('studentId').value.trim();
             var name = document.getElementById('studentName').value.trim();
             var grade = document.getElementById('studentGrade').value;
@@ -856,25 +938,31 @@
                 return;
             }
             
-            appData.students.push({
+            const studentData = {
                 id: id,
                 name: name,
                 grade: grade,
                 gender: gender
-            });
+            };
             
-            successMsg.textContent = 'Student added successfully!';
-            successMsg.style.display = 'block';
+            const success = await saveData('students', studentData);
             
-            document.getElementById('studentId').value = '';
-            document.getElementById('studentName').value = '';
-            document.getElementById('studentGrade').selectedIndex = 0;
-            
-            saveData();
-            updateStudentsList();
-            setTimeout(function() {
-                successMsg.style.display = 'none';
-            }, 3000);
+            if (success) {
+                appData.students.push(studentData);
+                successMsg.textContent = 'Student added successfully to cloud!';
+                successMsg.style.display = 'block';
+                
+                document.getElementById('studentId').value = '';
+                document.getElementById('studentName').value = '';
+                document.getElementById('studentGrade').selectedIndex = 0;
+                
+                updateStudentsList();
+                setTimeout(function() {
+                    successMsg.style.display = 'none';
+                }, 3000);
+            } else {
+                alert('Error saving student to cloud');
+            }
         }
 
         // Update students list display
@@ -908,17 +996,21 @@
             container.innerHTML = html;
         }
 
-        // Delete a student
-        function deleteStudent(studentId) {
+        // Delete a student from Firestore
+        async function deleteStudent(studentId) {
             if (confirm('Are you sure you want to delete this student?')) {
-                appData.students = appData.students.filter(s => s.id !== studentId);
-                saveData();
-                updateStudentsList();
+                const success = await deleteData('students', studentId);
+                if (success) {
+                    appData.students = appData.students.filter(s => s.id !== studentId);
+                    updateStudentsList();
+                } else {
+                    alert('Error deleting student from cloud');
+                }
             }
         }
 
-        // Add a new teacher
-        function addTeacher() {
+        // Add a new teacher to Firestore
+        async function addTeacher() {
             var id = document.getElementById('teacherId').value.trim();
             var name = document.getElementById('teacherName').value.trim();
             var subject = document.getElementById('teacherSubject').value;
@@ -934,24 +1026,30 @@
                 return;
             }
             
-            appData.teachers.push({
+            const teacherData = {
                 id: id,
                 name: name,
                 subject: subject
-            });
+            };
             
-            successMsg.textContent = 'Teacher added successfully!';
-            successMsg.style.display = 'block';
+            const success = await saveData('teachers', teacherData);
             
-            document.getElementById('teacherId').value = '';
-            document.getElementById('teacherName').value = '';
-            document.getElementById('teacherSubject').selectedIndex = 0;
-            
-            saveData();
-            updateTeachersList();
-            setTimeout(function() {
-                successMsg.style.display = 'none';
-            }, 3000);
+            if (success) {
+                appData.teachers.push(teacherData);
+                successMsg.textContent = 'Teacher added successfully to cloud!';
+                successMsg.style.display = 'block';
+                
+                document.getElementById('teacherId').value = '';
+                document.getElementById('teacherName').value = '';
+                document.getElementById('teacherSubject').selectedIndex = 0;
+                
+                updateTeachersList();
+                setTimeout(function() {
+                    successMsg.style.display = 'none';
+                }, 3000);
+            } else {
+                alert('Error saving teacher to cloud');
+            }
         }
 
         // Update teachers list display
@@ -982,17 +1080,21 @@
             container.innerHTML = html;
         }
 
-        // Delete a teacher
-        function deleteTeacher(teacherId) {
+        // Delete a teacher from Firestore
+        async function deleteTeacher(teacherId) {
             if (confirm('Are you sure you want to delete this teacher?')) {
-                appData.teachers = appData.teachers.filter(t => t.id !== teacherId);
-                saveData();
-                updateTeachersList();
+                const success = await deleteData('teachers', teacherId);
+                if (success) {
+                    appData.teachers = appData.teachers.filter(t => t.id !== teacherId);
+                    updateTeachersList();
+                } else {
+                    alert('Error deleting teacher from cloud');
+                }
             }
         }
 
-        // Add a new subject
-        function addSubject() {
+        // Add a new subject to Firestore
+        async function addSubject() {
             var name = document.getElementById('subjectName').value.trim();
             var successMsg = document.getElementById('subjectSuccess');
             
@@ -1006,19 +1108,27 @@
                 return;
             }
             
-            appData.subjects.push(name);
+            const subjectData = {
+                name: name
+            };
             
-            successMsg.textContent = 'Subject added successfully!';
-            successMsg.style.display = 'block';
+            const success = await saveData('subjects', subjectData, 'name');
             
-            document.getElementById('subjectName').value = '';
-            
-            saveData();
-            updateSubjectsList();
-            updateSelectors();
-            setTimeout(function() {
-                successMsg.style.display = 'none';
-            }, 3000);
+            if (success) {
+                appData.subjects.push(name);
+                successMsg.textContent = 'Subject added successfully to cloud!';
+                successMsg.style.display = 'block';
+                
+                document.getElementById('subjectName').value = '';
+                
+                updateSubjectsList();
+                updateSelectors();
+                setTimeout(function() {
+                    successMsg.style.display = 'none';
+                }, 3000);
+            } else {
+                alert('Error saving subject to cloud');
+            }
         }
 
         // Update subjects list display
@@ -1046,18 +1156,22 @@
             container.innerHTML = html;
         }
 
-        // Delete a subject
-        function deleteSubject(subjectName) {
+        // Delete a subject from Firestore
+        async function deleteSubject(subjectName) {
             if (confirm('Are you sure you want to delete this subject?')) {
-                appData.subjects = appData.subjects.filter(s => s !== subjectName);
-                saveData();
-                updateSubjectsList();
-                updateSelectors();
+                const success = await deleteData('subjects', subjectName);
+                if (success) {
+                    appData.subjects = appData.subjects.filter(s => s !== subjectName);
+                    updateSubjectsList();
+                    updateSelectors();
+                } else {
+                    alert('Error deleting subject from cloud');
+                }
             }
         }
 
-        // Add a new grade/class
-        function addClass() {
+        // Add a new grade/class to Firestore
+        async function addClass() {
             var grade = document.getElementById('newGrade').value;
             var className = document.getElementById('className').value.trim();
             var successMsg = document.getElementById('classSuccess');
@@ -1073,23 +1187,34 @@
                 return;
             }
             
-            appData.grades.push({
+            const gradeData = {
                 grade: grade,
-                class: className
-            });
+                class: className,
+                id: fullClass
+            };
             
-            successMsg.textContent = 'Grade & Class added successfully!';
-            successMsg.style.display = 'block';
+            const success = await saveData('grades', gradeData);
             
-            document.getElementById('newGrade').selectedIndex = 0;
-            document.getElementById('className').value = '';
-            
-            saveData();
-            updateGradesList();
-            updateSelectors();
-            setTimeout(function() {
-                successMsg.style.display = 'none';
-            }, 3000);
+            if (success) {
+                appData.grades.push({
+                    grade: grade,
+                    class: className
+                });
+                
+                successMsg.textContent = 'Grade & Class added successfully to cloud!';
+                successMsg.style.display = 'block';
+                
+                document.getElementById('newGrade').selectedIndex = 0;
+                document.getElementById('className').value = '';
+                
+                updateGradesList();
+                updateSelectors();
+                setTimeout(function() {
+                    successMsg.style.display = 'none';
+                }, 3000);
+            } else {
+                alert('Error saving grade to cloud');
+            }
         }
 
         // Update grades list display
@@ -1118,13 +1243,18 @@
             container.innerHTML = html;
         }
 
-        // Delete a grade/class
-        function deleteGrade(grade, className) {
+        // Delete a grade/class from Firestore
+        async function deleteGrade(grade, className) {
             if (confirm('Are you sure you want to delete this grade and class?')) {
-                appData.grades = appData.grades.filter(g => !(g.grade === grade && g.class === className));
-                saveData();
-                updateGradesList();
-                updateSelectors();
+                const id = grade + ' - ' + className;
+                const success = await deleteData('grades', id);
+                if (success) {
+                    appData.grades = appData.grades.filter(g => !(g.grade === grade && g.class === className));
+                    updateGradesList();
+                    updateSelectors();
+                } else {
+                    alert('Error deleting grade from cloud');
+                }
             }
         }
 
@@ -1141,6 +1271,42 @@
         function filterTeachers() { updateTeachersList(); }
         function filterSubjects() { updateSubjectsList(); }
         function filterGrades() { updateGradesList(); }
+
+        // Real-time listeners for data synchronization
+        function setupRealTimeListeners() {
+            // Students real-time updates
+            db.collection('students').onSnapshot((snapshot) => {
+                appData.students = snapshot.docs.map(doc => doc.data());
+                updateStudentsList();
+                updateDashboard();
+            });
+
+            // Teachers real-time updates
+            db.collection('teachers').onSnapshot((snapshot) => {
+                appData.teachers = snapshot.docs.map(doc => doc.data());
+                updateTeachersList();
+                updateDashboard();
+            });
+
+            // Grades real-time updates
+            db.collection('grades').onSnapshot((snapshot) => {
+                appData.grades = snapshot.docs.map(doc => doc.data());
+                updateGradesList();
+                updateSelectors();
+                updateDashboard();
+            });
+
+            // Subjects real-time updates
+            db.collection('subjects').onSnapshot((snapshot) => {
+                appData.subjects = snapshot.docs.map(doc => doc.data().name);
+                updateSubjectsList();
+                updateSelectors();
+                updateDashboard();
+            });
+        }
+
+        // Initialize real-time listeners when app loads
+        setTimeout(setupRealTimeListeners, 1000);
     </script>
 </body>
 </html>
