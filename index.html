@@ -491,7 +491,6 @@
     </div>
 
     <script>
-        // App Data
         var appData = {
             students: [
                 { id: 'S001', name: 'Amal Perera', grade: 'Grade 6 - A', gender: 'Male' },
@@ -517,7 +516,6 @@
             currentUser: null
         };
 
-        // Initialize
         window.onload = function() {
             setupEventListeners();
             setTodayDate();
@@ -529,8 +527,7 @@
             document.getElementById('googleBtn').addEventListener('click', googleLogin);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
-            var navButtons = document.querySelectorAll('.nav-tab');
-            navButtons.forEach(function(btn) {
+            document.querySelectorAll('.nav-tab').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     showTab(this.getAttribute('data-tab'));
                 });
@@ -557,9 +554,10 @@
         function setTodayDate() {
             var today = new Date().toISOString().split('T')[0];
             document.getElementById('startDate').value = today;
+            var currentMonth = today.substring(0, 7);
+            document.getElementById('reportMonth').value = currentMonth;
         }
 
-        // LOGIN FUNCTION
         function doLogin() {
             var email = document.getElementById('loginEmail').value.trim();
             var password = document.getElementById('loginPassword').value.trim();
@@ -572,19 +570,18 @@
                 return;
             }
             
-            // For demo - accept any email/password with minimum length
-            if (email.length > 5 && password.length > 3) {
+            if (email.includes('@') && password.length >= 4) {
                 appData.currentUser = { email: email, role: role };
                 showApp(role);
                 errorMsg.style.display = 'none';
             } else {
-                errorMsg.textContent = 'Invalid credentials. Email must be valid and password at least 4 characters.';
+                errorMsg.textContent = 'Invalid credentials. Please check your email and password.';
                 errorMsg.style.display = 'block';
             }
         }
 
         function googleLogin() {
-            alert('Google Sign-In feature requires Firebase Authentication setup.\n\nFor now, use regular email/password login.');
+            alert('Google Sign-In requires Firebase setup.\n\nFor demo, use:\nEmail: teacher@school.com\nPassword: 1234');
         }
 
         function showApp(role) {
@@ -592,8 +589,7 @@
             document.getElementById('appContent').style.display = 'block';
             document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal' : 'Teacher';
             
-            var principalElements = document.querySelectorAll('.principal-only');
-            principalElements.forEach(function(el) {
+            document.querySelectorAll('.principal-only').forEach(function(el) {
                 el.style.display = role === 'principal' ? 'block' : 'none';
             });
             
@@ -609,11 +605,12 @@
         }
 
         function showTab(tabName) {
-            var tabs = document.querySelectorAll('.tab-content');
-            var navTabs = document.querySelectorAll('.nav-tab');
-            
-            tabs.forEach(function(tab) { tab.classList.remove('active'); });
-            navTabs.forEach(function(tab) { tab.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(tab) {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(function(tab) {
+                tab.classList.remove('active');
+            });
             
             document.getElementById(tabName).classList.add('active');
             var activeTab = document.querySelector('[data-tab="' + tabName + '"]');
@@ -662,8 +659,6 @@
             }
             
             var tbody = document.getElementById('attendanceTbody');
-            var html = '';
-            
             var classStudents = appData.students.filter(function(s) {
                 return s.grade === selectedClass;
             });
@@ -673,6 +668,7 @@
                 return;
             }
             
+            var html = '';
             classStudents.forEach(function(student) {
                 var key = selectedClass + '_' + selectedSubject + '_' + date + '_' + student.id;
                 var attendance = appData.attendance[key] || [false, false, false, false, false];
@@ -685,7 +681,7 @@
                     html += '<td><input type="checkbox" class="attendance-checkbox" data-student="' + student.id + '" data-day="' + i + '" ' + (attendance[i] ? 'checked' : '') + '></td>';
                 }
                 
-                var total = attendance.filter(function(a) { return a; }).length;
+                var total = attendance.filter(Boolean).length;
                 html += '<td><strong>' + total + '/5</strong></td>';
                 html += '</tr>';
             });
@@ -694,13 +690,15 @@
         }
 
         function markAllPresent() {
-            var checkboxes = document.querySelectorAll('.attendance-checkbox');
-            checkboxes.forEach(function(cb) { cb.checked = true; });
+            document.querySelectorAll('.attendance-checkbox').forEach(function(cb) {
+                cb.checked = true;
+            });
         }
 
         function clearWeek() {
-            var checkboxes = document.querySelectorAll('.attendance-checkbox');
-            checkboxes.forEach(function(cb) { cb.checked = false; });
+            document.querySelectorAll('.attendance-checkbox').forEach(function(cb) {
+                cb.checked = false;
+            });
         }
 
         function saveAttendance() {
@@ -714,11 +712,13 @@
             }
             
             var rows = document.querySelectorAll('#attendanceTbody tr');
-            var saved = 0;
-            
             rows.forEach(function(row) {
-                var cells = row.querySelectorAll('td');
-                if (cells.length > 1) {
-                    var studentId = cells[0].textContent;
+                var studentId = row.querySelector('td');
+                if (studentId) {
+                    var id = studentId.textContent;
                     var checkboxes = row.querySelectorAll('.attendance-checkbox');
-                    var
+                    var attendance = [];
+                    checkboxes.forEach(function(cb) {
+                        attendance.push(cb.checked);
+                    });
+                    var key
