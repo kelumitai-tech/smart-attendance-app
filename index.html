@@ -527,11 +527,11 @@
 
     <script>
         // ==================== FIREBASE CONFIGURATION ====================
-        // Replace these with your actual Firebase config values
+        // 🔥 REPLACE THIS WITH YOUR ACTUAL FIREBASE CONFIG
         const firebaseConfig = {
-            apiKey: "AIzaSyABC123YourApiKeyHere",
+            apiKey: "AIzaSyABC123YourActualApiKeyHere",
             authDomain: "your-project-id.firebaseapp.com",
-            projectId: "your-project-id",  // This is CRITICAL - must match your Firebase project
+            projectId: "your-actual-project-id",  // This must match exactly
             storageBucket: "your-project-id.appspot.com",
             messagingSenderId: "123456789000",
             appId: "1:123456789000:web:abc123def456"
@@ -540,13 +540,18 @@
         // Initialize Firebase
         let db;
         try {
-            firebase.initializeApp(firebaseConfig);
+            // Check if Firebase is already initialized
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
             db = firebase.firestore();
             console.log('✅ Firebase initialized successfully');
             updateFirebaseStatus(true, 'Connected to Firebase');
         } catch (error) {
             console.error('❌ Firebase initialization error:', error);
             updateFirebaseStatus(false, 'Firebase Error: ' + error.message);
+            // Fallback to localStorage if Firebase fails
+            initializeLocalStorageFallback();
         }
 
         // ==================== APPLICATION STATE ====================
@@ -560,8 +565,8 @@
         };
 
         const validUsers = {
-            'teacher@school.com': { password: '1234', role: 'teacher' },
-            'principal@school.com': { password: '1234', role: 'principal' }
+            'teacher@school.com': { password: 'teacher123', role: 'teacher' },
+            'principal@school.com': { password: 'principal123', role: 'principal' }
         };
 
         // ==================== FIREBASE STATUS INDICATOR ====================
@@ -578,71 +583,117 @@
             }
         }
 
+        // ==================== LOCAL STORAGE FALLBACK ====================
+        function initializeLocalStorageFallback() {
+            console.log('🔄 Using localStorage as fallback');
+            // Load data from localStorage
+            appData.students = JSON.parse(localStorage.getItem('students') || '[]');
+            appData.teachers = JSON.parse(localStorage.getItem('teachers') || '[]');
+            appData.grades = JSON.parse(localStorage.getItem('grades') || '[]');
+            appData.subjects = JSON.parse(localStorage.getItem('subjects') || '[]');
+            appData.attendance = JSON.parse(localStorage.getItem('attendance') || '{}');
+        }
+
+        function saveToLocalStorage(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
         // ==================== CORE DATA FUNCTIONS ====================
         async function saveData(collection, data, idField = 'id') {
             try {
                 console.log(`Saving to ${collection}:`, data);
                 
-                if (data[idField]) {
-                    await db.collection(collection).doc(data[idField]).set(data);
-                    console.log(`✅ Document saved with ID: ${data[idField]}`);
-                } else {
-                    const docRef = await db.collection(collection).add(data);
-                    console.log(`✅ Document saved with auto-ID: ${docRef.id}`);
+                // Try Firebase first
+                if (db) {
+                    if (data[idField]) {
+                        await db.collection(collection).doc(data[idField]).set(data);
+                        console.log(`✅ Document saved to Firebase with ID: ${data[idField]}`);
+                    } else {
+                        const docRef = await db.collection(collection).add(data);
+                        console.log(`✅ Document saved to Firebase with auto-ID: ${docRef.id}`);
+                    }
                 }
+                
+                // Always update localStorage as backup
+                const currentData = JSON.parse(localStorage.getItem(collection) || '[]');
+                const existingIndex = currentData.findIndex(item => item[idField] === data[idField]);
+                
+                if (existingIndex >= 0) {
+                    currentData[existingIndex] = data;
+                } else {
+                    currentData.push(data);
+                }
+                saveToLocalStorage(collection, currentData);
                 
                 return true;
             } catch (error) {
                 console.error(`❌ Error saving to ${collection}:`, error);
-                alert(`Error saving data: ${error.message}`);
-                return false;
+                // Fallback to localStorage
+                const currentData = JSON.parse(localStorage.getItem(collection) || '[]');
+                const existingIndex = currentData.findIndex(item => item[idField] === data[idField]);
+                
+                if (existingIndex >= 0) {
+                    currentData[existingIndex] = data;
+                } else {
+                    currentData.push(data);
+                }
+                saveToLocalStorage(collection, currentData);
+                console.log(`✅ Data saved to localStorage as fallback`);
+                return true;
             }
         }
 
         async function deleteData(collection, id) {
             try {
-                await db.collection(collection).doc(id).delete();
-                console.log(`✅ Document deleted: ${collection}/${id}`);
+                if (db) {
+                    await db.collection(collection).doc(id).delete();
+                    console.log(`✅ Document deleted from Firebase: ${collection}/${id}`);
+                }
+                
+                // Also delete from localStorage
+                const currentData = JSON.parse(localStorage.getItem(collection) || '[]');
+                const filteredData = currentData.filter(item => item.id !== id);
+                saveToLocalStorage(collection, filteredData);
+                
                 return true;
             } catch (error) {
                 console.error(`❌ Error deleting from ${collection}:`, error);
-                alert(`Error deleting data: ${error.message}`);
-                return false;
+                // Fallback to localStorage
+                const currentData = JSON.parse(localStorage.getItem(collection) || '[]');
+                const filteredData = currentData.filter(item => item.id !== id);
+                saveToLocalStorage(collection, filteredData);
+                return true;
             }
         }
 
         async function loadAllData() {
             try {
-                console.log('🔄 Loading data from Firestore...');
+                console.log('🔄 Loading data...');
                 updateFirebaseStatus(true, 'Loading data...');
                 
-                // Load students
-                const studentsSnapshot = await db.collection('students').get();
-                appData.students = studentsSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, firebaseId: doc.id };
-                });
-                
-                // Load teachers
-                const teachersSnapshot = await db.collection('teachers').get();
-                appData.teachers = teachersSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, firebaseId: doc.id };
-                });
-                
-                // Load grades
-                const gradesSnapshot = await db.collection('grades').get();
-                appData.grades = gradesSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, firebaseId: doc.id };
-                });
-                
-                // Load subjects
-                const subjectsSnapshot = await db.collection('subjects').get();
-                appData.subjects = subjectsSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, firebaseId: doc.id };
-                });
+                if (db) {
+                    // Load from Firebase
+                    const [studentsSnapshot, teachersSnapshot, gradesSnapshot, subjectsSnapshot] = await Promise.all([
+                        db.collection('students').get(),
+                        db.collection('teachers').get(),
+                        db.collection('grades').get(),
+                        db.collection('subjects').get()
+                    ]);
+
+                    appData.students = studentsSnapshot.docs.map(doc => ({ ...doc.data(), firebaseId: doc.id }));
+                    appData.teachers = teachersSnapshot.docs.map(doc => ({ ...doc.data(), firebaseId: doc.id }));
+                    appData.grades = gradesSnapshot.docs.map(doc => ({ ...doc.data(), firebaseId: doc.id }));
+                    appData.subjects = subjectsSnapshot.docs.map(doc => ({ ...doc.data(), firebaseId: doc.id }));
+
+                    // Save to localStorage as backup
+                    saveToLocalStorage('students', appData.students);
+                    saveToLocalStorage('teachers', appData.teachers);
+                    saveToLocalStorage('grades', appData.grades);
+                    saveToLocalStorage('subjects', appData.subjects);
+                } else {
+                    // Load from localStorage
+                    initializeLocalStorageFallback();
+                }
                 
                 console.log('✅ Data loaded successfully:', {
                     students: appData.students.length,
@@ -656,9 +707,10 @@
                 
             } catch (error) {
                 console.error('❌ Error loading data:', error);
-                updateFirebaseStatus(false, 'Error loading data');
-                alert('Error loading data from cloud: ' + error.message);
-                return false;
+                // Fallback to localStorage
+                initializeLocalStorageFallback();
+                updateFirebaseStatus(false, 'Using offline data');
+                return true;
             }
         }
 
@@ -666,25 +718,14 @@
         window.onload = async function() {
             console.log('🚀 Application starting...');
             
-            // Test Firebase connection
-            try {
-                await db.collection('test').doc('connection').set({
-                    test: true,
-                    timestamp: new Date()
-                });
-                console.log('✅ Firebase connection test passed');
-            } catch (error) {
-                console.error('❌ Firebase connection test failed:', error);
-                alert('⚠️ Cannot connect to Firebase. Please check:\n1. Internet connection\n2. Firebase configuration\n3. Firestore rules');
-                return;
-            }
-            
             // Load data and setup app
             await loadAllData();
             setupEventListeners();
             setTodayDate();
             updateSelectors();
-            setupRealTimeListeners();
+            if (db) {
+                setupRealTimeListeners();
+            }
             
             console.log('✅ Application started successfully');
         };
@@ -726,51 +767,37 @@
 
         // ==================== REAL-TIME LISTENERS ====================
         function setupRealTimeListeners() {
+            if (!db) return;
+            
             console.log('🔔 Setting up real-time listeners...');
             
-            // Students
-            db.collection('students').onSnapshot((snapshot) => {
-                appData.students = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, firebaseId: doc.id };
+            const collections = ['students', 'teachers', 'grades', 'subjects'];
+            collections.forEach(collection => {
+                db.collection(collection).onSnapshot((snapshot) => {
+                    appData[collection] = snapshot.docs.map(doc => ({
+                        ...doc.data(),
+                        firebaseId: doc.id
+                    }));
+                    
+                    // Update UI based on collection
+                    switch(collection) {
+                        case 'students':
+                            updateStudentsList();
+                            break;
+                        case 'teachers':
+                            updateTeachersList();
+                            break;
+                        case 'grades':
+                            updateGradesList();
+                            updateSelectors();
+                            break;
+                        case 'subjects':
+                            updateSubjectsList();
+                            updateSelectors();
+                            break;
+                    }
+                    updateDashboard();
                 });
-                updateStudentsList();
-                updateDashboard();
-                console.log('🔄 Students updated:', appData.students.length);
-            }, (error) => {
-                console.error('❌ Students listener error:', error);
-            });
-
-            // Teachers
-            db.collection('teachers').onSnapshot((snapshot) => {
-                appData.teachers = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, firebaseId: doc.id };
-                });
-                updateTeachersList();
-                updateDashboard();
-            });
-
-            // Grades
-            db.collection('grades').onSnapshot((snapshot) => {
-                appData.grades = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, firebaseId: doc.id };
-                });
-                updateGradesList();
-                updateSelectors();
-                updateDashboard();
-            });
-
-            // Subjects
-            db.collection('subjects').onSnapshot((snapshot) => {
-                appData.subjects = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, firebaseId: doc.id };
-                });
-                updateSubjectsList();
-                updateSelectors();
-                updateDashboard();
             });
         }
 
@@ -852,10 +879,14 @@
             });
             
             ['selectClass', 'studentGrade', 'reportClass'].forEach(id => {
-                document.getElementById(id).innerHTML = classOptions;
+                const element = document.getElementById(id);
+                if (element) element.innerHTML = classOptions;
             });
-            document.getElementById('filterStudentClass').innerHTML = 
-                '<option value="">All Classes</option>' + classOptions;
+            
+            const filterClassElement = document.getElementById('filterStudentClass');
+            if (filterClassElement) {
+                filterClassElement.innerHTML = '<option value="">All Classes</option>' + classOptions;
+            }
             
             // Subjects
             let subjectOptions = '<option value="">-- Select Subject --</option>';
@@ -864,7 +895,8 @@
             });
             
             ['selectSubject', 'teacherSubject', 'reportSubject'].forEach(id => {
-                document.getElementById(id).innerHTML = subjectOptions;
+                const element = document.getElementById(id);
+                if (element) element.innerHTML = subjectOptions;
             });
         }
 
@@ -878,13 +910,21 @@
         }
 
         function updateDashboard() {
-            document.getElementById('totalStudents').textContent = appData.students.length;
-            document.getElementById('totalTeachers').textContent = appData.teachers.length;
-            document.getElementById('totalGrades').textContent = appData.grades.length;
-            document.getElementById('totalSubjects').textContent = appData.subjects.length;
+            const elements = {
+                'totalStudents': appData.students.length,
+                'totalTeachers': appData.teachers.length,
+                'totalGrades': appData.grades.length,
+                'totalSubjects': appData.subjects.length
+            };
+            
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+            });
         }
 
-        // ==================== STUDENT MANAGEMENT ====================
+        // ==================== DATA MANAGEMENT FUNCTIONS ====================
+        // Student Management
         async function addStudent() {
             const id = document.getElementById('studentId').value.trim();
             const name = document.getElementById('studentName').value.trim();
@@ -913,12 +953,20 @@
             const success = await saveData('students', studentData);
             
             if (success) {
-                successMsg.textContent = '✅ Student added successfully to cloud!';
+                // Update local data immediately
+                appData.students.push(studentData);
+                
+                successMsg.textContent = '✅ Student added successfully!';
                 successMsg.style.display = 'block';
                 
+                // Clear form
                 document.getElementById('studentId').value = '';
                 document.getElementById('studentName').value = '';
                 document.getElementById('studentGrade').selectedIndex = 0;
+                
+                // Update UI
+                updateStudentsList();
+                updateDashboard();
                 
                 setTimeout(() => {
                     successMsg.style.display = 'none';
@@ -928,8 +976,10 @@
 
         function updateStudentsList() {
             const container = document.getElementById('studentList');
-            const filter = document.getElementById('studentFilter').value.toLowerCase();
-            const classFilter = document.getElementById('filterStudentClass').value;
+            if (!container) return;
+            
+            const filter = document.getElementById('studentFilter')?.value.toLowerCase() || '';
+            const classFilter = document.getElementById('filterStudentClass')?.value || '';
             
             const filteredStudents = appData.students.filter(student => {
                 const matchesSearch = student.id.toLowerCase().includes(filter) || 
@@ -960,14 +1010,14 @@
 
         async function deleteStudent(studentId) {
             if (confirm('Are you sure you want to delete this student?')) {
-                const success = await deleteData('students', studentId);
-                if (!success) {
-                    alert('Error deleting student from cloud');
-                }
+                await deleteData('students', studentId);
+                appData.students = appData.students.filter(s => s.id !== studentId);
+                updateStudentsList();
+                updateDashboard();
             }
         }
 
-        // ==================== TEACHER MANAGEMENT ====================
+        // Teacher Management (similar pattern for other entities)
         async function addTeacher() {
             const id = document.getElementById('teacherId').value.trim();
             const name = document.getElementById('teacherName').value.trim();
@@ -994,12 +1044,16 @@
             const success = await saveData('teachers', teacherData);
             
             if (success) {
-                successMsg.textContent = '✅ Teacher added successfully to cloud!';
+                appData.teachers.push(teacherData);
+                successMsg.textContent = '✅ Teacher added successfully!';
                 successMsg.style.display = 'block';
                 
                 document.getElementById('teacherId').value = '';
                 document.getElementById('teacherName').value = '';
                 document.getElementById('teacherSubject').selectedIndex = 0;
+                
+                updateTeachersList();
+                updateDashboard();
                 
                 setTimeout(() => {
                     successMsg.style.display = 'none';
@@ -1009,7 +1063,9 @@
 
         function updateTeachersList() {
             const container = document.getElementById('teachersList');
-            const filter = document.getElementById('teacherFilter').value.toLowerCase();
+            if (!container) return;
+            
+            const filter = document.getElementById('teacherFilter')?.value.toLowerCase() || '';
             
             const filteredTeachers = appData.teachers.filter(teacher => {
                 return teacher.id.toLowerCase().includes(filter) || 
@@ -1038,14 +1094,14 @@
 
         async function deleteTeacher(teacherId) {
             if (confirm('Are you sure you want to delete this teacher?')) {
-                const success = await deleteData('teachers', teacherId);
-                if (!success) {
-                    alert('Error deleting teacher from cloud');
-                }
+                await deleteData('teachers', teacherId);
+                appData.teachers = appData.teachers.filter(t => t.id !== teacherId);
+                updateTeachersList();
+                updateDashboard();
             }
         }
 
-        // ==================== SUBJECT MANAGEMENT ====================
+        // Similar implementations for Subjects and Grades...
         async function addSubject() {
             const name = document.getElementById('subjectName').value.trim();
             const successMsg = document.getElementById('subjectSuccess');
@@ -1068,9 +1124,15 @@
             const success = await saveData('subjects', subjectData, 'name');
             
             if (success) {
-                successMsg.textContent = '✅ Subject added successfully to cloud!';
+                appData.subjects.push(subjectData);
+                successMsg.textContent = '✅ Subject added successfully!';
                 successMsg.style.display = 'block';
                 document.getElementById('subjectName').value = '';
+                
+                updateSubjectsList();
+                updateSelectors();
+                updateDashboard();
+                
                 setTimeout(() => {
                     successMsg.style.display = 'none';
                 }, 3000);
@@ -1079,7 +1141,9 @@
 
         function updateSubjectsList() {
             const container = document.getElementById('subjectsList');
-            const filter = document.getElementById('subjectFilter').value.toLowerCase();
+            if (!container) return;
+            
+            const filter = document.getElementById('subjectFilter')?.value.toLowerCase() || '';
             
             const filteredSubjects = appData.subjects.filter(subject => {
                 return subject.name.toLowerCase().includes(filter);
@@ -1105,14 +1169,14 @@
 
         async function deleteSubject(subjectName) {
             if (confirm('Are you sure you want to delete this subject?')) {
-                const success = await deleteData('subjects', subjectName);
-                if (!success) {
-                    alert('Error deleting subject from cloud');
-                }
+                await deleteData('subjects', subjectName);
+                appData.subjects = appData.subjects.filter(s => s.name !== subjectName);
+                updateSubjectsList();
+                updateSelectors();
+                updateDashboard();
             }
         }
 
-        // ==================== GRADE/CLASS MANAGEMENT ====================
         async function addClass() {
             const grade = document.getElementById('newGrade').value;
             const className = document.getElementById('className').value.trim();
@@ -1139,11 +1203,16 @@
             const success = await saveData('grades', gradeData);
             
             if (success) {
-                successMsg.textContent = '✅ Grade & Class added successfully to cloud!';
+                appData.grades.push(gradeData);
+                successMsg.textContent = '✅ Grade & Class added successfully!';
                 successMsg.style.display = 'block';
                 
                 document.getElementById('newGrade').selectedIndex = 0;
                 document.getElementById('className').value = '';
+                
+                updateGradesList();
+                updateSelectors();
+                updateDashboard();
                 
                 setTimeout(() => {
                     successMsg.style.display = 'none';
@@ -1153,7 +1222,9 @@
 
         function updateGradesList() {
             const container = document.getElementById('gradesList');
-            const filter = document.getElementById('gradeFilter').value.toLowerCase();
+            if (!container) return;
+            
+            const filter = document.getElementById('gradeFilter')?.value.toLowerCase() || '';
             
             const filteredGrades = appData.grades.filter(gradeObj => {
                 const fullClass = `${gradeObj.grade} - ${gradeObj.class}`;
@@ -1181,10 +1252,11 @@
         async function deleteGrade(grade, className) {
             if (confirm('Are you sure you want to delete this grade and class?')) {
                 const id = `${grade} - ${className}`;
-                const success = await deleteData('grades', id);
-                if (!success) {
-                    alert('Error deleting grade from cloud');
-                }
+                await deleteData('grades', id);
+                appData.grades = appData.grades.filter(g => !(g.grade === grade && g.class === className));
+                updateGradesList();
+                updateSelectors();
+                updateDashboard();
             }
         }
 
@@ -1251,7 +1323,6 @@
             }
             
             const rows = document.querySelectorAll('#attendanceTbody tr');
-            const savePromises = [];
             
             rows.forEach(row => {
                 const studentId = row.querySelector('td').textContent;
@@ -1261,20 +1332,11 @@
                 const key = `${selectedClass}_${selectedSubject}_${date}_${studentId}`;
                 appData.attendance[key] = attendance;
                 
-                const attendanceData = {
-                    class: selectedClass,
-                    subject: selectedSubject,
-                    date: date,
-                    studentId: studentId,
-                    attendance: attendance,
-                    timestamp: new Date()
-                };
-                
-                savePromises.push(saveData('attendance', attendanceData, key));
+                // Save to localStorage
+                saveToLocalStorage('attendance', appData.attendance);
             });
             
-            await Promise.all(savePromises);
-            alert('✅ Attendance saved successfully to cloud!');
+            alert('✅ Attendance saved successfully!');
             loadAttendance();
         }
 
@@ -1296,7 +1358,6 @@
                 return;
             }
             
-            // For demo purposes, generate mock report data
             let html = `<h3>Attendance Report: ${selectedClass} - ${selectedSubject} (${month})</h3>`;
             html += '<div style="overflow-x: auto;"><table><thead><tr><th>Student ID</th><th>Name</th><th>Total Present</th><th>Total Absent</th><th>Attendance %</th></tr></thead><tbody>';
             
