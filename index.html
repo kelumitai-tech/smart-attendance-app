@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
-    <script type="module">
-        // Firebase v10+ Modular SDK
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
-        import { getDatabase, ref, set, onValue, get, remove } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js';
-    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -198,15 +192,6 @@
         }
         .stats-card h2 { font-size: 3em; margin: 10px 0; }
         .principal-only { display: none; }
-        .id-badge {
-            display: inline-block;
-            background: #e3f2fd;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            color: #1565c0;
-            font-weight: 600;
-        }
         .filter-input {
             width: 100%;
             padding: 12px;
@@ -215,53 +200,10 @@
             border-radius: 8px;
             font-size: 14px;
         }
-        .sync-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 0.9em;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            display: none;
-            animation: fadeIn 0.3s;
-            z-index: 1000;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .report-stat {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border-left: 4px solid #005A9C;
-        }
-        .report-stat strong {
-            color: #005A9C;
-            font-size: 1.2em;
-        }
-        .attendance-bar {
-            width: 100%;
-            height: 25px;
-            background: #e0e0e0;
-            border-radius: 12px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        .attendance-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #45a049);
-            transition: width 0.5s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.85em;
-            font-weight: bold;
+        .attendance-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
         }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
@@ -292,13 +234,11 @@
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter password">
+                    <input type="password" id="loginPassword" placeholder="Enter your password">
                 </div>
                 <button class="btn btn-primary" id="loginBtn">🔐 Login</button>
+                <button class="btn btn-google" id="googleBtn">🌐 Sign in with Google</button>
                 <div class="error-msg" id="loginError"></div>
-                <p style="text-align: center; margin-top: 20px; color: #666; font-size: 0.9em;">
-                    <strong>Note:</strong> Create users in Firebase Console or use existing ones.
-                </p>
             </div>
             
             <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
@@ -414,7 +354,7 @@
                         </select>
                     </div>
                     <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
-                    <div id="studentList" style="background: white; padding: 20px; border-radius: 8px;"></div>
+                    <div id="studentList"></div>
                 </div>
             </div>
 
@@ -486,7 +426,7 @@
                 <div class="card">
                     <h3>Teachers List</h3>
                     <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
-                    <div id="teachersList" style="background: white; padding: 20px; border-radius: 8px;"></div>
+                    <div id="teachersList"></div>
                 </div>
             </div>
 
@@ -504,7 +444,7 @@
                 <div class="card">
                     <h3>Subjects List</h3>
                     <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects...">
-                    <div id="subjectsList" style="background: white; padding: 20px; border-radius: 8px;"></div>
+                    <div id="subjectsList"></div>
                 </div>
             </div>
 
@@ -538,191 +478,117 @@
                 <div class="card">
                     <h3>Grades & Classes List</h3>
                     <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
-                    <div id="gradesList" style="background: white; padding: 20px; border-radius: 8px;"></div>
+                    <div id="gradesList"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="sync-status" id="syncStatus">
-        <span id="syncText">✓ Synced with Firebase</span>
-    </div>
-
-    <script type="module">
-        // Firebase Configuration - REPLACE WITH YOUR OWN CONFIG
-        const firebaseConfig = {
-            apiKey: "AIzaSyDEMOKEY123456789", // Replace with real
-            authDomain: "attendance-tracker-demo.firebaseapp.com", // Replace
-            databaseURL: "https://attendance-tracker-demo-default-rtdb.firebaseio.com/", // Replace
-            projectId: "attendance-tracker-demo", // Replace
-            storageBucket: "attendance-tracker-demo.appspot.com", // Replace
-            messagingSenderId: "123456789", // Replace
-            appId: "1:123456789:web:abc123def456" // Replace
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
-
+    <script>
         // App Data
-        let appData = {
-            students: [],
-            teachers: [],
-            grades: [],
-            subjects: [],
-            attendance: {}
+        var appData = {
+            students: [
+                { id: 'S001', name: 'Amal Perera', grade: 'Grade 6 - A', gender: 'Male' },
+                { id: 'S002', name: 'Sithara Silva', grade: 'Grade 6 - A', gender: 'Female' },
+                { id: 'S003', name: 'Kasun Fernando', grade: 'Grade 7 - A', gender: 'Male' },
+                { id: 'S004', name: 'Nimali Jayawardena', grade: 'Grade 7 - A', gender: 'Female' },
+                { id: 'S005', name: 'Ruwan Bandara', grade: 'Grade 8 - A', gender: 'Male' },
+                { id: 'S006', name: 'Dilini Rathnayake', grade: 'Grade 8 - A', gender: 'Female' }
+            ],
+            teachers: [
+                { id: 'T001', name: 'Mr. Perera', subject: 'Mathematics' },
+                { id: 'T002', name: 'Ms. Silva', subject: 'Science' },
+                { id: 'T003', name: 'Mrs. Fernando', subject: 'English' },
+                { id: 'T004', name: 'Mr. Bandara', subject: 'History' }
+            ],
+            grades: [
+                { grade: 'Grade 6', class: 'A' },
+                { grade: 'Grade 7', class: 'A' },
+                { grade: 'Grade 8', class: 'A' }
+            ],
+            subjects: ['Mathematics', 'Science', 'English', 'History', 'Geography'],
+            attendance: {},
+            currentUser: null
         };
 
-        // Global variables
-        let currentUserRole = 'teacher';
-        let currentUser = null;
-        let currentWeekStart = '';
-
-        // Show Sync Status
-        function showSyncStatus(message, color = '#4CAF50') {
-            const status = document.getElementById('syncStatus');
-            const text = document.getElementById('syncText');
-            text.textContent = message;
-            status.style.background = color;
-            status.style.display = 'block';
-            setTimeout(() => status.style.display = 'none', 3000);
-        }
-
-        // Load Data from Firebase
-        async function loadDataFromFirebase() {
-            showSyncStatus('Loading data from Firebase...', '#2196F3');
-            try {
-                const paths = ['students', 'teachers', 'grades', 'subjects', 'attendance'];
-                for (const path of paths) {
-                    const snapshot = await get(ref(db, path));
-                    if (snapshot.exists()) {
-                        appData[path] = snapshot.val() || [];
-                        if (path === 'attendance') appData[path] = snapshot.val() || {};
-                        if (path === 'subjects') appData[path] = snapshot.val() || [];
-                    }
-                }
-                showSyncStatus('✓ Data loaded successfully', '#4CAF50');
-                updateAll();
-            } catch (error) {
-                console.error('Firebase load error:', error);
-                showSyncStatus('⚠ Error loading data', '#f44336');
-            }
-        }
-
-        // Save to Firebase
-        async function saveToFirebase(path, data) {
-            showSyncStatus('💾 Saving to Firebase...', '#2196F3');
-            try {
-                await set(ref(db, path), data);
-                showSyncStatus('✓ Synced with Firebase', '#4CAF50');
-            } catch (error) {
-                console.error('Firebase save error:', error);
-                showSyncStatus('⚠ Sync failed', '#f44336');
-            }
-        }
-
-        // Auth State Listener
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                // Load user role from Firebase or assume based on email
-                getUserRole(user.uid).then(role => {
-                    currentUserRole = role;
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('appContent').style.display = 'block';
-                    document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal (Admin)' : 'Teacher';
-                    document.querySelectorAll('.principal-only').forEach(tab => {
-                        tab.style.display = role === 'principal' ? 'block' : 'none';
-                    });
-                    loadDataFromFirebase();
-                });
-            } else {
-                currentUser = null;
-                document.getElementById('loginScreen').style.display = 'block';
-                document.getElementById('appContent').style.display = 'none';
-            }
-        });
-
-        // Get User Role from Firebase
-        async function getUserRole(uid) {
-            try {
-                const snapshot = await get(ref(db, `users/${uid}/role`));
-                return snapshot.exists() ? snapshot.val() : 'teacher';
-            } catch (error) {
-                console.error('Error getting user role:', error);
-                return 'teacher';
-            }
-        }
-
-        // Login Function
-        window.doLogin = async function() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-            const role = document.getElementById('loginRole').value;
-            const errorMsg = document.getElementById('loginError');
-
-            errorMsg.style.display = 'none';
-            errorMsg.textContent = '';
-
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                // Update role in Firebase if needed
-                await set(ref(db, `users/${userCredential.user.uid}/role`), role);
-                showSyncStatus('Login successful!', '#4CAF50');
-            } catch (error) {
-                errorMsg.textContent = error.message;
-                errorMsg.style.display = 'block';
-            }
-        };
-
-        // Logout
-        window.doLogout = async function() {
-            try {
-                await signOut(auth);
-                showSyncStatus('Logged out successfully', '#FF9800');
-            } catch (error) {
-                console.error('Logout error:', error);
-            }
-        };
-
-        // Initialize on load
+        // Initialize when page loads
         window.onload = function() {
-            // Set up event listeners
             document.getElementById('loginBtn').onclick = doLogin;
+            document.getElementById('googleBtn').onclick = googleLogin;
             document.getElementById('logoutBtn').onclick = doLogout;
-
-            document.querySelectorAll('.nav-tab').forEach(btn => {
-                btn.onclick = () => showTab(btn.getAttribute('data-tab'));
-            });
-
-            // Other event listeners...
+            
+            var navButtons = document.querySelectorAll('.nav-tab');
+            for (var i = 0; i < navButtons.length; i++) {
+                navButtons[i].onclick = function() {
+                    showTab(this.getAttribute('data-tab'));
+                };
+            }
+            
             document.getElementById('studentFilter').onkeyup = filterStudents;
             document.getElementById('teacherFilter').onkeyup = filterTeachers;
             document.getElementById('subjectFilter').onkeyup = filterSubjects;
             document.getElementById('gradeFilter').onkeyup = filterGrades;
             document.getElementById('filterStudentClass').onchange = filterStudents;
-
+            
             document.getElementById('addStudentBtn').onclick = addStudent;
             document.getElementById('addTeacherBtn').onclick = addTeacher;
             document.getElementById('addSubjectBtn').onclick = addSubject;
             document.getElementById('addClassBtn').onclick = addClass;
-
+            
             document.getElementById('loadAttendanceBtn').onclick = loadAttendance;
             document.getElementById('markAllBtn').onclick = markAllPresent;
             document.getElementById('saveAttendanceBtn').onclick = saveAttendance;
             document.getElementById('clearWeekBtn').onclick = clearWeek;
             document.getElementById('generateReportBtn').onclick = generateReport;
+            
+            // Set today's date
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            
+            // Initialize selectors
+            updateSelectors();
         };
 
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        // Login function - FIXED
+        function doLogin() {
+            var email = document.getElementById('loginEmail').value.trim();
+            var password = document.getElementById('loginPassword').value.trim();
+            var role = document.getElementById('loginRole').value;
+            var errorMsg = document.getElementById('loginError');
+            
+            // Validate inputs
+            if (!email || !password) {
+                errorMsg.textContent = 'Please enter both email and password';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            // Simple demo authentication
+            if (email === 'demo@school.com' && password === 'demo123') {
+                appData.currentUser = { email: email, role: role };
+                showApp(role);
+                errorMsg.style.display = 'none';
+            } else {
+                errorMsg.textContent = 'Invalid email or password. Use demo@school.com / demo123';
+                errorMsg.style.display = 'block';
+            }
         }
 
-        function updateAll() {
+        function googleLogin() {
+            alert('Google Sign-In: This feature requires Firebase Authentication setup.\n\nFor demo purposes, use:\nEmail: demo@school.com\nPassword: demo123');
+        }
+
+        function showApp(role) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal' : 'Teacher';
+            
+            // Show/hide principal-only features
+            var principalElements = document.querySelectorAll('.principal-only');
+            for (var i = 0; i < principalElements.length; i++) {
+                principalElements[i].style.display = role === 'principal' ? 'block' : 'none';
+            }
+            
             updateSelectors();
             updateStudentsList();
             updateTeachersList();
@@ -731,327 +597,89 @@
             updateDashboard();
         }
 
+        function doLogout() {
+            appData.currentUser = null;
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('appContent').style.display = 'none';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        function showTab(tabName) {
+            var tabs = document.querySelectorAll('.tab-content');
+            var navTabs = document.querySelectorAll('.nav-tab');
+            
+            for (var i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            for (var i = 0; i < navTabs.length; i++) {
+                navTabs[i].classList.remove('active');
+            }
+            
+            document.getElementById(tabName).classList.add('active');
+            var activeTab = document.querySelector('[data-tab="' + tabName + '"]');
+            if (activeTab) activeTab.classList.add('active');
+        }
+
         function updateSelectors() {
-            const classSelects = ['selectClass', 'reportClass', 'filterStudentClass', 'studentGrade'];
-            classSelects.forEach(id => {
-                const select = document.getElementById(id);
-                select.innerHTML = '<option value="">-- Select Class --</option>';
-                appData.grades.forEach(g => {
-                    const fullClass = `${g.grade} - ${g.class}`;
-                    const option = document.createElement('option');
-                    option.value = fullClass;
-                    option.textContent = fullClass;
-                    select.appendChild(option);
-                });
+            var classSelect = document.getElementById('selectClass');
+            var subjectSelect = document.getElementById('selectSubject');
+            var studentGradeSelect = document.getElementById('studentGrade');
+            var teacherSubjectSelect = document.getElementById('teacherSubject');
+            var reportClassSelect = document.getElementById('reportClass');
+            var reportSubjectSelect = document.getElementById('reportSubject');
+            var filterStudentClass = document.getElementById('filterStudentClass');
+            
+            // Update class selectors
+            var classOptions = '<option value="">-- Select Class --</option>';
+            for (var i = 0; i < appData.grades.length; i++) {
+                var fullClass = appData.grades[i].grade + ' - ' + appData.grades[i].class;
+                classOptions += '<option value="' + fullClass + '">' + fullClass + '</option>';
+            }
+            classSelect.innerHTML = classOptions;
+            studentGradeSelect.innerHTML = classOptions;
+            reportClassSelect.innerHTML = classOptions;
+            filterStudentClass.innerHTML = '<option value="">All Classes</option>' + classOptions;
+            
+            // Update subject selectors
+            var subjectOptions = '<option value="">-- Select Subject --</option>';
+            for (var i = 0; i < appData.subjects.length; i++) {
+                subjectOptions += '<option value="' + appData.subjects[i] + '">' + appData.subjects[i] + '</option>';
+            }
+            subjectSelect.innerHTML = subjectOptions;
+            teacherSubjectSelect.innerHTML = subjectOptions;
+            reportSubjectSelect.innerHTML = subjectOptions;
+        }
+
+        function loadAttendance() {
+            var selectedClass = document.getElementById('selectClass').value;
+            var selectedSubject = document.getElementById('selectSubject').value;
+            var date = document.getElementById('startDate').value;
+            
+            if (!selectedClass || !selectedSubject || !date) {
+                alert('Please select class, subject, and date');
+                return;
+            }
+            
+            var tbody = document.getElementById('attendanceTbody');
+            var html = '';
+            
+            var classStudents = appData.students.filter(function(s) {
+                return s.grade === selectedClass;
             });
-
-            const subjectSelects = ['selectSubject', 'reportSubject', 'teacherSubject'];
-            subjectSelects.forEach(id => {
-                const select = document.getElementById(id);
-                select.innerHTML = '<option value="">-- Select Subject --</option>';
-                appData.subjects.forEach(sub => {
-                    const option = document.createElement('option');
-                    option.value = sub;
-                    option.textContent = sub;
-                    select.appendChild(option);
-                });
-            });
-        }
-
-        function updateStudentsList() {
-            const container = document.getElementById('studentList');
-            const filterClass = document.getElementById('filterStudentClass').value;
-            const search = document.getElementById('studentFilter').value.toLowerCase();
-
-            let filtered = appData.students;
-            if (filterClass) filtered = filtered.filter(s => s.grade === filterClass);
-            if (search) filtered = filtered.filter(s => 
-                s.id.toLowerCase().includes(search) || 
-                s.name.toLowerCase().includes(search) || 
-                s.grade.toLowerCase().includes(search)
-            );
-
-            container.innerHTML = filtered.map(s => `
-                <div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
-                    <div><span class="id-badge">${s.id}</span> ${s.name} <small>(${s.grade}, ${s.gender})</small></div>
-                </div>
-            `).join('') || '<p style="color:#999; text-align:center;">No students found</p>';
-        }
-
-        function updateTeachersList() {
-            const container = document.getElementById('teachersList');
-            const search = document.getElementById('teacherFilter').value.toLowerCase();
-            const filtered = appData.teachers.filter(t => 
-                t.id.toLowerCase().includes(search) || 
-                t.name.toLowerCase().includes(search) || 
-                t.subject.toLowerCase().includes(search)
-            );
-            container.innerHTML = filtered.map(t => `
-                <div style="padding:10px; border-bottom:1px solid #eee;">
-                    <span class="id-badge">${t.id}</span> ${t.name} – ${t.subject}
-                </div>
-            `).join('') || '<p style="color:#999; text-align:center;">No teachers found</p>';
-        }
-
-        function updateSubjectsList() {
-            const container = document.getElementById('subjectsList');
-            const search = document.getElementById('subjectFilter').value.toLowerCase();
-            const filtered = appData.subjects.filter(s => s.toLowerCase().includes(search));
-            container.innerHTML = filtered.map(s => `<div style="padding:10px; border-bottom:1px solid #eee;">${s}</div>`).join('') || '<p style="color:#999; text-align:center;">No subjects found</p>';
-        }
-
-        function updateGradesList() {
-            const container = document.getElementById('gradesList');
-            const search = document.getElementById('gradeFilter').value.toLowerCase();
-            const filtered = appData.grades.filter(g => 
-                g.grade.toLowerCase().includes(search) || g.class.toLowerCase().includes(search)
-            );
-            container.innerHTML = filtered.map(g => `<div style="padding:10px; border-bottom:1px solid #eee;">${g.grade} - ${g.class}</div>`).join('') || '<p style="color:#999; text-align:center;">No classes found</p>';
-        }
-
-        function updateDashboard() {
-            document.getElementById('totalStudents').textContent = appData.students.length;
-            document.getElementById('totalTeachers').textContent = appData.teachers.length;
-            document.getElementById('totalGrades').textContent = appData.grades.length;
-            document.getElementById('totalSubjects').textContent = appData.subjects.length;
-        }
-
-        // Filter functions
-        function filterStudents() { updateStudentsList(); }
-        function filterTeachers() { updateTeachersList(); }
-        function filterSubjects() { updateSubjectsList(); }
-        function filterGrades() { updateGradesList(); }
-
-        // Add Student
-        window.addStudent = async function() {
-            const id = document.getElementById('studentId').value.trim().toUpperCase();
-            const name = document.getElementById('studentName').value.trim();
-            const grade = document.getElementById('studentGrade').value;
-            const gender = document.getElementById('studentGender').value;
-            const msg = document.getElementById('studentSuccess');
-
-            if (!id || !name || !grade) {
-                msg.textContent = 'All fields required';
-                msg.style.display = 'block';
+            
+            if (classStudents.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students found in this class</td></tr>';
                 return;
             }
-            if (appData.students.some(s => s.id === id)) {
-                msg.textContent = 'Student ID already exists';
-                msg.style.display = 'block';
-                return;
-            }
-
-            appData.students.push({ id, name, grade, gender });
-            await saveToFirebase('students', appData.students);
-            document.getElementById('studentId').value = '';
-            document.getElementById('studentName').value = '';
-            msg.textContent = 'Student added successfully';
-            msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 3000);
-            updateAll();
-        };
-
-        // Add Teacher
-        window.addTeacher = async function() {
-            const id = document.getElementById('teacherId').value.trim().toUpperCase();
-            const name = document.getElementById('teacherName').value.trim();
-            const subject = document.getElementById('teacherSubject').value;
-            const msg = document.getElementById('teacherSuccess');
-
-            if (!id || !name || !subject) {
-                msg.textContent = 'All fields required';
-                msg.style.display = 'block';
-                return;
-            }
-            if (appData.teachers.some(t => t.id === id)) {
-                msg.textContent = 'Teacher ID already exists';
-                msg.style.display = 'block';
-                return;
-            }
-
-            appData.teachers.push({ id, name, subject });
-            await saveToFirebase('teachers', appData.teachers);
-            document.getElementById('teacherId').value = '';
-            document.getElementById('teacherName').value = '';
-            msg.textContent = 'Teacher added successfully';
-            msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 3000);
-            updateAll();
-        };
-
-        // Add Subject
-        window.addSubject = async function() {
-            const name = document.getElementById('subjectName').value.trim();
-            const msg = document.getElementById('subjectSuccess');
-
-            if (!name) {
-                msg.textContent = 'Subject name required';
-                msg.style.display = 'block';
-                return;
-            }
-            if (appData.subjects.includes(name)) {
-                msg.textContent = 'Subject already exists';
-                msg.style.display = 'block';
-                return;
-            }
-
-            appData.subjects.push(name);
-            await saveToFirebase('subjects', appData.subjects);
-            document.getElementById('subjectName').value = '';
-            msg.textContent = 'Subject added successfully';
-            msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 3000);
-            updateAll();
-        };
-
-        // Add Class
-        window.addClass = async function() {
-            const grade = document.getElementById('newGrade').value;
-            const cls = document.getElementById('className').value.trim().toUpperCase();
-            const msg = document.getElementById('classSuccess');
-
-            if (!grade || !cls) {
-                msg.textContent = 'Grade and class required';
-                msg.style.display = 'block';
-                return;
-            }
-            const fullClass = `${grade} - ${cls}`;
-            if (appData.grades.some(g => `${g.grade} - ${g.class}` === fullClass)) {
-                msg.textContent = 'Class already exists';
-                msg.style.display = 'block';
-                return;
-            }
-
-            appData.grades.push({ grade, class: cls });
-            await saveToFirebase('grades', appData.grades);
-            document.getElementById('className').value = '';
-            msg.textContent = 'Class added successfully';
-            msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 3000);
-            updateAll();
-        };
-
-        // Attendance Functions
-        function getMonday(dateStr) {
-            const date = new Date(dateStr);
-            const day = date.getDay();
-            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-            date.setDate(diff);
-            return date.toISOString().split('T')[0];
-        }
-
-        window.loadAttendance = async function() {
-            const cls = document.getElementById('selectClass').value;
-            const subj = document.getElementById('selectSubject').value;
-            const date = document.getElementById('startDate').value;
-            if (!cls || !subj || !date) {
-                alert('Select class, subject, and date');
-                return;
-            }
-
-            const weekStart = getMonday(date);
-            currentWeekStart = `${cls}|${subj}|${weekStart}`;
-            const tbody = document.getElementById('attendanceTbody');
-            const students = appData.students.filter(s => s.grade === cls);
-
-            tbody.innerHTML = students.map(s => {
-                const key = `${currentWeekStart}|${s.id}`;
-                const rec = appData.attendance[key] || { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0 };
-                return `<tr data-id="${s.id}">
-                    <td>${s.id}</td>
-                    <td>${s.name}</td>
-                    <td><input type="checkbox" ${rec.mon ? 'checked' : ''} onchange="updateDay(this,'mon')"></td>
-                    <td><input type="checkbox" ${rec.tue ? 'checked' : ''} onchange="updateDay(this,'tue')"></td>
-                    <td><input type="checkbox" ${rec.wed ? 'checked' : ''} onchange="updateDay(this,'wed')"></td>
-                    <td><input type="checkbox" ${rec.thu ? 'checked' : ''} onchange="updateDay(this,'thu')"></td>
-                    <td><input type="checkbox" ${rec.fri ? 'checked' : ''} onchange="updateDay(this,'fri')"></td>
-                    <td class="total">${Object.values(rec).reduce((a, b) => a + b, 0)}</td>
-                </tr>`;
-            }).join('');
-        };
-
-        window.updateDay = function(cb, day) {
-            const row = cb.closest('tr');
-            const id = row.dataset.id;
-            const key = `${currentWeekStart}|${id}`;
-            if (!appData.attendance[key]) appData.attendance[key] = {};
-            appData.attendance[key][day] = cb.checked ? 1 : 0;
-            const total = Object.values(appData.attendance[key]).reduce((a, b) => a + b, 0);
-            row.querySelector('.total').textContent = total;
-        };
-
-        window.markAllPresent = function() {
-            document.querySelectorAll('#attendanceTbody input[type="checkbox"]').forEach(cb => {
-                cb.checked = true;
-                updateDay(cb, cb.parentElement.cellIndex === 2 ? 'mon' : cb.parentElement.cellIndex === 3 ? 'tue' : cb.parentElement.cellIndex === 4 ? 'wed' : cb.parentElement.cellIndex === 5 ? 'thu' : 'fri');
-            });
-        };
-
-        window.saveAttendance = async function() {
-            await saveToFirebase('attendance', appData.attendance);
-        };
-
-        window.clearWeek = async function() {
-            if (!confirm('Clear all attendance for this week?')) return;
-            document.querySelectorAll('#attendanceTbody tr').forEach(row => {
-                const id = row.dataset.id;
-                const key = `${currentWeekStart}|${id}`;
-                delete appData.attendance[key];
-                row.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-                row.querySelector('.total').textContent = 0;
-            });
-            await saveToFirebase('attendance', appData.attendance);
-        };
-
-        // Generate Report
-        window.generateReport = async function() {
-            const cls = document.getElementById('reportClass').value;
-            const subj = document.getElementById('reportSubject').value;
-            const month = document.getElementById('reportMonth').value;
-            if (!cls || !subj || !month) {
-                alert('Select class, subject, and month');
-                return;
-            }
-
-            const [year, mon] = month.split('-');
-            const daysInMonth = new Date(year, mon, 0).getDate();
-            const studentStats = {};
-            appData.students.filter(s => s.grade === cls).forEach(s => {
-                studentStats[s.id] = { name: s.name, present: 0, total: 0 };
-            });
-
-            let totalDays = 0;
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateStr = `${year}-${mon.padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                const weekStart = getMonday(dateStr);
-                const keyPrefix = `${cls}|${subj}|${weekStart}`;
-                const dayOfWeek = new Date(dateStr).getDay();
-                if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip weekends
-
-                totalDays++;
-                const dayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][dayOfWeek];
-                if (dayKey === 'sun' || dayKey === 'sat') continue;
-
-                Object.keys(studentStats).forEach(id => {
-                    const rec = appData.attendance[`${keyPrefix}|${id}`] || {};
-                    if (rec[dayKey]) studentStats[id].present++;
-                    studentStats[id].total++;
-                });
-            }
-
-            const output = document.getElementById('reportOutput');
-            let html = `<div class="card"><h3>Report: ${cls} - ${subj} (${month})</h3>
-                <div class="report-stat"><strong>Total School Days:</strong> ${totalDays}</div>`;
-            Object.values(studentStats).forEach(st => {
-                const perc = st.total > 0 ? Math.round((st.present / st.total) * 100) : 0;
-                html += `<div class="report-stat">
-                    <strong>${st.name}</strong>: ${st.present}/${st.total} (${perc}%)
-                    <div class="attendance-bar"><div class="attendance-bar-fill" style="width: ${perc}%"></div></div>
-                </div>`;
-            });
-            html += '</div>';
-            output.innerHTML = html;
-        };
-    </script>
-</body>
-</html>
+            
+            for (var i = 0; i < classStudents.length; i++) {
+                var student = classStudents[i];
+                var key = selectedClass + '_' + selectedSubject + '_' + date + '_' + student.id;
+                var attendance = appData.attendance[key] || [false, false, false, false, false];
+                
+                html += '<tr>';
+                html += '<td>' + student.id + '</td>';
+                html += '<td>' + student.name + '</td>';
+                
+                for (var j = 0; j < 5; j++) {
+                    html += '<td><input type="checkbox" class="attendance-checkbox" data-student="' + student.id + '" data-day="' + j + '" ' + (attendance[j] ? 'checked' : '') + '></td>';
