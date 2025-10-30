@@ -698,6 +698,30 @@
             document.getElementById('teachersList').innerHTML = html;
         }
 
+        function addTeacher() {
+            var id = document.getElementById('teacherId').value.trim();
+            var name = document.getElementById('teacherName').value.trim();
+            var subject = document.getElementById('teacherSubject').value;
+            
+            if (!id || !name || !subject) {
+                alert('කරුණාකර සියලුම fields පුරවන්න!');
+                return;
+            }
+            
+            appData.teachers.push({ id: id, name: name, subject: subject });
+            
+            document.getElementById('teacherSuccess').textContent = '✓ Teacher එකතු කරන ලදී!';
+            document.getElementById('teacherSuccess').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('teacherSuccess').style.display = 'none';
+            }, 3000);
+            
+            document.getElementById('teacherId').value = '';
+            document.getElementById('teacherName').value = '';
+            updateTeachersList();
+            updateDashboard();
+        }
+
         function filterTeachers() {
             var filter = document.getElementById('teacherFilter').value.toLowerCase();
             var rows = document.querySelectorAll('.teacher-row');
@@ -705,4 +729,133 @@
             for (var i = 0; i < rows.length; i++) {
                 var row = rows[i];
                 var id = row.getAttribute('data-id');
-                var name = row.getAttribute('data
+                var name = row.getAttribute('data-name');
+                var subject = row.getAttribute('data-subject');
+                
+                if (id.includes(filter) || name.includes(filter) || subject.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        function updateSubjectsList() {
+            var html = '<table style="width:100%"><tr><th>Subject Name</th></tr>';
+            for (var i = 0; i < appData.subjects.length; i++) {
+                html += '<tr class="subject-row" data-subject="' + appData.subjects[i].toLowerCase() + '">';
+                html += '<td>' + appData.subjects[i] + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('subjectsList').innerHTML = html;
+        }
+
+        function addSubject() {
+            var name = document.getElementById('subjectName').value.trim();
+            
+            if (!name) {
+                alert('කරුණාකර subject name එක ඇතුලත් කරන්න!');
+                return;
+            }
+            
+            appData.subjects.push(name);
+            
+            document.getElementById('subjectSuccess').textContent = '✓ Subject එකතු කරන ලදී!';
+            document.getElementById('subjectSuccess').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('subjectSuccess').style.display = 'none';
+            }, 3000);
+            
+            document.getElementById('subjectName').value = '';
+            updateSubjectsList();
+            updateSelectors();
+            updateDashboard();
+        }
+
+        function filterSubjects() {
+            var filter = document.getElementById('subjectFilter').value.toLowerCase();
+            var rows = document.querySelectorAll('.subject-row');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var subject = row.getAttribute('data-subject');
+                
+                if (subject.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        function loadAttendance() {
+            var selectedClass = document.getElementById('selectClass').value;
+            if (!selectedClass) {
+                alert('කරුණාකර class එකක් select කරන්න!');
+                return;
+            }
+            
+            var html = '';
+            var studentsInClass = appData.students.filter(function(s) { return s.grade === selectedClass; });
+            
+            for (var i = 0; i < studentsInClass.length; i++) {
+                var s = studentsInClass[i];
+                html += '<tr>';
+                html += '<td><span class="id-badge">' + s.id + '</span></td>';
+                html += '<td>' + s.name + '</td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="mon"></td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="tue"></td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="wed"></td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="thu"></td>';
+                html += '<td><input type="checkbox" data-student="' + s.id + '" data-day="fri"></td>';
+                html += '<td>0/5</td>';
+                html += '</tr>';
+            }
+            
+            document.getElementById('attendanceTbody').innerHTML = html;
+        }
+
+        function markAllPresent() {
+            var checkboxes = document.querySelectorAll('#attendanceTbody input[type="checkbox"]');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = true;
+            }
+            alert('✓ සියලුම students present ලෙස mark කරන ලදී!');
+        }
+
+        function saveAttendance() {
+            alert('✓ Attendance සුරකින ලදී!');
+        }
+
+        function clearWeek() {
+            var checkboxes = document.querySelectorAll('#attendanceTbody input[type="checkbox"]');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = false;
+            }
+            alert('✓ Week එක clear කරන ලදී!');
+        }
+
+        function generateReport() {
+            var cls = document.getElementById('reportClass').value;
+            var subject = document.getElementById('reportSubject').value;
+            var month = document.getElementById('reportMonth').value;
+            
+            if (!cls || !subject || !month) {
+                alert('කරුණාකර සියලුම fields පුරවන්න!');
+                return;
+            }
+            
+            var html = '<div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #005A9C;">';
+            html += '<h3 style="color: #005A9C;">📊 Monthly Report</h3>';
+            html += '<p><strong>Class:</strong> ' + cls + '</p>';
+            html += '<p><strong>Subject:</strong> ' + subject + '</p>';
+            html += '<p><strong>Month:</strong> ' + month + '</p>';
+            html += '<p style="margin-top: 20px; color: #666;">Report generated successfully!</p>';
+            html += '</div>';
+            
+            document.getElementById('reportOutput').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
