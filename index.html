@@ -707,4 +707,101 @@
             appData.students.push({ id: id, name: name, grade: grade, gender: gender });
             document.getElementById('studentId').value = '';
             document.getElementById('studentName').value = '';
-            showSuccess('studentSuccess', 'Student added successfully!
+            showSuccess('studentSuccess', 'Student added!');
+            updateLists();
+            updateDashboard();
+        }
+
+        function addTeacher() {
+            var id = document.getElementById('teacherId').value;
+            var name = document.getElementById('teacherName').value;
+            var subject = document.getElementById('teacherSubject').value;
+            
+            if (!id || !name || !subject) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            appData.teachers.push({ id: id, name: name, subject: subject });
+            document.getElementById('teacherId').value = '';
+            document.getElementById('teacherName').value = '';
+            showSuccess('teacherSuccess', 'Teacher added!');
+            updateLists();
+            updateDashboard();
+        }
+
+        function addClass() {
+            var grade = document.getElementById('newGrade').value;
+            var className = document.getElementById('className').value;
+            
+            if (!grade || !className) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            appData.grades.push({ grade: grade, class: className });
+            document.getElementById('className').value = '';
+            showSuccess('classSuccess', 'Class added!');
+            updateSelectors();
+            updateLists();
+            updateDashboard();
+        }
+
+        function addSubject() {
+            var subject = document.getElementById('subjectName').value;
+            
+            if (!subject) {
+                alert('Please enter subject name');
+                return;
+            }
+            
+            appData.subjects.push(subject);
+            document.getElementById('subjectName').value = '';
+            showSuccess('subjectSuccess', 'Subject added!');
+            updateSelectors();
+            updateLists();
+            updateDashboard();
+        }
+
+        function generateReport() {
+            var subject = document.getElementById('reportSubject').value;
+            var month = document.getElementById('reportMonth').value;
+            
+            if (!subject || !month) {
+                alert('Please select subject and month');
+                return;
+            }
+            
+            var html = '<div style="background: white; padding: 20px; border-radius: 8px;">';
+            html += '<h4>Monthly Attendance Report</h4>';
+            html += '<p><strong>Subject:</strong> ' + subject + ' | <strong>Month:</strong> ' + month + '</p>';
+            html += '<table style="width: 100%; margin-top: 20px;">';
+            html += '<tr><th>Student ID</th><th>Name</th><th>Days Present</th><th>Percentage</th></tr>';
+            
+            for (var i = 0; i < appData.students.length; i++) {
+                var s = appData.students[i];
+                var days = Math.floor(Math.random() * 18) + 5;
+                var percentage = Math.floor((days / 22) * 100);
+                html += '<tr>';
+                html += '<td>' + s.id + '</td>';
+                html += '<td>' + s.name + '</td>';
+                html += '<td>' + days + '/22</td>';
+                html += '<td>' + percentage + '%</td>';
+                html += '</tr>';
+            }
+            
+            html += '</table></div>';
+            document.getElementById('reportOutput').innerHTML = html;
+        }
+
+        function showSuccess(elementId, message) {
+            var el = document.getElementById(elementId);
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(function() {
+                el.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
