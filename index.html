@@ -721,4 +721,210 @@
                     checkboxes.forEach(function(cb) {
                         attendance.push(cb.checked);
                     });
-                    var key
+                    var key = selectedClass + '_' + selectedSubject + '_' + date + '_' + id;
+                    appData.attendance[key] = attendance;
+                }
+            });
+            
+            alert('Attendance saved successfully!');
+            loadAttendance(); // Refresh to show updated totals
+        }
+
+        function generateReport() {
+            var selectedClass = document.getElementById('reportClass').value;
+            var selectedSubject = document.getElementById('reportSubject').value;
+            var month = document.getElementById('reportMonth').value;
+            
+            if (!selectedClass || !selectedSubject || !month) {
+                alert('Please select class, subject, and month');
+                return;
+            }
+            
+            var classStudents = appData.students.filter(function(s) {
+                return s.grade === selectedClass;
+            });
+            
+            if (classStudents.length === 0) {
+                document.getElementById('reportOutput').innerHTML = '<div class="info-box">No students in this class</div>';
+                return;
+            }
+            
+            var html = '<h3>Attendance Report: ' + selectedClass + ' - ' + selectedSubject + ' (' + month + ')</h3>';
+            html += '<div style="overflow-x: auto;"><table><thead><tr><th>Student ID</th><th>Name</th><th>Total Present</th><th>Total Absent</th><th>Attendance %</th></tr></thead><tbody>';
+            
+            classStudents.forEach(function(student) {
+                // In a real app, you would calculate based on actual attendance data
+                var presentDays = Math.floor(Math.random() * 20) + 10; // Mock data
+                var totalDays = 22; // Mock total school days
+                var percentage = ((presentDays / totalDays) * 100).toFixed(1);
+                
+                html += '<tr>';
+                html += '<td>' + student.id + '</td>';
+                html += '<td>' + student.name + '</td>';
+                html += '<td>' + presentDays + '</td>';
+                html += '<td>' + (totalDays - presentDays) + '</td>';
+                html += '<td><strong>' + percentage + '%</strong></td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            document.getElementById('reportOutput').innerHTML = html;
+        }
+
+        function addStudent() {
+            var id = document.getElementById('studentId').value.trim();
+            var name = document.getElementById('studentName').value.trim();
+            var grade = document.getElementById('studentGrade').value;
+            var gender = document.getElementById('studentGender').value;
+            var successMsg = document.getElementById('studentSuccess');
+            
+            if (!id || !name || !grade) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            if (appData.students.find(s => s.id === id)) {
+                alert('Student ID already exists');
+                return;
+            }
+            
+            appData.students.push({
+                id: id,
+                name: name,
+                grade: grade,
+                gender: gender
+            });
+            
+            successMsg.textContent = 'Student added successfully!';
+            successMsg.style.display = 'block';
+            
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentGrade').selectedIndex = 0;
+            
+            updateStudentsList();
+            setTimeout(function() {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        function addTeacher() {
+            var id = document.getElementById('teacherId').value.trim();
+            var name = document.getElementById('teacherName').value.trim();
+            var subject = document.getElementById('teacherSubject').value;
+            var successMsg = document.getElementById('teacherSuccess');
+            
+            if (!id || !name || !subject) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            if (appData.teachers.find(t => t.id === id)) {
+                alert('Teacher ID already exists');
+                return;
+            }
+            
+            appData.teachers.push({
+                id: id,
+                name: name,
+                subject: subject
+            });
+            
+            successMsg.textContent = 'Teacher added successfully!';
+            successMsg.style.display = 'block';
+            
+            document.getElementById('teacherId').value = '';
+            document.getElementById('teacherName').value = '';
+            document.getElementById('teacherSubject').selectedIndex = 0;
+            
+            updateTeachersList();
+            setTimeout(function() {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        function addSubject() {
+            var name = document.getElementById('subjectName').value.trim();
+            var successMsg = document.getElementById('subjectSuccess');
+            
+            if (!name) {
+                alert('Please enter subject name');
+                return;
+            }
+            
+            if (appData.subjects.includes(name)) {
+                alert('Subject already exists');
+                return;
+            }
+            
+            appData.subjects.push(name);
+            
+            successMsg.textContent = 'Subject added successfully!';
+            successMsg.style.display = 'block';
+            
+            document.getElementById('subjectName').value = '';
+            
+            updateSubjectsList();
+            updateSelectors();
+            setTimeout(function() {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        function addClass() {
+            var grade = document.getElementById('newGrade').value;
+            var className = document.getElementById('className').value.trim();
+            var successMsg = document.getElementById('classSuccess');
+            
+            if (!grade || !className) {
+                alert('Please select grade and enter class name');
+                return;
+            }
+            
+            var fullClass = grade + ' - ' + className;
+            if (appData.grades.find(g => g.grade === grade && g.class === className)) {
+                alert('This grade and class combination already exists');
+                return;
+            }
+            
+            appData.grades.push({
+                grade: grade,
+                class: className
+            });
+            
+            successMsg.textContent = 'Grade & Class added successfully!';
+            successMsg.style.display = 'block';
+            
+            document.getElementById('newGrade').selectedIndex = 0;
+            document.getElementById('className').value = '';
+            
+            updateGradesList();
+            updateSelectors();
+            setTimeout(function() {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        function updateStudentsList() {
+            var container = document.getElementById('studentList');
+            var filter = document.getElementById('studentFilter').value.toLowerCase();
+            var classFilter = document.getElementById('filterStudentClass').value;
+            
+            var filteredStudents = appData.students.filter(function(student) {
+                var matchesSearch = student.id.toLowerCase().includes(filter) || 
+                                   student.name.toLowerCase().includes(filter) ||
+                                   student.grade.toLowerCase().includes(filter);
+                var matchesClass = !classFilter || student.grade === classFilter;
+                return matchesSearch && matchesClass;
+            });
+            
+            if (filteredStudents.length === 0) {
+                container.innerHTML = '<div class="info-box">No students found</div>';
+                return;
+            }
+            
+            var html = '';
+            filteredStudents.forEach(function(student) {
+                html += '<div class="student-item">';
+                html += '<strong>' + student.id + ' - ' + student.name + '</strong>';
+                html += '<br><small>Class: ' + student.grade + ' | Gender: ' + student.gender +
