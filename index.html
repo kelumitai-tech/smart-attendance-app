@@ -245,15 +245,9 @@
                     <label>Password</label>
                     <input type="password" id="loginPassword" value="demo123">
                 </div>
-                <button class="btn btn-primary" onclick="doLogin()">🔐 Login Now</button>
-                <button class="btn btn-google" onclick="googleLogin()">🔐 Sign in with Google (Demo)</button>
+                <button class="btn btn-primary" onclick="doLogin()">🔐 Login</button>
+                <button class="btn btn-google" onclick="googleLogin()">🔐 Sign in with Google</button>
                 <div class="error-msg" id="loginError"></div>
-                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
-                    <p style="margin: 0; color: #856404; font-size: 0.9em; text-align: center;">
-                        <strong>Demo Credentials:</strong><br>
-                        Email: demo@school.com | Password: demo123
-                    </p>
-                </div>
             </div>
             
             <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
@@ -526,8 +520,8 @@
         var attendanceChart = null;
 
         function doLogin() {
-            var email = document.getElementById('loginEmail').value;
-            var password = document.getElementById('loginPassword').value;
+            var email = document.getElementById('loginEmail').value.trim();
+            var password = document.getElementById('loginPassword').value.trim();
             var role = document.getElementById('loginRole').value;
             
             if (!email || !password) {
@@ -536,18 +530,12 @@
                 return;
             }
             
-            if (password !== 'demo123') {
-                document.getElementById('loginError').textContent = 'වැරදි password එකක්! (demo123 භාවිතා කරන්න)';
-                document.getElementById('loginError').style.display = 'block';
-                return;
-            }
-            
+            // Login සාර්ථකයි - ඕනෑම email/password එකක් භාවිතා කරන්න පුළුවන්
             performLogin(role);
         }
 
         function googleLogin() {
             var role = document.getElementById('loginRole').value;
-            alert('Google Login සාර්ථකයි! ✓\nDemo account එකෙන් login වෙනවා...');
             performLogin(role);
         }
 
