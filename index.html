@@ -201,6 +201,14 @@
             color: #1565c0;
             font-weight: 600;
         }
+        .filter-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
         }
@@ -254,28 +262,57 @@
             <div class="nav-tabs" id="navTabs">
                 <button class="nav-tab active" data-tab="attendance">📋 Attendance</button>
                 <button class="nav-tab" data-tab="students">👥 Students</button>
+                <button class="nav-tab" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
+                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
+                <button class="nav-tab principal-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
             <!-- Attendance Tab -->
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class to mark attendance</div>
+                    <div class="info-box">Select class, subject, and date to mark attendance</div>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="selectClass"></select>
                     </div>
                     <div class="form-group">
+                        <label>Select Subject</label>
+                        <select id="selectSubject"></select>
+                    </div>
+                    <div class="form-group">
                         <label>Date</label>
                         <input type="date" id="startDate">
                     </div>
+                    <button class="btn btn-primary" id="loadAttendanceBtn">Load Attendance Sheet</button>
                 </div>
 
                 <div class="card">
-                    <h3>Student List</h3>
-                    <div id="studentList" style="background: white; padding: 20px; border-radius: 8px;">
-                        <p style="text-align: center; color: #999;">Select a class to view students</p>
+                    <h3>Attendance Sheet</h3>
+                    <div style="overflow-x: auto;">
+                        <table id="attendanceTable">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Mon</th>
+                                    <th>Tue</th>
+                                    <th>Wed</th>
+                                    <th>Thu</th>
+                                    <th>Fri</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTbody">
+                                <tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" id="markAllBtn">✓ Mark All Present</button>
+                        <button class="btn btn-primary" id="saveAttendanceBtn">💾 Save Attendance</button>
+                        <button class="btn btn-danger" id="clearWeekBtn">✗ Clear Week</button>
                     </div>
                 </div>
             </div>
@@ -283,8 +320,65 @@
             <!-- Students Tab -->
             <div class="tab-content" id="students">
                 <div class="card">
-                    <h3>All Students</h3>
-                    <div id="allStudentsList" style="background: white; padding: 20px; border-radius: 8px;"></div>
+                    <h3>Add New Student</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Student ID</label>
+                            <input type="text" id="studentId" placeholder="e.g., S001">
+                        </div>
+                        <div class="form-group">
+                            <label>Student Name</label>
+                            <input type="text" id="studentName" placeholder="Enter name">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select id="studentGrade"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="studentGender">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="addStudentBtn">Add Student</button>
+                    <div class="success-msg" id="studentSuccess"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Student List</h3>
+                    <div class="form-group">
+                        <label>Filter by Class</label>
+                        <select id="filterStudentClass">
+                            <option value="">All Classes</option>
+                        </select>
+                    </div>
+                    <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
+                    <div id="studentList" style="background: white; padding: 20px; border-radius: 8px;"></div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div class="tab-content" id="reports">
+                <div class="card">
+                    <h3>Generate Monthly Report</h3>
+                    <div class="form-group">
+                        <label>Select Class</label>
+                        <select id="reportClass"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Subject</label>
+                        <select id="reportSubject"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Month</label>
+                        <input type="month" id="reportMonth">
+                    </div>
+                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
+                    <div id="reportOutput" style="margin-top: 20px;"></div>
                 </div>
             </div>
 
@@ -294,12 +388,66 @@
                 <div class="grid-2">
                     <div class="stats-card">
                         <p>Total Students</p>
-                        <h2 id="totalStudents">6</h2>
+                        <h2 id="totalStudents">0</h2>
                     </div>
                     <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                        <p>Total Classes</p>
-                        <h2 id="totalGrades">3</h2>
+                        <p>Total Teachers</p>
+                        <h2 id="totalTeachers">0</h2>
                     </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <p>Total Classes</p>
+                        <h2 id="totalGrades">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <p>Total Subjects</p>
+                        <h2 id="totalSubjects">0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teachers Tab -->
+            <div class="tab-content principal-only" id="teachers">
+                <div class="card">
+                    <h3>Add New Teacher</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Teacher ID</label>
+                            <input type="text" id="teacherId" placeholder="e.g., T001">
+                        </div>
+                        <div class="form-group">
+                            <label>Teacher Name</label>
+                            <input type="text" id="teacherName" placeholder="Enter name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select id="teacherSubject"></select>
+                    </div>
+                    <button class="btn btn-primary" id="addTeacherBtn">Add Teacher</button>
+                    <div class="success-msg" id="teacherSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Teachers List</h3>
+                    <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
+                    <div id="teachersList" style="background: white; padding: 20px; border-radius: 8px;"></div>
+                </div>
+            </div>
+
+            <!-- Subjects Tab -->
+            <div class="tab-content principal-only" id="subjects">
+                <div class="card">
+                    <h3>Add New Subject</h3>
+                    <div class="form-group">
+                        <label>Subject Name</label>
+                        <input type="text" id="subjectName" placeholder="e.g., Mathematics">
+                    </div>
+                    <button class="btn btn-primary" id="addSubjectBtn">Add Subject</button>
+                    <div class="success-msg" id="subjectSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Subjects List</h3>
+                    <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects...">
+                    <div id="subjectsList" style="background: white; padding: 20px; border-radius: 8px;"></div>
                 </div>
             </div>
         </div>
@@ -316,22 +464,26 @@
                 { id: 'S005', name: 'Ruwan Bandara', grade: 'Grade 8 - A', gender: 'Male' },
                 { id: 'S006', name: 'Dilini Rathnayake', grade: 'Grade 8 - A', gender: 'Female' }
             ],
+            teachers: [
+                { id: 'T001', name: 'Mr. Perera', subject: 'Mathematics' },
+                { id: 'T002', name: 'Ms. Silva', subject: 'Science' },
+                { id: 'T003', name: 'Mrs. Fernando', subject: 'English' },
+                { id: 'T004', name: 'Mr. Bandara', subject: 'History' }
+            ],
             grades: [
                 { grade: 'Grade 6', class: 'A' },
                 { grade: 'Grade 7', class: 'A' },
                 { grade: 'Grade 8', class: 'A' }
-            ]
+            ],
+            subjects: ['Mathematics', 'Science', 'English', 'History', 'Geography'],
+            attendance: {}
         };
 
         // Initialize when page loads
         window.onload = function() {
-            alert('🎉 Page Loaded Successfully!\n\nInitializing Login System...');
-            
             document.getElementById('loginBtn').onclick = doLogin;
             document.getElementById('googleBtn').onclick = googleLogin;
             document.getElementById('logoutBtn').onclick = doLogout;
-            
-            alert('✅ Event Listeners Attached!\n\nLogin buttons are ready to use.');
             
             // Tab navigation
             var navButtons = document.querySelectorAll('.nav-tab');
@@ -341,42 +493,46 @@
                 };
             }
             
-            document.getElementById('selectClass').onchange = loadStudentsByClass;
+            // Filters
+            document.getElementById('studentFilter').onkeyup = filterStudents;
+            document.getElementById('teacherFilter').onkeyup = filterTeachers;
+            document.getElementById('subjectFilter').onkeyup = filterSubjects;
+            document.getElementById('filterStudentClass').onchange = filterStudents;
+            
+            // Add buttons
+            document.getElementById('addStudentBtn').onclick = addStudent;
+            document.getElementById('addTeacherBtn').onclick = addTeacher;
+            document.getElementById('addSubjectBtn').onclick = addSubject;
+            
+            // Attendance
+            document.getElementById('loadAttendanceBtn').onclick = loadAttendance;
+            document.getElementById('markAllBtn').onclick = markAllPresent;
+            document.getElementById('saveAttendanceBtn').onclick = saveAttendance;
+            document.getElementById('clearWeekBtn').onclick = clearWeek;
+            document.getElementById('generateReportBtn').onclick = generateReport;
         };
 
         function doLogin() {
-            alert('🔔 Login Button Clicked!\n\nChecking credentials...');
-            
             var email = document.getElementById('loginEmail').value.trim();
             var password = document.getElementById('loginPassword').value.trim();
             var role = document.getElementById('loginRole').value;
             
-            alert('📧 Email: ' + email + '\n🔑 Password: ' + password + '\n👤 Role: ' + role);
-            
             if (!email || !password) {
-                alert('❌ Error: Email හෝ Password එක හිස්!');
                 document.getElementById('loginError').textContent = 'කරුණාකර email සහ password ඇතුලත් කරන්න';
                 document.getElementById('loginError').style.display = 'block';
                 return;
             }
             
-            alert('✅ Validation Success!\n\nLogging in as ' + role + '...');
             document.getElementById('loginError').style.display = 'none';
             performLogin(role);
         }
 
         function googleLogin() {
-            alert('🌐 Google Sign-In Button Clicked!');
-            
             var role = document.getElementById('loginRole').value;
-            
-            alert('✅ Google Authentication Successful!\n\n👤 Role: ' + role + '\n\nRedirecting to dashboard...');
             performLogin(role);
         }
 
         function performLogin(role) {
-            alert('🚀 performLogin() function called!\n\nRole: ' + role + '\n\nChanging screens...');
-            
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             document.getElementById('roleBadge').textContent = role === 'principal' ? '👨‍💼 Principal' : '👨‍🏫 Teacher';
@@ -388,7 +544,6 @@
                 }
             }
             
-            alert('✅ Login Successful!\n\nWelcome ' + (role === 'principal' ? 'Principal' : 'Teacher') + '!');
             initializeApp();
         }
 
@@ -421,48 +576,57 @@
 
         function initializeApp() {
             updateSelectors();
-            updateAllStudentsList();
+            updateDashboard();
+            updateLists();
             document.getElementById('startDate').valueAsDate = new Date();
+            var today = new Date();
+            document.getElementById('reportMonth').value = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
         }
 
         function updateSelectors() {
-            var classSelect = document.getElementById('selectClass');
-            classSelect.innerHTML = '<option value="">-- Select Class --</option>';
-            
-            for (var i = 0; i < appData.grades.length; i++) {
-                var g = appData.grades[i];
-                var value = g.grade + ' - ' + g.class;
-                classSelect.innerHTML += '<option value="' + value + '">' + value + '</option>';
-            }
-        }
-
-        function loadStudentsByClass() {
-            var selectedClass = document.getElementById('selectClass').value;
-            if (!selectedClass) {
-                document.getElementById('studentList').innerHTML = '<p style="text-align: center; color: #999;">Select a class to view students</p>';
-                return;
-            }
-            
-            var html = '<table style="width:100%"><tr><th>ID</th><th>Name</th><th>Gender</th></tr>';
-            for (var i = 0; i < appData.students.length; i++) {
-                var s = appData.students[i];
-                if (s.grade === selectedClass) {
-                    html += '<tr>';
-                    html += '<td><span class="id-badge">' + s.id + '</span></td>';
-                    html += '<td>' + s.name + '</td>';
-                    html += '<td>' + s.gender + '</td>';
-                    html += '</tr>';
+            var selects = ['selectClass', 'studentGrade', 'reportClass', 'filterStudentClass'];
+            for (var j = 0; j < selects.length; j++) {
+                var sel = document.getElementById(selects[j]);
+                if (selects[j] === 'filterStudentClass') {
+                    sel.innerHTML = '<option value="">All Classes</option>';
+                } else {
+                    sel.innerHTML = '<option value="">-- Select Class --</option>';
+                }
+                for (var i = 0; i < appData.grades.length; i++) {
+                    var g = appData.grades[i];
+                    var value = g.grade + ' - ' + g.class;
+                    sel.innerHTML += '<option value="' + value + '">' + value + '</option>';
                 }
             }
-            html += '</table>';
-            document.getElementById('studentList').innerHTML = html;
+            
+            var subjectSelects = ['selectSubject', 'reportSubject', 'teacherSubject'];
+            for (var j = 0; j < subjectSelects.length; j++) {
+                var sel = document.getElementById(subjectSelects[j]);
+                sel.innerHTML = '<option value="">-- Select Subject --</option>';
+                for (var i = 0; i < appData.subjects.length; i++) {
+                    sel.innerHTML += '<option value="' + appData.subjects[i] + '">' + appData.subjects[i] + '</option>';
+                }
+            }
         }
 
-        function updateAllStudentsList() {
-            var html = '<table style="width:100%"><tr><th>ID</th><th>Name</th><th>Grade</th><th>Gender</th></tr>';
+        function updateDashboard() {
+            document.getElementById('totalStudents').textContent = appData.students.length;
+            document.getElementById('totalTeachers').textContent = appData.teachers.length;
+            document.getElementById('totalGrades').textContent = appData.grades.length;
+            document.getElementById('totalSubjects').textContent = appData.subjects.length;
+        }
+
+        function updateLists() {
+            updateStudentsList();
+            updateTeachersList();
+            updateSubjectsList();
+        }
+
+        function updateStudentsList() {
+            var html = '<table style="width:100%"><tr><th>Student ID</th><th>Name</th><th>Grade</th><th>Gender</th></tr>';
             for (var i = 0; i < appData.students.length; i++) {
                 var s = appData.students[i];
-                html += '<tr>';
+                html += '<tr class="student-row" data-id="' + s.id.toLowerCase() + '" data-name="' + s.name.toLowerCase() + '" data-grade="' + s.grade.toLowerCase() + '">';
                 html += '<td><span class="id-badge">' + s.id + '</span></td>';
                 html += '<td>' + s.name + '</td>';
                 html += '<td>' + s.grade + '</td>';
@@ -470,8 +634,75 @@
                 html += '</tr>';
             }
             html += '</table>';
-            document.getElementById('allStudentsList').innerHTML = html;
+            document.getElementById('studentList').innerHTML = html;
         }
-    </script>
-</body>
-</html>
+
+        function filterStudents() {
+            var filter = document.getElementById('studentFilter').value.toLowerCase();
+            var classFilter = document.getElementById('filterStudentClass').value.toLowerCase();
+            var rows = document.querySelectorAll('.student-row');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var id = row.getAttribute('data-id');
+                var name = row.getAttribute('data-name');
+                var grade = row.getAttribute('data-grade');
+                
+                var matchesText = id.includes(filter) || name.includes(filter) || grade.includes(filter);
+                var matchesClass = !classFilter || grade.includes(classFilter);
+                
+                if (matchesText && matchesClass) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        function addStudent() {
+            var id = document.getElementById('studentId').value.trim();
+            var name = document.getElementById('studentName').value.trim();
+            var grade = document.getElementById('studentGrade').value;
+            var gender = document.getElementById('studentGender').value;
+            
+            if (!id || !name || !grade) {
+                alert('කරුණාකර සියලුම fields පුරවන්න!');
+                return;
+            }
+            
+            appData.students.push({ id: id, name: name, grade: grade, gender: gender });
+            
+            document.getElementById('studentSuccess').textContent = '✓ Student එකතු කරන ලදී!';
+            document.getElementById('studentSuccess').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('studentSuccess').style.display = 'none';
+            }, 3000);
+            
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentName').value = '';
+            updateStudentsList();
+            updateDashboard();
+        }
+
+        function updateTeachersList() {
+            var html = '<table style="width:100%"><tr><th>Teacher ID</th><th>Name</th><th>Subject</th></tr>';
+            for (var i = 0; i < appData.teachers.length; i++) {
+                var t = appData.teachers[i];
+                html += '<tr class="teacher-row" data-id="' + t.id.toLowerCase() + '" data-name="' + t.name.toLowerCase() + '" data-subject="' + t.subject.toLowerCase() + '">';
+                html += '<td><span class="id-badge">' + t.id + '</span></td>';
+                html += '<td>' + t.name + '</td>';
+                html += '<td>' + t.subject + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('teachersList').innerHTML = html;
+        }
+
+        function filterTeachers() {
+            var filter = document.getElementById('teacherFilter').value.toLowerCase();
+            var rows = document.querySelectorAll('.teacher-row');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var id = row.getAttribute('data-id');
+                var name = row.getAttribute('data
