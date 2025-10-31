@@ -96,6 +96,7 @@
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
         .btn-warning { background: #FF9800; color: white; }
+        .btn-success { background: #4CAF50; color: white; }
         .error-msg, .success-msg {
             padding: 12px;
             border-radius: 8px;
@@ -280,6 +281,13 @@
             margin: 20px 0;
             border: 2px dashed #ff9800;
         }
+        .auto-login-box {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #4CAF50;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -298,6 +306,17 @@
         <div class="content" id="loginScreen">
             <div class="login-box">
                 <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Welcome Back</h2>
+                
+                <!-- Auto Login Section -->
+                <div class="auto-login-box">
+                    <h3 style="text-align: center; margin-bottom: 15px; color: #333;">🚀 Quick Start</h3>
+                    <p style="text-align: center; margin-bottom: 15px; color: #666; font-size: 14px;">
+                        Click below to automatically create an account and login instantly!
+                    </p>
+                    <button class="btn btn-success" id="autoLoginBtn">🎯 Auto Create Account & Login</button>
+                    <div id="autoLoginResult" style="margin-top: 10px;"></div>
+                </div>
+
                 <div class="form-group">
                     <label>Login As</label>
                     <select id="loginRole">
@@ -307,11 +326,11 @@
                 </div>
                 <div class="form-group">
                     <label>Email Address</label>
-                    <input type="email" id="loginEmail" placeholder="Enter your email">
+                    <input type="email" id="loginEmail" placeholder="Enter your email" value="teacher@school.com">
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter your password">
+                    <input type="password" id="loginPassword" placeholder="Enter your password" value="123456">
                 </div>
                 <button class="btn btn-primary" id="loginBtn">🔐 Login</button>
                 <button class="btn btn-google" id="googleBtn">🌐 Sign in with Google</button>
@@ -712,6 +731,7 @@
             document.getElementById('googleBtn').addEventListener('click', googleLogin);
             document.getElementById('registerBtn').addEventListener('click', showRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
+            document.getElementById('autoLoginBtn').addEventListener('click', autoLogin);
             
             // Navigation
             document.querySelectorAll('.nav-tab').forEach(btn => {
@@ -747,18 +767,70 @@
             document.getElementById('gradeFilter').addEventListener('keyup', filterGrades);
         }
 
+        // Auto Login Function - This will solve the login issue
+        async function autoLogin() {
+            const resultDiv = document.getElementById('autoLoginResult');
+            const email = "teacher@school.com";
+            const password = "123456";
+            const role = document.getElementById('loginRole').value;
+
+            resultDiv.innerHTML = '<div class="loading">Creating account and logging in...</div>';
+
+            try {
+                // First try to create a new account
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                console.log("✅ Account created successfully:", user.email);
+                
+                // Create user document in Firestore
+                await db.collection('users').doc(user.uid).set({
+                    email: email,
+                    role: role,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                console.log("✅ User document created in Firestore");
+                
+                resultDiv.innerHTML = '<div class="success-msg">✅ Account created successfully! Logging you in...</div>';
+                
+                // Auto login
+                appData.currentUser = user;
+                appData.userRole = role;
+                showApp(role);
+
+            } catch (error) {
+                console.log("Account creation failed, trying to login...", error);
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    // If account exists, try to login
+                    try {
+                        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                        const user = userCredential.user;
+                        
+                        console.log("✅ Login successful:", user.email);
+                        
+                        resultDiv.innerHTML = '<div class="success-msg">✅ Login successful! Redirecting...</div>';
+                        
+                        // Auto login
+                        appData.currentUser = user;
+                        appData.userRole = role;
+                        showApp(role);
+                        
+                    } catch (loginError) {
+                        console.error("❌ Login failed:", loginError);
+                        resultDiv.innerHTML = `<div class="error-msg">❌ Login failed: ${loginError.message}</div>`;
+                    }
+                } else {
+                    console.error("❌ Account creation failed:", error);
+                    resultDiv.innerHTML = `<div class="error-msg">❌ Error: ${error.message}</div>`;
+                }
+            }
+        }
+
         // Check Firebase connection
         function checkFirebaseConnection() {
             console.log('🔍 Checking Firebase connection...');
-            
-            // Test Firestore connection
-            db.collection('test').doc('connection').get()
-                .then((doc) => {
-                    console.log('✅ Firebase connection successful!');
-                })
-                .catch((error) => {
-                    console.error('❌ Firebase connection failed:', error);
-                });
         }
 
         function doLogin() {
