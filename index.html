@@ -233,26 +233,17 @@
         }
         .present { color: #4CAF50; font-weight: bold; }
         .absent { color: #f44336; font-weight: bold; }
-        .report-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .report-table th {
-            background: #005A9C;
-            color: white;
-            padding: 12px;
-            text-align: left;
-        }
-        .report-table td {
-            padding: 10px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        .report-table tr:hover {
-            background: #f5f5f5;
+        .teacher-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
         }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
+            table { font-size: 14px; }
+            th, td { padding: 8px; }
         }
     </style>
 </head>
@@ -339,6 +330,11 @@
 
                 <div class="card">
                     <h3>Attendance Sheet for <span id="currentDateDisplay"></span></h3>
+                    <div id="teacherInfo" class="teacher-info" style="display: none;">
+                        <strong>Teacher Information:</strong> 
+                        <span id="teacherIdDisplay">-</span> - 
+                        <span id="teacherNameDisplay">-</span>
+                    </div>
                     <div id="attendanceSummary" class="attendance-summary" style="display: none;">
                         Attendance Summary: <span id="presentCount">0</span>/<span id="totalCount">0</span> students present 
                         (<span id="attendancePercentage">0</span>%)
@@ -349,12 +345,15 @@
                                 <tr>
                                     <th>Student ID</th>
                                     <th>Name</th>
+                                    <th>Subject</th>
+                                    <th>Teacher ID</th>
+                                    <th>Teacher Name</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="attendanceTbody">
-                                <tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                                <tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -413,7 +412,7 @@
             <!-- Reports Tab -->
             <div class="tab-content" id="reports">
                 <div class="card">
-                    <h3>Generate Detailed Attendance Report</h3>
+                    <h3>Generate Monthly Report</h3>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="reportClass"></select>
@@ -426,7 +425,7 @@
                         <label>Month</label>
                         <input type="month" id="reportMonth">
                     </div>
-                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Detailed Report</button>
+                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
                     <div id="reportOutput" style="margin-top: 20px;"></div>
                 </div>
             </div>
@@ -565,7 +564,8 @@
         const appData = {
             currentUser: null,
             userRole: null,
-            currentAttendance: {}
+            currentAttendance: {},
+            currentTeacher: null
         };
 
         // Initialize the application
@@ -640,7 +640,7 @@
             document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
             // Reports
-            document.getElementById('generateReportBtn').addEventListener('click', generateDetailedReport);
+            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
             
             // Principal-only features
             document.getElementById('addTeacherBtn').addEventListener('click', addTeacher);
@@ -906,8 +906,28 @@
             });
         }
 
-        // Attendance Management - Updated for single date
-        function loadAttendance() {
+        // Get teacher for subject and class
+        async function getTeacherForSubject(subject, className) {
+            try {
+                const querySnapshot = await db.collection('teachers')
+                    .where('subject', '==', subject)
+                    .get();
+                
+                if (!querySnapshot.empty) {
+                    // For now, return the first teacher for this subject
+                    // In a real system, you might have teacher-class assignments
+                    const teacher = querySnapshot.docs[0].data();
+                    return teacher;
+                }
+                return null;
+            } catch (error) {
+                console.error("Error getting teacher:", error);
+                return null;
+            }
+        }
+
+        // Attendance Management - Updated with teacher information
+        async function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
             const date = document.getElementById('startDate').value;
@@ -918,7 +938,7 @@
             }
             
             const tbody = document.getElementById('attendanceTbody');
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
             
             // Update date display
             const displayDate = new Date(date).toLocaleDateString('en-US', { 
@@ -926,13 +946,25 @@
             });
             document.getElementById('currentDateDisplay').textContent = displayDate;
             
+            // Get teacher information
+            const teacher = await getTeacherForSubject(selectedSubject, selectedClass);
+            appData.currentTeacher = teacher;
+            
+            if (teacher) {
+                document.getElementById('teacherIdDisplay').textContent = teacher.id;
+                document.getElementById('teacherNameDisplay').textContent = teacher.name;
+                document.getElementById('teacherInfo').style.display = 'block';
+            } else {
+                document.getElementById('teacherInfo').style.display = 'none';
+            }
+            
             db.collection('students')
                 .where('grade', '==', selectedClass)
                 .orderBy('id')
                 .get()
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
-                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
                         document.getElementById('attendanceSummary').style.display = 'none';
                         return;
                     }
@@ -955,6 +987,9 @@
                                         <tr>
                                             <td>${student.id}</td>
                                             <td>${student.name}</td>
+                                            <td>${selectedSubject}</td>
+                                            <td>${teacher ? teacher.id : 'N/A'}</td>
+                                            <td>${teacher ? teacher.name : 'N/A'}</td>
                                             <td class="${isPresent ? 'present' : 'absent'}">
                                                 ${isPresent ? 'Present' : 'Absent'}
                                             </td>
@@ -978,7 +1013,7 @@
                             checkbox.addEventListener('change', function() {
                                 const studentId = this.getAttribute('data-student');
                                 const row = this.closest('tr');
-                                const statusCell = row.querySelector('td:nth-child(3)');
+                                const statusCell = row.querySelector('td:nth-child(6)');
                                 
                                 if (this.checked) {
                                     statusCell.textContent = 'Present';
@@ -996,7 +1031,7 @@
                     });
                 })
                 .catch((error) => {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #c00;">Error loading students</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #c00;">Error loading students</td></tr>';
                     document.getElementById('attendanceSummary').style.display = 'none';
                 });
         }
@@ -1022,7 +1057,7 @@
             document.querySelectorAll('.attendance-checkbox').forEach(cb => {
                 cb.checked = true;
                 const row = cb.closest('tr');
-                const statusCell = row.querySelector('td:nth-child(3)');
+                const statusCell = row.querySelector('td:nth-child(6)');
                 statusCell.textContent = 'Present';
                 statusCell.className = 'present';
             });
@@ -1033,7 +1068,7 @@
             document.querySelectorAll('.attendance-checkbox').forEach(cb => {
                 cb.checked = false;
                 const row = cb.closest('tr');
-                const statusCell = row.querySelector('td:nth-child(3)');
+                const statusCell = row.querySelector('td:nth-child(6)');
                 statusCell.textContent = 'Absent';
                 statusCell.className = 'absent';
             });
@@ -1064,6 +1099,8 @@
                         subject: selectedSubject,
                         date: date,
                         studentId: studentId,
+                        teacherId: appData.currentTeacher ? appData.currentTeacher.id : '',
+                        teacherName: appData.currentTeacher ? appData.currentTeacher.name : '',
                         present: isPresent,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     })
@@ -1079,8 +1116,8 @@
                 });
         }
 
-        // Updated Detailed Report Function
-        function generateDetailedReport() {
+        // Reports - Updated with teacher information
+        function generateReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
             const month = document.getElementById('reportMonth').value;
@@ -1091,64 +1128,22 @@
                 return;
             }
             
-            output.innerHTML = '<div class="loading">Generating detailed report...</div>';
+            output.innerHTML = '<div class="loading">Generating report...</div>';
             
-            // Get teacher information for the subject
-            let teacherInfo = { id: 'N/A', name: 'N/A' };
-            
-            db.collection('teachers')
-                .where('subject', '==', selectedSubject)
+            db.collection('students')
+                .where('grade', '==', selectedClass)
+                .orderBy('id')
                 .get()
-                .then((teacherSnapshot) => {
-                    if (!teacherSnapshot.empty) {
-                        const teacher = teacherSnapshot.docs[0].data();
-                        teacherInfo = { id: teacher.id, name: teacher.name };
-                    }
-                    
-                    return db.collection('students')
-                        .where('grade', '==', selectedClass)
-                        .orderBy('id')
-                        .get();
-                })
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
                         output.innerHTML = '<div class="info-box">No students in this class</div>';
                         return;
                     }
                     
-                    let html = `
-                        <div class="card">
-                            <h3>📊 Detailed Attendance Report</h3>
-                            <div class="info-box">
-                                <strong>Class:</strong> ${selectedClass} | 
-                                <strong>Subject:</strong> ${selectedSubject} | 
-                                <strong>Month:</strong> ${month} | 
-                                <strong>Teacher:</strong> ${teacherInfo.name} (${teacherInfo.id})
-                            </div>
-                    `;
-                    
-                    html += `
-                        <table class="report-table">
-                            <thead>
-                                <tr>
-                                    <th>Student ID</th>
-                                    <th>Student Name</th>
-                                    <th>Subject</th>
-                                    <th>Teacher ID</th>
-                                    <th>Teacher Name</th>
-                                    <th>Present Dates</th>
-                                    <th>Absent Dates</th>
-                                    <th>Total Present</th>
-                                    <th>Total Days</th>
-                                    <th>Percentage</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
+                    let html = `<h3>Monthly Report: ${selectedClass} - ${selectedSubject} (${month})</h3>`;
+                    html += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Subject</th><th>Teacher</th><th>Present Days</th><th>Total Days</th><th>Percentage</th></tr></thead><tbody>';
                     
                     const reportPromises = [];
-                    const monthStart = `${month}-01`;
-                    const monthEnd = `${month}-31`;
                     
                     querySnapshot.forEach((doc) => {
                         const student = doc.data();
@@ -1156,43 +1151,35 @@
                             .where('studentId', '==', student.id)
                             .where('class', '==', selectedClass)
                             .where('subject', '==', selectedSubject)
-                            .where('date', '>=', monthStart)
-                            .where('date', '<=', monthEnd)
-                            .orderBy('date')
+                            .where('date', '>=', `${month}-01`)
+                            .where('date', '<=', `${month}-31`)
                             .get()
                             .then((attendanceSnapshot) => {
-                                let presentDates = [];
-                                let absentDates = [];
-                                let presentCount = 0;
+                                let presentDays = 0;
+                                let totalDays = attendanceSnapshot.size;
+                                let teacherInfo = 'N/A';
+                                
+                                if (attendanceSnapshot.size > 0) {
+                                    const firstRecord = attendanceSnapshot.docs[0].data();
+                                    teacherInfo = firstRecord.teacherName || 'N/A';
+                                }
                                 
                                 attendanceSnapshot.forEach((attendanceDoc) => {
                                     const attendance = attendanceDoc.data();
-                                    const dateStr = attendance.date;
                                     if (attendance.present) {
-                                        presentDates.push(dateStr);
-                                        presentCount++;
-                                    } else {
-                                        absentDates.push(dateStr);
+                                        presentDays++;
                                     }
                                 });
                                 
-                                const totalDays = attendanceSnapshot.size;
-                                const percentage = totalDays > 0 ? ((presentCount / totalDays) * 100).toFixed(1) : 0;
+                                const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
                                 
                                 html += `
                                     <tr>
-                                        <td><strong>${student.id}</strong></td>
+                                        <td>${student.id}</td>
                                         <td>${student.name}</td>
                                         <td>${selectedSubject}</td>
-                                        <td>${teacherInfo.id}</td>
-                                        <td>${teacherInfo.name}</td>
-                                        <td>
-                                            <small>${presentDates.length > 0 ? presentDates.join(', ') : 'No present days'}</small>
-                                        </td>
-                                        <td>
-                                            <small>${absentDates.length > 0 ? absentDates.join(', ') : 'No absent days'}</small>
-                                        </td>
-                                        <td><strong class="present">${presentCount}</strong></td>
+                                        <td>${teacherInfo}</td>
+                                        <td>${presentDays}</td>
                                         <td>${totalDays}</td>
                                         <td><strong>${percentage}%</strong></td>
                                     </tr>
@@ -1203,35 +1190,12 @@
                     });
                     
                     Promise.all(reportPromises).then(() => {
-                        html += '</tbody></table></div>';
-                        
-                        // Add summary statistics
-                        const totalStudents = querySnapshot.size;
-                        html += `
-                            <div class="card">
-                                <h3>📈 Summary Statistics</h3>
-                                <div class="grid-2">
-                                    <div class="info-box">
-                                        <strong>Total Students:</strong> ${totalStudents}
-                                    </div>
-                                    <div class="info-box">
-                                        <strong>Subject:</strong> ${selectedSubject}
-                                    </div>
-                                    <div class="info-box">
-                                        <strong>Class:</strong> ${selectedClass}
-                                    </div>
-                                    <div class="info-box">
-                                        <strong>Teacher:</strong> ${teacherInfo.name}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        
+                        html += '</tbody></table>';
                         output.innerHTML = html;
                     });
                 })
                 .catch((error) => {
-                    output.innerHTML = '<div class="error-msg">Error generating detailed report: ' + error.message + '</div>';
+                    output.innerHTML = '<div class="error-msg">Error generating report</div>';
                 });
         }
 
