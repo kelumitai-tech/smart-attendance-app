@@ -222,6 +222,17 @@
             padding: 20px;
             color: #666;
         }
+        .attendance-summary {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #2e7d32;
+            font-weight: bold;
+            text-align: center;
+        }
+        .present { color: #4CAF50; font-weight: bold; }
+        .absent { color: #f44336; font-weight: bold; }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
         }
@@ -292,7 +303,7 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject, and date to mark attendance</div>
+                    <div class="info-box">Select class, subject, and date to mark attendance for today</div>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="selectClass"></select>
@@ -309,30 +320,30 @@
                 </div>
 
                 <div class="card">
-                    <h3>Attendance Sheet</h3>
+                    <h3>Attendance Sheet for <span id="currentDateDisplay"></span></h3>
+                    <div id="attendanceSummary" class="attendance-summary" style="display: none;">
+                        Attendance Summary: <span id="presentCount">0</span>/<span id="totalCount">0</span> students present 
+                        (<span id="attendancePercentage">0</span>%)
+                    </div>
                     <div style="overflow-x: auto;">
                         <table id="attendanceTable">
                             <thead>
                                 <tr>
                                     <th>Student ID</th>
                                     <th>Name</th>
-                                    <th>Mon</th>
-                                    <th>Tue</th>
-                                    <th>Wed</th>
-                                    <th>Thu</th>
-                                    <th>Fri</th>
-                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="attendanceTbody">
-                                <tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                                <tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
                             </tbody>
                         </table>
                     </div>
                     <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
                         <button class="btn btn-secondary" id="markAllBtn">✓ Mark All Present</button>
                         <button class="btn btn-primary" id="saveAttendanceBtn">💾 Save Attendance</button>
-                        <button class="btn btn-danger" id="clearWeekBtn">✗ Clear Week</button>
+                        <button class="btn btn-danger" id="clearAllBtn">✗ Mark All Absent</button>
                     </div>
                 </div>
             </div>
@@ -535,7 +546,8 @@
         // Global app data
         const appData = {
             currentUser: null,
-            userRole: null
+            userRole: null,
+            currentAttendance: {}
         };
 
         // Initialize the application
@@ -550,6 +562,11 @@
             document.getElementById('startDate').value = today;
             const currentMonth = today.substring(0, 7);
             document.getElementById('reportMonth').value = currentMonth;
+            
+            // Display current date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const displayDate = new Date().toLocaleDateString('en-US', options);
+            document.getElementById('currentDateDisplay').textContent = displayDate;
         }
 
         function checkAuthState() {
@@ -602,7 +619,7 @@
             document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendance);
             document.getElementById('markAllBtn').addEventListener('click', markAllPresent);
             document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
-            document.getElementById('clearWeekBtn').addEventListener('click', clearWeek);
+            document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
             // Reports
             document.getElementById('generateReportBtn').addEventListener('click', generateReport);
@@ -871,7 +888,7 @@
             });
         }
 
-        // Attendance Management
+        // Attendance Management - Updated for single date
         function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
@@ -883,7 +900,13 @@
             }
             
             const tbody = document.getElementById('attendanceTbody');
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
+            
+            // Update date display
+            const displayDate = new Date(date).toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            });
+            document.getElementById('currentDateDisplay').textContent = displayDate;
             
             db.collection('students')
                 .where('grade', '==', selectedClass)
@@ -891,12 +914,14 @@
                 .get()
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
-                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
+                        document.getElementById('attendanceSummary').style.display = 'none';
                         return;
                     }
                     
                     let html = '';
                     const studentPromises = [];
+                    appData.currentAttendance = {};
                     
                     querySnapshot.forEach((doc) => {
                         const student = doc.data();
@@ -905,19 +930,22 @@
                         studentPromises.push(
                             db.collection('attendance').doc(key).get()
                                 .then((attendanceDoc) => {
-                                    const attendance = attendanceDoc.exists ? attendanceDoc.data().days : [false, false, false, false, false];
-                                    let total = attendance.filter(Boolean).length;
+                                    const isPresent = attendanceDoc.exists ? attendanceDoc.data().present : false;
+                                    appData.currentAttendance[student.id] = isPresent;
                                     
                                     html += `
                                         <tr>
                                             <td>${student.id}</td>
                                             <td>${student.name}</td>
-                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="0" ${attendance[0] ? 'checked' : ''}></td>
-                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="1" ${attendance[1] ? 'checked' : ''}></td>
-                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="2" ${attendance[2] ? 'checked' : ''}></td>
-                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="3" ${attendance[3] ? 'checked' : ''}></td>
-                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="4" ${attendance[4] ? 'checked' : ''}></td>
-                                            <td><strong>${total}/5</strong></td>
+                                            <td class="${isPresent ? 'present' : 'absent'}">
+                                                ${isPresent ? 'Present' : 'Absent'}
+                                            </td>
+                                            <td>
+                                                <input type="checkbox" class="attendance-checkbox" 
+                                                       data-student="${student.id}" 
+                                                       ${isPresent ? 'checked' : ''}>
+                                                <label>Present</label>
+                                            </td>
                                         </tr>
                                     `;
                                 })
@@ -926,23 +954,72 @@
                     
                     Promise.all(studentPromises).then(() => {
                         tbody.innerHTML = html;
+                        
+                        // Add event listeners to checkboxes
+                        document.querySelectorAll('.attendance-checkbox').forEach(checkbox => {
+                            checkbox.addEventListener('change', function() {
+                                const studentId = this.getAttribute('data-student');
+                                const row = this.closest('tr');
+                                const statusCell = row.querySelector('td:nth-child(3)');
+                                
+                                if (this.checked) {
+                                    statusCell.textContent = 'Present';
+                                    statusCell.className = 'present';
+                                } else {
+                                    statusCell.textContent = 'Absent';
+                                    statusCell.className = 'absent';
+                                }
+                                
+                                updateAttendanceSummary();
+                            });
+                        });
+                        
+                        updateAttendanceSummary();
                     });
                 })
                 .catch((error) => {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #c00;">Error loading students</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #c00;">Error loading students</td></tr>';
+                    document.getElementById('attendanceSummary').style.display = 'none';
                 });
+        }
+
+        function updateAttendanceSummary() {
+            const checkboxes = document.querySelectorAll('.attendance-checkbox');
+            let presentCount = 0;
+            let totalCount = checkboxes.length;
+            
+            checkboxes.forEach(cb => {
+                if (cb.checked) presentCount++;
+            });
+            
+            const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+            
+            document.getElementById('presentCount').textContent = presentCount;
+            document.getElementById('totalCount').textContent = totalCount;
+            document.getElementById('attendancePercentage').textContent = percentage;
+            document.getElementById('attendanceSummary').style.display = 'block';
         }
 
         function markAllPresent() {
             document.querySelectorAll('.attendance-checkbox').forEach(cb => {
                 cb.checked = true;
+                const row = cb.closest('tr');
+                const statusCell = row.querySelector('td:nth-child(3)');
+                statusCell.textContent = 'Present';
+                statusCell.className = 'present';
             });
+            updateAttendanceSummary();
         }
 
-        function clearWeek() {
+        function markAllAbsent() {
             document.querySelectorAll('.attendance-checkbox').forEach(cb => {
                 cb.checked = false;
+                const row = cb.closest('tr');
+                const statusCell = row.querySelector('td:nth-child(3)');
+                statusCell.textContent = 'Absent';
+                statusCell.className = 'absent';
             });
+            updateAttendanceSummary();
         }
 
         function saveAttendance() {
@@ -955,22 +1032,21 @@
                 return;
             }
             
-            const rows = document.querySelectorAll('#attendanceTbody tr');
+            const checkboxes = document.querySelectorAll('.attendance-checkbox');
             const savePromises = [];
             
-            rows.forEach(row => {
-                const studentId = row.querySelector('td').textContent;
-                const checkboxes = row.querySelectorAll('.attendance-checkbox');
-                const attendance = Array.from(checkboxes).map(cb => cb.checked);
-                
+            checkboxes.forEach(checkbox => {
+                const studentId = checkbox.getAttribute('data-student');
+                const isPresent = checkbox.checked;
                 const key = `${selectedClass}_${selectedSubject}_${date}_${studentId}`;
+                
                 savePromises.push(
                     db.collection('attendance').doc(key).set({
                         class: selectedClass,
                         subject: selectedSubject,
                         date: date,
                         studentId: studentId,
-                        days: attendance,
+                        present: isPresent,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     })
                 );
@@ -978,15 +1054,14 @@
             
             Promise.all(savePromises)
                 .then(() => {
-                    alert('Attendance saved successfully!');
-                    loadAttendance();
+                    alert('Attendance saved successfully for ' + date + '!');
                 })
                 .catch((error) => {
                     alert('Error saving attendance: ' + error.message);
                 });
         }
 
-        // Reports
+        // Reports - Updated for single date attendance
         function generateReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -1011,7 +1086,7 @@
                     }
                     
                     let html = `<h3>Monthly Report: ${selectedClass} - ${selectedSubject} (${month})</h3>`;
-                    html += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Present</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
+                    html += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Present Days</th><th>Total Days</th><th>Percentage</th></tr></thead><tbody>';
                     
                     const reportPromises = [];
                     
@@ -1026,12 +1101,13 @@
                             .get()
                             .then((attendanceSnapshot) => {
                                 let presentDays = 0;
-                                let totalDays = 0;
+                                let totalDays = attendanceSnapshot.size;
                                 
                                 attendanceSnapshot.forEach((attendanceDoc) => {
                                     const attendance = attendanceDoc.data();
-                                    totalDays += 5;
-                                    presentDays += attendance.days.filter(Boolean).length;
+                                    if (attendance.present) {
+                                        presentDays++;
+                                    }
                                 });
                                 
                                 const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
