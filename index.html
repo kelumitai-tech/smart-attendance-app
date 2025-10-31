@@ -188,6 +188,11 @@
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
+        .grid-attendance {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
         .stats-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -217,6 +222,14 @@
             border-radius: 8px;
             border-left: 4px solid #005A9C;
         }
+        .student-list-item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 4px solid #4CAF50;
+            font-size: 14px;
+        }
         .loading {
             text-align: center;
             padding: 20px;
@@ -240,8 +253,24 @@
             margin-bottom: 20px;
             border-left: 4px solid #ffc107;
         }
+        .student-list-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .student-list-header {
+            background: #005A9C;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
         @media (max-width: 768px) {
-            .grid-2 { grid-template-columns: 1fr; }
+            .grid-2, .grid-attendance { grid-template-columns: 1fr; }
             table { font-size: 14px; }
             th, td { padding: 8px; }
         }
@@ -310,57 +339,84 @@
 
             <!-- Attendance Tab -->
             <div class="tab-content active" id="attendance">
-                <div class="card">
-                    <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject, and date to mark attendance for today</div>
-                    <div class="form-group">
-                        <label>Select Class</label>
-                        <select id="selectClass"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Select Subject</label>
-                        <select id="selectSubject"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" id="startDate">
-                    </div>
-                    <button class="btn btn-primary" id="loadAttendanceBtn">Load Attendance Sheet</button>
-                </div>
+                <div class="grid-attendance">
+                    <!-- Left Side - Attendance Form -->
+                    <div>
+                        <div class="card">
+                            <h3>Mark Attendance</h3>
+                            <div class="info-box">Select class, subject, and date to mark attendance for today</div>
+                            <div class="form-group">
+                                <label>Select Class</label>
+                                <select id="selectClass"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Select Subject</label>
+                                <select id="selectSubject"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="startDate">
+                            </div>
+                            <button class="btn btn-primary" id="loadAttendanceBtn">Load Attendance Sheet</button>
+                        </div>
 
-                <div class="card">
-                    <h3>Attendance Sheet for <span id="currentDateDisplay"></span></h3>
-                    <div id="teacherInfo" class="teacher-info" style="display: none;">
-                        <strong>Teacher Information:</strong> 
-                        <span id="teacherIdDisplay">-</span> - 
-                        <span id="teacherNameDisplay">-</span>
+                        <div class="card">
+                            <h3>Attendance Sheet for <span id="currentDateDisplay"></span></h3>
+                            <div id="teacherInfo" class="teacher-info" style="display: none;">
+                                <strong>Teacher Information:</strong> 
+                                <span id="teacherIdDisplay">-</span> - 
+                                <span id="teacherNameDisplay">-</span>
+                            </div>
+                            <div id="attendanceSummary" class="attendance-summary" style="display: none;">
+                                Attendance Summary: <span id="presentCount">0</span>/<span id="totalCount">0</span> students present 
+                                (<span id="attendancePercentage">0</span>%)
+                            </div>
+                            <div style="overflow-x: auto;">
+                                <table id="attendanceTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Student ID</th>
+                                            <th>Name</th>
+                                            <th>Subject</th>
+                                            <th>Teacher ID</th>
+                                            <th>Teacher Name</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attendanceTbody">
+                                        <tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary" id="markAllBtn">✓ Mark All Present</button>
+                                <button class="btn btn-primary" id="saveAttendanceBtn">💾 Save Attendance</button>
+                                <button class="btn btn-danger" id="clearAllBtn">✗ Mark All Absent</button>
+                            </div>
+                        </div>
                     </div>
-                    <div id="attendanceSummary" class="attendance-summary" style="display: none;">
-                        Attendance Summary: <span id="presentCount">0</span>/<span id="totalCount">0</span> students present 
-                        (<span id="attendancePercentage">0</span>%)
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table id="attendanceTable">
-                            <thead>
-                                <tr>
-                                    <th>Student ID</th>
-                                    <th>Name</th>
-                                    <th>Subject</th>
-                                    <th>Teacher ID</th>
-                                    <th>Teacher Name</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="attendanceTbody">
-                                <tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" id="markAllBtn">✓ Mark All Present</button>
-                        <button class="btn btn-primary" id="saveAttendanceBtn">💾 Save Attendance</button>
-                        <button class="btn btn-danger" id="clearAllBtn">✗ Mark All Absent</button>
+
+                    <!-- Right Side - Student List -->
+                    <div>
+                        <div class="card">
+                            <h3>👥 Student List</h3>
+                            <div class="info-box">Students in selected class will appear here</div>
+                            <div class="form-group">
+                                <label>Select Class to View Students</label>
+                                <select id="studentListClass">
+                                    <option value="">-- Select Class --</option>
+                                </select>
+                            </div>
+                            <div class="student-list-container">
+                                <div class="student-list-header">
+                                    <strong>Student ID - Name</strong>
+                                </div>
+                                <div id="attendanceStudentList" class="loading">
+                                    Select a class to view students
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -639,6 +695,9 @@
             document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
             document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
+            // Student List in Attendance
+            document.getElementById('studentListClass').addEventListener('change', loadStudentListForAttendance);
+            
             // Reports
             document.getElementById('generateReportBtn').addEventListener('click', generateReport);
             
@@ -797,6 +856,7 @@
                     document.getElementById('studentGrade').innerHTML = classOptions;
                     document.getElementById('reportClass').innerHTML = classOptions;
                     document.getElementById('filterStudentClass').innerHTML = '<option value="">All Classes</option>' + classOptions;
+                    document.getElementById('studentListClass').innerHTML = classOptions;
                 })
                 .catch((error) => {
                     console.error("Error getting grades: ", error);
@@ -829,6 +889,46 @@
                 updateGradesList();
                 updateDashboard();
             }
+        }
+
+        // Load student list for attendance section
+        function loadStudentListForAttendance() {
+            const selectedClass = document.getElementById('studentListClass').value;
+            const container = document.getElementById('attendanceStudentList');
+            
+            if (!selectedClass) {
+                container.innerHTML = '<div class="info-box">Select a class to view students</div>';
+                return;
+            }
+            
+            container.innerHTML = '<div class="loading">Loading students...</div>';
+            
+            db.collection('students')
+                .where('grade', '==', selectedClass)
+                .orderBy('id')
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No students found in this class</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const student = doc.data();
+                        html += `
+                            <div class="student-list-item">
+                                <strong>${student.id}</strong> - ${student.name}
+                                <br><small>Gender: ${student.gender}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading students</div>';
+                });
         }
 
         // Student Management
