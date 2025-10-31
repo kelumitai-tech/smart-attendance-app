@@ -263,10 +263,18 @@
                     <button class="btn btn-secondary" id="registerBtn">📝 Register New Account</button>
                 </div>
             </div>
+            
+            <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
+                <p style="color: #666; font-size: 0.9em; line-height: 1.8;">
+                    <strong style="color: #005A9C;">Developer:</strong> Kelum Konara<br>
+                    <strong style="color: #005A9C;">SmartSoft</strong> | The Mobile Apps Developer<br>
+                    📞 <strong>0714469232</strong>
+                </p>
+            </footer>
         </div>
 
-        <!-- Main App (Initially Hidden) -->
-        <div class="content app-main" id="appContent" style="display: none;">
+        <!-- Main App -->
+        <div class="content app-main" id="appContent">
             <button class="logout-btn" id="logoutBtn">Logout</button>
             <div class="role-badge" id="roleBadge">Teacher</div>
             
@@ -275,32 +283,232 @@
                 <button class="nav-tab" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
+                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
+                <button class="nav-tab principal-only" data-tab="grades">🎓 Grades</button>
+                <button class="nav-tab principal-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
-            <!-- Simple Dashboard for Testing -->
+            <!-- Attendance Tab -->
             <div class="tab-content active" id="attendance">
                 <div class="card">
-                    <h3>Welcome to Smart Attendance Tracker</h3>
-                    <div class="info-box" id="connectionStatus">
-                        🔄 Checking Firebase connection...
+                    <h3>Mark Attendance</h3>
+                    <div class="info-box">Select class, subject, and date to mark attendance</div>
+                    <div class="form-group">
+                        <label>Select Class</label>
+                        <select id="selectClass"></select>
                     </div>
                     <div class="form-group">
-                        <label>Test Email</label>
-                        <input type="email" id="testEmail" value="test@school.com" readonly>
+                        <label>Select Subject</label>
+                        <select id="selectSubject"></select>
                     </div>
                     <div class="form-group">
-                        <label>Test Password</label>
-                        <input type="password" id="testPassword" value="password123" readonly>
+                        <label>Date</label>
+                        <input type="date" id="startDate">
                     </div>
-                    <button class="btn btn-primary" id="testRegisterBtn">Test Registration</button>
-                    <button class="btn btn-secondary" id="testLoginBtn">Test Login</button>
+                    <button class="btn btn-primary" id="loadAttendanceBtn">Load Attendance Sheet</button>
+                </div>
+
+                <div class="card">
+                    <h3>Attendance Sheet</h3>
+                    <div style="overflow-x: auto;">
+                        <table id="attendanceTable">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Mon</th>
+                                    <th>Tue</th>
+                                    <th>Wed</th>
+                                    <th>Thu</th>
+                                    <th>Fri</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTbody">
+                                <tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" id="markAllBtn">✓ Mark All Present</button>
+                        <button class="btn btn-primary" id="saveAttendanceBtn">💾 Save Attendance</button>
+                        <button class="btn btn-danger" id="clearWeekBtn">✗ Clear Week</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div class="tab-content" id="students">
+                <div class="card">
+                    <h3>Add New Student</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Student ID</label>
+                            <input type="text" id="studentId" placeholder="e.g., S001">
+                        </div>
+                        <div class="form-group">
+                            <label>Student Name</label>
+                            <input type="text" id="studentName" placeholder="Enter name">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select id="studentGrade"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="studentGender">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="addStudentBtn">Add Student</button>
+                    <div class="success-msg" id="studentSuccess"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Student List</h3>
+                    <div class="form-group">
+                        <label>Filter by Class</label>
+                        <select id="filterStudentClass">
+                            <option value="">All Classes</option>
+                        </select>
+                    </div>
+                    <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
+                    <div id="studentList" class="loading">Loading students...</div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div class="tab-content" id="reports">
+                <div class="card">
+                    <h3>Generate Monthly Report</h3>
+                    <div class="form-group">
+                        <label>Select Class</label>
+                        <select id="reportClass"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Subject</label>
+                        <select id="reportSubject"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Month</label>
+                        <input type="month" id="reportMonth">
+                    </div>
+                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
+                    <div id="reportOutput" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div class="tab-content principal-only" id="dashboard">
+                <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
+                <div class="grid-2">
+                    <div class="stats-card">
+                        <p>Total Students</p>
+                        <h2 id="totalStudents">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <p>Total Teachers</p>
+                        <h2 id="totalTeachers">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <p>Total Classes</p>
+                        <h2 id="totalGrades">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <p>Total Subjects</p>
+                        <h2 id="totalSubjects">0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teachers Tab -->
+            <div class="tab-content principal-only" id="teachers">
+                <div class="card">
+                    <h3>Add New Teacher</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Teacher ID</label>
+                            <input type="text" id="teacherId" placeholder="e.g., T001">
+                        </div>
+                        <div class="form-group">
+                            <label>Teacher Name</label>
+                            <input type="text" id="teacherName" placeholder="Enter name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select id="teacherSubject"></select>
+                    </div>
+                    <button class="btn btn-primary" id="addTeacherBtn">Add Teacher</button>
+                    <div class="success-msg" id="teacherSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Teachers List</h3>
+                    <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
+                    <div id="teachersList" class="loading">Loading teachers...</div>
+                </div>
+            </div>
+
+            <!-- Subjects Tab -->
+            <div class="tab-content principal-only" id="subjects">
+                <div class="card">
+                    <h3>Add New Subject</h3>
+                    <div class="form-group">
+                        <label>Subject Name</label>
+                        <input type="text" id="subjectName" placeholder="e.g., Mathematics">
+                    </div>
+                    <button class="btn btn-primary" id="addSubjectBtn">Add Subject</button>
+                    <div class="success-msg" id="subjectSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Subjects List</h3>
+                    <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects...">
+                    <div id="subjectsList" class="loading">Loading subjects...</div>
+                </div>
+            </div>
+
+            <!-- Grades Tab -->
+            <div class="tab-content principal-only" id="grades">
+                <div class="card">
+                    <h3>Add New Grade & Class</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select id="newGrade">
+                                <option value="">-- Select Grade --</option>
+                                <option value="Grade 6">Grade 6</option>
+                                <option value="Grade 7">Grade 7</option>
+                                <option value="Grade 8">Grade 8</option>
+                                <option value="Grade 9">Grade 9</option>
+                                <option value="Grade 10">Grade 10</option>
+                                <option value="Grade 11">Grade 11</option>
+                                <option value="Grade 12">Grade 12</option>
+                                <option value="Grade 13">Grade 13</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Class Name</label>
+                            <input type="text" id="className" placeholder="e.g., A, B, C">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="addClassBtn">Add Grade & Class</button>
+                    <div class="success-msg" id="classSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Grades & Classes List</h3>
+                    <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
+                    <div id="gradesList" class="loading">Loading grades...</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Your Firebase Configuration
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCPPqnPEfVLkc7K29YPV7GDkIaC6tcHn4E",
             authDomain: "smart-attendance-tracker-5573b.firebaseapp.com",
@@ -314,25 +522,14 @@
         // Initialize Firebase
         let auth, db;
         try {
-            // Check if Firebase app is already initialized
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
-                console.log("✅ Firebase initialized successfully!");
             }
-            
             auth = firebase.auth();
             db = firebase.firestore();
-            
-            // Update connection status
-            document.getElementById('connectionStatus').innerHTML = "✅ Firebase connected successfully!";
-            document.getElementById('connectionStatus').style.background = "#e7f5e7";
-            document.getElementById('connectionStatus').style.color = "#2e7d32";
-            
+            console.log("✅ Firebase initialized successfully!");
         } catch (error) {
             console.error("❌ Firebase initialization error:", error);
-            document.getElementById('connectionStatus').innerHTML = "❌ Firebase connection failed: " + error.message;
-            document.getElementById('connectionStatus').style.background = "#fee";
-            document.getElementById('connectionStatus').style.color = "#c00";
         }
 
         // Global app data
@@ -344,27 +541,27 @@
         // Initialize the application
         window.onload = function() {
             setupEventListeners();
+            setTodayDate();
             checkAuthState();
         };
 
-        function setupEventListeners() {
-            document.getElementById('loginBtn').addEventListener('click', doLogin);
-            document.getElementById('googleBtn').addEventListener('click', googleLogin);
-            document.getElementById('registerBtn').addEventListener('click', showRegistration);
-            document.getElementById('logoutBtn').addEventListener('click', doLogout);
-            document.getElementById('testRegisterBtn').addEventListener('click', testRegistration);
-            document.getElementById('testLoginBtn').addEventListener('click', testLogin);
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            const currentMonth = today.substring(0, 7);
+            document.getElementById('reportMonth').value = currentMonth;
         }
 
         function checkAuthState() {
             if (auth) {
                 auth.onAuthStateChanged((user) => {
                     if (user) {
-                        console.log("✅ User is signed in:", user.email);
-                        appData.currentUser = user;
-                        showApp('teacher'); // Default role for testing
+                        getUserRole(user.uid).then(role => {
+                            appData.currentUser = user;
+                            appData.userRole = role;
+                            showApp(role);
+                        });
                     } else {
-                        console.log("✅ User is signed out");
                         document.getElementById('loginScreen').style.display = 'block';
                         document.getElementById('appContent').style.display = 'none';
                     }
@@ -372,57 +569,51 @@
             }
         }
 
-        function testRegistration() {
-            const email = document.getElementById('testEmail').value;
-            const password = document.getElementById('testPassword').value;
-            const role = document.getElementById('loginRole').value;
-            
-            if (!auth) {
-                alert("Firebase auth is not available. Please check configuration.");
-                return;
+        async function getUserRole(uid) {
+            try {
+                const doc = await db.collection('users').doc(uid).get();
+                return doc.exists ? doc.data().role : 'teacher';
+            } catch (error) {
+                console.error("Error getting user role:", error);
+                return 'teacher';
             }
-
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log("✅ Test user created:", user.email);
-                    
-                    // Save user role to Firestore
-                    return db.collection('users').doc(user.uid).set({
-                        email: email,
-                        role: role,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                })
-                .then(() => {
-                    alert("✅ Test registration successful! You can now login.");
-                })
-                .catch((error) => {
-                    console.error("❌ Registration error:", error);
-                    alert("Registration failed: " + error.message);
-                });
         }
 
-        function testLogin() {
-            const email = document.getElementById('testEmail').value;
-            const password = document.getElementById('testPassword').value;
+        function setupEventListeners() {
+            // Authentication
+            document.getElementById('loginBtn').addEventListener('click', doLogin);
+            document.getElementById('googleBtn').addEventListener('click', googleLogin);
+            document.getElementById('registerBtn').addEventListener('click', showRegistration);
+            document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
-            if (!auth) {
-                alert("Firebase auth is not available. Please check configuration.");
-                return;
-            }
-
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log("✅ Login successful:", user.email);
-                    alert("✅ Login successful! Welcome " + user.email);
-                    showApp('teacher');
-                })
-                .catch((error) => {
-                    console.error("❌ Login error:", error);
-                    alert("Login failed: " + error.message);
+            // Navigation
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showTab(this.getAttribute('data-tab'));
                 });
+            });
+            
+            // Students
+            document.getElementById('addStudentBtn').addEventListener('click', addStudent);
+            document.getElementById('studentFilter').addEventListener('keyup', filterStudents);
+            document.getElementById('filterStudentClass').addEventListener('change', filterStudents);
+            
+            // Attendance
+            document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendance);
+            document.getElementById('markAllBtn').addEventListener('click', markAllPresent);
+            document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
+            document.getElementById('clearWeekBtn').addEventListener('click', clearWeek);
+            
+            // Reports
+            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+            
+            // Principal-only features
+            document.getElementById('addTeacherBtn').addEventListener('click', addTeacher);
+            document.getElementById('addSubjectBtn').addEventListener('click', addSubject);
+            document.getElementById('addClassBtn').addEventListener('click', addClass);
+            document.getElementById('teacherFilter').addEventListener('keyup', filterTeachers);
+            document.getElementById('subjectFilter').addEventListener('keyup', filterSubjects);
+            document.getElementById('gradeFilter').addEventListener('keyup', filterGrades);
         }
 
         function doLogin() {
@@ -436,26 +627,48 @@
                 return;
             }
             
-            if (!auth) {
-                errorMsg.textContent = 'Firebase authentication is not available';
-                errorMsg.style.display = 'block';
-                return;
-            }
-
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    errorMsg.style.display = 'none';
                     return getUserRole(user.uid);
+                })
+                .then((role) => {
+                    appData.userRole = role;
+                    showApp(role);
+                    errorMsg.style.display = 'none';
+                })
+                .catch((error) => {
+                    errorMsg.textContent = 'Login failed: ' + error.message;
+                    errorMsg.style.display = 'block';
+                });
+        }
+
+        function googleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    return getUserRole(user.uid);
+                })
+                .then((role) => {
+                    if (!role) {
+                        const selectedRole = document.getElementById('loginRole').value;
+                        const user = auth.currentUser;
+                        return db.collection('users').doc(user.uid).set({
+                            email: user.email,
+                            role: selectedRole,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }).then(() => selectedRole);
+                    }
+                    return role;
                 })
                 .then((role) => {
                     appData.userRole = role;
                     showApp(role);
                 })
                 .catch((error) => {
-                    errorMsg.textContent = 'Login failed: ' + error.message;
-                    errorMsg.style.display = 'block';
-                    console.error("Login error:", error);
+                    document.getElementById('loginError').textContent = 'Google login failed: ' + error.message;
+                    document.getElementById('loginError').style.display = 'block';
                 });
         }
 
@@ -473,12 +686,6 @@
             
             if (password.length < 6) {
                 errorMsg.textContent = 'Password should be at least 6 characters';
-                errorMsg.style.display = 'block';
-                return;
-            }
-
-            if (!auth) {
-                errorMsg.textContent = 'Firebase authentication is not available';
                 errorMsg.style.display = 'block';
                 return;
             }
@@ -503,70 +710,25 @@
                 });
         }
 
-        function googleLogin() {
-            if (!auth) {
-                alert("Firebase auth is not available");
-                return;
-            }
-            
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    const user = result.user;
-                    return getUserRole(user.uid);
-                })
-                .then((role) => {
-                    if (!role) {
-                        const selectedRole = document.getElementById('loginRole').value;
-                        const user = auth.currentUser;
-                        return db.collection('users').doc(user.uid).set({
-                            email: user.email,
-                            role: selectedRole,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => selectedRole);
-                    }
-                    return role;
-                })
-                .then((role) => {
-                    appData.userRole = role;
-                    showApp(role);
-                })
-                .catch((error) => {
-                    console.error("Google login error:", error);
-                    document.getElementById('loginError').textContent = 'Google login failed: ' + error.message;
-                    document.getElementById('loginError').style.display = 'block';
-                });
-        }
-
         function showApp(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal' : 'Teacher';
             
-            document.querySelectorAll('.principal-only').forEach(function(el) {
+            document.querySelectorAll('.principal-only').forEach(el => {
                 el.style.display = role === 'principal' ? 'block' : 'none';
             });
+            
+            updateAll();
         }
 
         function doLogout() {
-            if (auth) {
-                auth.signOut().then(() => {
-                    appData.currentUser = null;
-                    appData.userRole = null;
-                    document.getElementById('loginScreen').style.display = 'block';
-                    document.getElementById('appContent').style.display = 'none';
-                });
-            }
-        }
-
-        async function getUserRole(uid) {
-            try {
-                const doc = await db.collection('users').doc(uid).get();
-                return doc.exists ? doc.data().role : 'teacher';
-            } catch (error) {
-                console.error("Error getting user role:", error);
-                return 'teacher';
-            }
+            auth.signOut().then(() => {
+                appData.currentUser = null;
+                appData.userRole = null;
+                document.getElementById('loginScreen').style.display = 'block';
+                document.getElementById('appContent').style.display = 'none';
+            });
         }
 
         function showTab(tabName) {
@@ -575,6 +737,542 @@
             
             document.getElementById(tabName).classList.add('active');
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // Refresh data when switching tabs
+            if (tabName === 'students') updateStudentsList();
+            if (tabName === 'teachers') updateTeachersList();
+            if (tabName === 'subjects') updateSubjectsList();
+            if (tabName === 'grades') updateGradesList();
+            if (tabName === 'dashboard') updateDashboard();
+        }
+
+        // Update selectors with data from Firestore
+        function updateSelectors() {
+            // Classes/Grades
+            db.collection('grades').orderBy('grade').get()
+                .then((querySnapshot) => {
+                    let classOptions = '<option value="">-- Select Class --</option>';
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const fullClass = data.grade + ' - ' + data.class;
+                        classOptions += `<option value="${fullClass}">${fullClass}</option>`;
+                    });
+                    
+                    document.getElementById('selectClass').innerHTML = classOptions;
+                    document.getElementById('studentGrade').innerHTML = classOptions;
+                    document.getElementById('reportClass').innerHTML = classOptions;
+                    document.getElementById('filterStudentClass').innerHTML = '<option value="">All Classes</option>' + classOptions;
+                })
+                .catch((error) => {
+                    console.error("Error getting grades: ", error);
+                });
+            
+            // Subjects
+            db.collection('subjects').orderBy('name').get()
+                .then((querySnapshot) => {
+                    let subjectOptions = '<option value="">-- Select Subject --</option>';
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        subjectOptions += `<option value="${data.name}">${data.name}</option>`;
+                    });
+                    
+                    document.getElementById('selectSubject').innerHTML = subjectOptions;
+                    document.getElementById('teacherSubject').innerHTML = subjectOptions;
+                    document.getElementById('reportSubject').innerHTML = subjectOptions;
+                })
+                .catch((error) => {
+                    console.error("Error getting subjects: ", error);
+                });
+        }
+
+        function updateAll() {
+            updateSelectors();
+            updateStudentsList();
+            if (appData.userRole === 'principal') {
+                updateTeachersList();
+                updateSubjectsList();
+                updateGradesList();
+                updateDashboard();
+            }
+        }
+
+        // Student Management
+        function addStudent() {
+            const id = document.getElementById('studentId').value.trim();
+            const name = document.getElementById('studentName').value.trim();
+            const grade = document.getElementById('studentGrade').value;
+            const gender = document.getElementById('studentGender').value;
+            const successMsg = document.getElementById('studentSuccess');
+            
+            if (!id || !name || !grade) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            db.collection('students').doc(id).set({
+                id: id,
+                name: name,
+                grade: grade,
+                gender: gender,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                successMsg.textContent = 'Student added successfully!';
+                successMsg.style.display = 'block';
+                document.getElementById('studentId').value = '';
+                document.getElementById('studentName').value = '';
+                updateStudentsList();
+                setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+            })
+            .catch((error) => {
+                alert('Error adding student: ' + error.message);
+            });
+        }
+
+        function updateStudentsList() {
+            const container = document.getElementById('studentList');
+            container.innerHTML = '<div class="loading">Loading students...</div>';
+            
+            db.collection('students').orderBy('id').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No students found</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const student = doc.data();
+                        html += `
+                            <div class="student-item">
+                                <strong>${student.id} - ${student.name}</strong>
+                                <br><small>Class: ${student.grade} | Gender: ${student.gender}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading students</div>';
+                });
+        }
+
+        function filterStudents() {
+            const filter = document.getElementById('studentFilter').value.toLowerCase();
+            const classFilter = document.getElementById('filterStudentClass').value;
+            const items = document.querySelectorAll('#studentList .student-item');
+            
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const matchesFilter = text.includes(filter);
+                const matchesClass = !classFilter || text.includes(classFilter);
+                item.style.display = (matchesFilter && matchesClass) ? 'block' : 'none';
+            });
+        }
+
+        // Attendance Management
+        function loadAttendance() {
+            const selectedClass = document.getElementById('selectClass').value;
+            const selectedSubject = document.getElementById('selectSubject').value;
+            const date = document.getElementById('startDate').value;
+            
+            if (!selectedClass || !selectedSubject || !date) {
+                alert('Please select class, subject, and date');
+                return;
+            }
+            
+            const tbody = document.getElementById('attendanceTbody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
+            
+            db.collection('students')
+                .where('grade', '==', selectedClass)
+                .orderBy('id')
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    const studentPromises = [];
+                    
+                    querySnapshot.forEach((doc) => {
+                        const student = doc.data();
+                        const key = `${selectedClass}_${selectedSubject}_${date}_${student.id}`;
+                        
+                        studentPromises.push(
+                            db.collection('attendance').doc(key).get()
+                                .then((attendanceDoc) => {
+                                    const attendance = attendanceDoc.exists ? attendanceDoc.data().days : [false, false, false, false, false];
+                                    let total = attendance.filter(Boolean).length;
+                                    
+                                    html += `
+                                        <tr>
+                                            <td>${student.id}</td>
+                                            <td>${student.name}</td>
+                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="0" ${attendance[0] ? 'checked' : ''}></td>
+                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="1" ${attendance[1] ? 'checked' : ''}></td>
+                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="2" ${attendance[2] ? 'checked' : ''}></td>
+                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="3" ${attendance[3] ? 'checked' : ''}></td>
+                                            <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="4" ${attendance[4] ? 'checked' : ''}></td>
+                                            <td><strong>${total}/5</strong></td>
+                                        </tr>
+                                    `;
+                                })
+                        );
+                    });
+                    
+                    Promise.all(studentPromises).then(() => {
+                        tbody.innerHTML = html;
+                    });
+                })
+                .catch((error) => {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #c00;">Error loading students</td></tr>';
+                });
+        }
+
+        function markAllPresent() {
+            document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+                cb.checked = true;
+            });
+        }
+
+        function clearWeek() {
+            document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
+        function saveAttendance() {
+            const selectedClass = document.getElementById('selectClass').value;
+            const selectedSubject = document.getElementById('selectSubject').value;
+            const date = document.getElementById('startDate').value;
+            
+            if (!selectedClass || !selectedSubject) {
+                alert('Please select class and subject first');
+                return;
+            }
+            
+            const rows = document.querySelectorAll('#attendanceTbody tr');
+            const savePromises = [];
+            
+            rows.forEach(row => {
+                const studentId = row.querySelector('td').textContent;
+                const checkboxes = row.querySelectorAll('.attendance-checkbox');
+                const attendance = Array.from(checkboxes).map(cb => cb.checked);
+                
+                const key = `${selectedClass}_${selectedSubject}_${date}_${studentId}`;
+                savePromises.push(
+                    db.collection('attendance').doc(key).set({
+                        class: selectedClass,
+                        subject: selectedSubject,
+                        date: date,
+                        studentId: studentId,
+                        days: attendance,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    })
+                );
+            });
+            
+            Promise.all(savePromises)
+                .then(() => {
+                    alert('Attendance saved successfully!');
+                    loadAttendance();
+                })
+                .catch((error) => {
+                    alert('Error saving attendance: ' + error.message);
+                });
+        }
+
+        // Reports
+        function generateReport() {
+            const selectedClass = document.getElementById('reportClass').value;
+            const selectedSubject = document.getElementById('reportSubject').value;
+            const month = document.getElementById('reportMonth').value;
+            const output = document.getElementById('reportOutput');
+            
+            if (!selectedClass || !selectedSubject || !month) {
+                alert('Please select class, subject, and month');
+                return;
+            }
+            
+            output.innerHTML = '<div class="loading">Generating report...</div>';
+            
+            db.collection('students')
+                .where('grade', '==', selectedClass)
+                .orderBy('id')
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        output.innerHTML = '<div class="info-box">No students in this class</div>';
+                        return;
+                    }
+                    
+                    let html = `<h3>Monthly Report: ${selectedClass} - ${selectedSubject} (${month})</h3>`;
+                    html += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Present</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
+                    
+                    const reportPromises = [];
+                    
+                    querySnapshot.forEach((doc) => {
+                        const student = doc.data();
+                        const promise = db.collection('attendance')
+                            .where('studentId', '==', student.id)
+                            .where('class', '==', selectedClass)
+                            .where('subject', '==', selectedSubject)
+                            .where('date', '>=', `${month}-01`)
+                            .where('date', '<=', `${month}-31`)
+                            .get()
+                            .then((attendanceSnapshot) => {
+                                let presentDays = 0;
+                                let totalDays = 0;
+                                
+                                attendanceSnapshot.forEach((attendanceDoc) => {
+                                    const attendance = attendanceDoc.data();
+                                    totalDays += 5;
+                                    presentDays += attendance.days.filter(Boolean).length;
+                                });
+                                
+                                const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
+                                
+                                html += `
+                                    <tr>
+                                        <td>${student.id}</td>
+                                        <td>${student.name}</td>
+                                        <td>${presentDays}</td>
+                                        <td>${totalDays}</td>
+                                        <td><strong>${percentage}%</strong></td>
+                                    </tr>
+                                `;
+                            });
+                            
+                        reportPromises.push(promise);
+                    });
+                    
+                    Promise.all(reportPromises).then(() => {
+                        html += '</tbody></table>';
+                        output.innerHTML = html;
+                    });
+                })
+                .catch((error) => {
+                    output.innerHTML = '<div class="error-msg">Error generating report</div>';
+                });
+        }
+
+        // Principal-only functions
+        function addTeacher() {
+            const id = document.getElementById('teacherId').value.trim();
+            const name = document.getElementById('teacherName').value.trim();
+            const subject = document.getElementById('teacherSubject').value;
+            const successMsg = document.getElementById('teacherSuccess');
+            
+            if (!id || !name || !subject) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            db.collection('teachers').doc(id).set({
+                id: id,
+                name: name,
+                subject: subject,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                successMsg.textContent = 'Teacher added successfully!';
+                successMsg.style.display = 'block';
+                document.getElementById('teacherId').value = '';
+                document.getElementById('teacherName').value = '';
+                updateTeachersList();
+                setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+            })
+            .catch((error) => {
+                alert('Error adding teacher: ' + error.message);
+            });
+        }
+
+        function addSubject() {
+            const name = document.getElementById('subjectName').value.trim();
+            const successMsg = document.getElementById('subjectSuccess');
+            
+            if (!name) {
+                alert('Please enter subject name');
+                return;
+            }
+            
+            db.collection('subjects').doc(name).set({
+                name: name,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                successMsg.textContent = 'Subject added successfully!';
+                successMsg.style.display = 'block';
+                document.getElementById('subjectName').value = '';
+                updateSubjectsList();
+                updateSelectors();
+                setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+            })
+            .catch((error) => {
+                alert('Error adding subject: ' + error.message);
+            });
+        }
+
+        function addClass() {
+            const grade = document.getElementById('newGrade').value;
+            const className = document.getElementById('className').value.trim();
+            const successMsg = document.getElementById('classSuccess');
+            
+            if (!grade || !className) {
+                alert('Please select grade and enter class name');
+                return;
+            }
+            
+            const fullClass = `${grade} - ${className}`;
+            
+            db.collection('grades').doc(fullClass).set({
+                grade: grade,
+                class: className,
+                fullClass: fullClass,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                successMsg.textContent = 'Grade & Class added successfully!';
+                successMsg.style.display = 'block';
+                document.getElementById('className').value = '';
+                updateGradesList();
+                updateSelectors();
+                setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+            })
+            .catch((error) => {
+                alert('Error adding grade: ' + error.message);
+            });
+        }
+
+        function updateTeachersList() {
+            const container = document.getElementById('teachersList');
+            container.innerHTML = '<div class="loading">Loading teachers...</div>';
+            
+            db.collection('teachers').orderBy('id').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No teachers found</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const teacher = doc.data();
+                        html += `
+                            <div class="student-item">
+                                <strong>${teacher.id} - ${teacher.name}</strong>
+                                <br><small>Subject: ${teacher.subject}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading teachers</div>';
+                });
+        }
+
+        function updateSubjectsList() {
+            const container = document.getElementById('subjectsList');
+            container.innerHTML = '<div class="loading">Loading subjects...</div>';
+            
+            db.collection('subjects').orderBy('name').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No subjects found</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const subject = doc.data();
+                        html += `
+                            <div class="student-item">
+                                <strong>${subject.name}</strong>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading subjects</div>';
+                });
+        }
+
+        function updateGradesList() {
+            const container = document.getElementById('gradesList');
+            container.innerHTML = '<div class="loading">Loading grades...</div>';
+            
+            db.collection('grades').orderBy('grade').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No grades found</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const grade = doc.data();
+                        html += `
+                            <div class="student-item">
+                                <strong>${grade.fullClass}</strong>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading grades</div>';
+                });
+        }
+
+        function updateDashboard() {
+            Promise.all([
+                db.collection('students').get(),
+                db.collection('teachers').get(),
+                db.collection('grades').get(),
+                db.collection('subjects').get()
+            ])
+            .then((results) => {
+                document.getElementById('totalStudents').textContent = results[0].size;
+                document.getElementById('totalTeachers').textContent = results[1].size;
+                document.getElementById('totalGrades').textContent = results[2].size;
+                document.getElementById('totalSubjects').textContent = results[3].size;
+            })
+            .catch((error) => {
+                console.error("Error getting dashboard data: ", error);
+            });
+        }
+
+        function filterTeachers() {
+            const filter = document.getElementById('teacherFilter').value.toLowerCase();
+            const items = document.querySelectorAll('#teachersList .student-item');
+            items.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+            });
+        }
+
+        function filterSubjects() {
+            const filter = document.getElementById('subjectFilter').value.toLowerCase();
+            const items = document.querySelectorAll('#subjectsList .student-item');
+            items.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+            });
+        }
+
+        function filterGrades() {
+            const filter = document.getElementById('gradeFilter').value.toLowerCase();
+            const items = document.querySelectorAll('#gradesList .student-item');
+            items.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+            });
         }
     </script>
 </body>
