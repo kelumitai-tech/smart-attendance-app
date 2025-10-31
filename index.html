@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
     
-    <!-- Firebase SDK (compat version) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics-compat.js"></script>
     
     <style>
-        /* Your existing CSS styles here */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -265,18 +263,10 @@
                     <button class="btn btn-secondary" id="registerBtn">📝 Register New Account</button>
                 </div>
             </div>
-            
-            <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
-                <p style="color: #666; font-size: 0.9em; line-height: 1.8;">
-                    <strong style="color: #005A9C;">Developer:</strong> Kelum Konara<br>
-                    <strong style="color: #005A9C;">SmartSoft</strong> | The Mobile Apps Developer<br>
-                    📞 <strong>0714469232</strong>
-                </p>
-            </footer>
         </div>
 
-        <!-- Main App -->
-        <div class="content app-main" id="appContent">
+        <!-- Main App (Initially Hidden) -->
+        <div class="content app-main" id="appContent" style="display: none;">
             <button class="logout-btn" id="logoutBtn">Logout</button>
             <div class="role-badge" id="roleBadge">Teacher</div>
             
@@ -285,164 +275,307 @@
                 <button class="nav-tab" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
-                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
-                <button class="nav-tab principal-only" data-tab="grades">🎓 Grades</button>
-                <button class="nav-tab principal-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
-            <!-- Attendance Tab -->
+            <!-- Simple Dashboard for Testing -->
             <div class="tab-content active" id="attendance">
                 <div class="card">
-                    <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject, and date to mark attendance</div>
-                    <div class="form-group">
-                        <label>Select Class</label>
-                        <select id="selectClass"></select>
+                    <h3>Welcome to Smart Attendance Tracker</h3>
+                    <div class="info-box" id="connectionStatus">
+                        🔄 Checking Firebase connection...
                     </div>
                     <div class="form-group">
-                        <label>Select Subject</label>
-                        <select id="selectSubject"></select>
+                        <label>Test Email</label>
+                        <input type="email" id="testEmail" value="test@school.com" readonly>
                     </div>
                     <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" id="startDate">
+                        <label>Test Password</label>
+                        <input type="password" id="testPassword" value="password123" readonly>
                     </div>
-                    <button class="btn btn-primary" id="loadAttendanceBtn">Load Attendance Sheet</button>
-                </div>
-
-                <div class="card">
-                    <h3>Attendance Sheet</h3>
-                    <div style="overflow-x: auto;">
-                        <table id="attendanceTable">
-                            <thead>
-                                <tr>
-                                    <th>Student ID</th>
-                                    <th>Name</th>
-                                    <th>Mon</th>
-                                    <th>Tue</th>
-                                    <th>Wed</th>
-                                    <th>Thu</th>
-                                    <th>Fri</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="attendanceTbody">
-                                <tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" id="markAllBtn">✓ Mark All Present</button>
-                        <button class="btn btn-primary" id="saveAttendanceBtn">💾 Save Attendance</button>
-                        <button class="btn btn-danger" id="clearWeekBtn">✗ Clear Week</button>
-                    </div>
+                    <button class="btn btn-primary" id="testRegisterBtn">Test Registration</button>
+                    <button class="btn btn-secondary" id="testLoginBtn">Test Login</button>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Students Tab -->
-            <div class="tab-content" id="students">
-                <div class="card">
-                    <h3>Add New Student</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Student ID</label>
-                            <input type="text" id="studentId" placeholder="e.g., S001">
-                        </div>
-                        <div class="form-group">
-                            <label>Student Name</label>
-                            <input type="text" id="studentName" placeholder="Enter name">
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Grade</label>
-                            <select id="studentGrade"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Gender</label>
-                            <select id="studentGender">
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" id="addStudentBtn">Add Student</button>
-                    <div class="success-msg" id="studentSuccess"></div>
-                </div>
+    <script>
+        // Your Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPPqnPEfVLkc7K29YPV7GDkIaC6tcHn4E",
+            authDomain: "smart-attendance-tracker-5573b.firebaseapp.com",
+            projectId: "smart-attendance-tracker-5573b",
+            storageBucket: "smart-attendance-tracker-5573b.firebasestorage.app",
+            messagingSenderId: "342955621552",
+            appId: "1:342955621552:web:790e9b4fb8a4e8edec4f75",
+            measurementId: "G-01LEWN7WHX"
+        };
 
-                <div class="card">
-                    <h3>Student List</h3>
-                    <div class="form-group">
-                        <label>Filter by Class</label>
-                        <select id="filterStudentClass">
-                            <option value="">All Classes</option>
-                        </select>
-                    </div>
-                    <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
-                    <div id="studentList" class="loading">Loading students...</div>
-                </div>
-            </div>
+        // Initialize Firebase
+        let auth, db;
+        try {
+            // Check if Firebase app is already initialized
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                console.log("✅ Firebase initialized successfully!");
+            }
+            
+            auth = firebase.auth();
+            db = firebase.firestore();
+            
+            // Update connection status
+            document.getElementById('connectionStatus').innerHTML = "✅ Firebase connected successfully!";
+            document.getElementById('connectionStatus').style.background = "#e7f5e7";
+            document.getElementById('connectionStatus').style.color = "#2e7d32";
+            
+        } catch (error) {
+            console.error("❌ Firebase initialization error:", error);
+            document.getElementById('connectionStatus').innerHTML = "❌ Firebase connection failed: " + error.message;
+            document.getElementById('connectionStatus').style.background = "#fee";
+            document.getElementById('connectionStatus').style.color = "#c00";
+        }
 
-            <!-- Reports Tab -->
-            <div class="tab-content" id="reports">
-                <div class="card">
-                    <h3>Generate Monthly Report</h3>
-                    <div class="form-group">
-                        <label>Select Class</label>
-                        <select id="reportClass"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Select Subject</label>
-                        <select id="reportSubject"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Month</label>
-                        <input type="month" id="reportMonth">
-                    </div>
-                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
-                    <div id="reportOutput" style="margin-top: 20px;"></div>
-                </div>
-            </div>
+        // Global app data
+        const appData = {
+            currentUser: null,
+            userRole: null
+        };
 
-            <!-- Dashboard Tab -->
-            <div class="tab-content principal-only" id="dashboard">
-                <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
-                <div class="grid-2">
-                    <div class="stats-card">
-                        <p>Total Students</p>
-                        <h2 id="totalStudents">0</h2>
-                    </div>
-                    <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                        <p>Total Teachers</p>
-                        <h2 id="totalTeachers">0</h2>
-                    </div>
-                    <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                        <p>Total Classes</p>
-                        <h2 id="totalGrades">0</h2>
-                    </div>
-                    <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                        <p>Total Subjects</p>
-                        <h2 id="totalSubjects">0</h2>
-                    </div>
-                </div>
-            </div>
+        // Initialize the application
+        window.onload = function() {
+            setupEventListeners();
+            checkAuthState();
+        };
 
-            <!-- Teachers Tab -->
-            <div class="tab-content principal-only" id="teachers">
-                <div class="card">
-                    <h3>Add New Teacher</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Teacher ID</label>
-                            <input type="text" id="teacherId" placeholder="e.g., T001">
-                        </div>
-                        <div class="form-group">
-                            <label>Teacher Name</label>
-                            <input type="text" id="teacherName" placeholder="Enter name">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Subject</label>
-                        <select id="teacherSubject"></select>
-                    </div>
-                    <button class="btn btn-primary" id="addTeacherBtn">Add Teacher</button>
+        function setupEventListeners() {
+            document.getElementById('loginBtn').addEventListener('click', doLogin);
+            document.getElementById('googleBtn').addEventListener('click', googleLogin);
+            document.getElementById('registerBtn').addEventListener('click', showRegistration);
+            document.getElementById('logoutBtn').addEventListener('click', doLogout);
+            document.getElementById('testRegisterBtn').addEventListener('click', testRegistration);
+            document.getElementById('testLoginBtn').addEventListener('click', testLogin);
+        }
+
+        function checkAuthState() {
+            if (auth) {
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        console.log("✅ User is signed in:", user.email);
+                        appData.currentUser = user;
+                        showApp('teacher'); // Default role for testing
+                    } else {
+                        console.log("✅ User is signed out");
+                        document.getElementById('loginScreen').style.display = 'block';
+                        document.getElementById('appContent').style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        function testRegistration() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            const role = document.getElementById('loginRole').value;
+            
+            if (!auth) {
+                alert("Firebase auth is not available. Please check configuration.");
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log("✅ Test user created:", user.email);
+                    
+                    // Save user role to Firestore
+                    return db.collection('users').doc(user.uid).set({
+                        email: email,
+                        role: role,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    alert("✅ Test registration successful! You can now login.");
+                })
+                .catch((error) => {
+                    console.error("❌ Registration error:", error);
+                    alert("Registration failed: " + error.message);
+                });
+        }
+
+        function testLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!auth) {
+                alert("Firebase auth is not available. Please check configuration.");
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log("✅ Login successful:", user.email);
+                    alert("✅ Login successful! Welcome " + user.email);
+                    showApp('teacher');
+                })
+                .catch((error) => {
+                    console.error("❌ Login error:", error);
+                    alert("Login failed: " + error.message);
+                });
+        }
+
+        function doLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const errorMsg = document.getElementById('loginError');
+            
+            if (!email || !password) {
+                errorMsg.textContent = 'Please enter both email and password';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            if (!auth) {
+                errorMsg.textContent = 'Firebase authentication is not available';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    errorMsg.style.display = 'none';
+                    return getUserRole(user.uid);
+                })
+                .then((role) => {
+                    appData.userRole = role;
+                    showApp(role);
+                })
+                .catch((error) => {
+                    errorMsg.textContent = 'Login failed: ' + error.message;
+                    errorMsg.style.display = 'block';
+                    console.error("Login error:", error);
+                });
+        }
+
+        function showRegistration() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const role = document.getElementById('loginRole').value;
+            const errorMsg = document.getElementById('loginError');
+            
+            if (!email || !password) {
+                errorMsg.textContent = 'Please enter both email and password';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password should be at least 6 characters';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            if (!auth) {
+                errorMsg.textContent = 'Firebase authentication is not available';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    return db.collection('users').doc(user.uid).set({
+                        email: email,
+                        role: role,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    appData.userRole = role;
+                    showApp(role);
+                    errorMsg.style.display = 'none';
+                })
+                .catch((error) => {
+                    errorMsg.textContent = 'Registration failed: ' + error.message;
+                    errorMsg.style.display = 'block';
+                });
+        }
+
+        function googleLogin() {
+            if (!auth) {
+                alert("Firebase auth is not available");
+                return;
+            }
+            
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    return getUserRole(user.uid);
+                })
+                .then((role) => {
+                    if (!role) {
+                        const selectedRole = document.getElementById('loginRole').value;
+                        const user = auth.currentUser;
+                        return db.collection('users').doc(user.uid).set({
+                            email: user.email,
+                            role: selectedRole,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }).then(() => selectedRole);
+                    }
+                    return role;
+                })
+                .then((role) => {
+                    appData.userRole = role;
+                    showApp(role);
+                })
+                .catch((error) => {
+                    console.error("Google login error:", error);
+                    document.getElementById('loginError').textContent = 'Google login failed: ' + error.message;
+                    document.getElementById('loginError').style.display = 'block';
+                });
+        }
+
+        function showApp(role) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal' : 'Teacher';
+            
+            document.querySelectorAll('.principal-only').forEach(function(el) {
+                el.style.display = role === 'principal' ? 'block' : 'none';
+            });
+        }
+
+        function doLogout() {
+            if (auth) {
+                auth.signOut().then(() => {
+                    appData.currentUser = null;
+                    appData.userRole = null;
+                    document.getElementById('loginScreen').style.display = 'block';
+                    document.getElementById('appContent').style.display = 'none';
+                });
+            }
+        }
+
+        async function getUserRole(uid) {
+            try {
+                const doc = await db.collection('users').doc(uid).get();
+                return doc.exists ? doc.data().role : 'teacher';
+            } catch (error) {
+                console.error("Error getting user role:", error);
+                return 'teacher';
+            }
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        }
+    </script>
+</body>
+</html>
