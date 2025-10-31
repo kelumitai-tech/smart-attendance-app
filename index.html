@@ -95,6 +95,7 @@
         }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
+        .btn-test { background: #FF9800; color: white; }
         .error-msg, .success-msg {
             padding: 12px;
             border-radius: 8px;
@@ -269,6 +270,13 @@
             margin-bottom: 15px;
             text-align: center;
         }
+        .test-section {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 2px dashed #ff9800;
+        }
         @media (max-width: 768px) {
             .grid-2, .grid-attendance { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -310,6 +318,24 @@
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                     <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
                     <button class="btn btn-secondary" id="registerBtn">📝 Register New Account</button>
+                </div>
+
+                <!-- Test Account Section -->
+                <div class="test-section">
+                    <h3 style="text-align: center; margin-bottom: 15px; color: #333;">🚨 Quick Test Setup</h3>
+                    <p style="text-align: center; margin-bottom: 15px; color: #666; font-size: 14px;">
+                        Having login issues? Create a test account instantly!
+                    </p>
+                    <div class="form-group">
+                        <label>Test Email</label>
+                        <input type="email" id="testEmail" value="teacher@school.com" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Test Password</label>
+                        <input type="password" id="testPassword" value="123456" readonly>
+                    </div>
+                    <button class="btn btn-test" id="testRegisterBtn">🎯 Create Test Account & Login</button>
+                    <div id="testResult" style="margin-top: 10px;"></div>
                 </div>
             </div>
             
@@ -663,7 +689,19 @@
         async function getUserRole(uid) {
             try {
                 const doc = await db.collection('users').doc(uid).get();
-                return doc.exists ? doc.data().role : 'teacher';
+                if (doc.exists) {
+                    return doc.data().role;
+                } else {
+                    // Create user document if it doesn't exist
+                    const user = auth.currentUser;
+                    const role = document.getElementById('loginRole').value;
+                    await db.collection('users').doc(uid).set({
+                        email: user.email,
+                        role: role,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return role;
+                }
             } catch (error) {
                 console.error("Error getting user role:", error);
                 return 'teacher';
@@ -676,6 +714,7 @@
             document.getElementById('googleBtn').addEventListener('click', googleLogin);
             document.getElementById('registerBtn').addEventListener('click', showRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
+            document.getElementById('testRegisterBtn').addEventListener('click', createTestAccount);
             
             // Navigation
             document.querySelectorAll('.nav-tab').forEach(btn => {
@@ -710,6 +749,54 @@
             document.getElementById('gradeFilter').addEventListener('keyup', filterGrades);
         }
 
+        // Test Account Creation Function
+        async function createTestAccount() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            const role = document.getElementById('loginRole').value;
+            const resultDiv = document.getElementById('testResult');
+            const errorMsg = document.getElementById('loginError');
+
+            resultDiv.innerHTML = '<div class="loading">Creating test account...</div>';
+
+            try {
+                // Try to create user account
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Create user document in Firestore
+                await db.collection('users').doc(user.uid).set({
+                    email: email,
+                    role: role,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                resultDiv.innerHTML = '<div class="success-msg">✅ Test account created successfully! Logging you in...</div>';
+                
+                // Auto-fill login form and login
+                document.getElementById('loginEmail').value = email;
+                document.getElementById('loginPassword').value = password;
+                
+                // Login with the created account
+                setTimeout(() => {
+                    doLogin();
+                }, 2000);
+
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    // If account already exists, try to login
+                    resultDiv.innerHTML = '<div class="info-box">Account exists. Attempting to login...</div>';
+                    document.getElementById('loginEmail').value = email;
+                    document.getElementById('loginPassword').value = password;
+                    setTimeout(() => {
+                        doLogin();
+                    }, 1000);
+                } else {
+                    resultDiv.innerHTML = '<div class="error-msg">❌ Error: ' + error.message + '</div>';
+                }
+            }
+        }
+
         function doLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
@@ -730,10 +817,12 @@
                     appData.userRole = role;
                     showApp(role);
                     errorMsg.style.display = 'none';
+                    document.getElementById('testResult').innerHTML = '';
                 })
                 .catch((error) => {
                     errorMsg.textContent = 'Login failed: ' + error.message;
                     errorMsg.style.display = 'block';
+                    document.getElementById('testResult').innerHTML = '<div class="error-msg">❌ Login failed. Try creating a test account above.</div>';
                 });
         }
 
@@ -743,18 +832,6 @@
                 .then((result) => {
                     const user = result.user;
                     return getUserRole(user.uid);
-                })
-                .then((role) => {
-                    if (!role) {
-                        const selectedRole = document.getElementById('loginRole').value;
-                        const user = auth.currentUser;
-                        return db.collection('users').doc(user.uid).set({
-                            email: user.email,
-                            role: selectedRole,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => selectedRole);
-                    }
-                    return role;
                 })
                 .then((role) => {
                     appData.userRole = role;
