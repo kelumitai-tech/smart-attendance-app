@@ -233,6 +233,24 @@
         }
         .present { color: #4CAF50; font-weight: bold; }
         .absent { color: #f44336; font-weight: bold; }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .report-table th {
+            background: #005A9C;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .report-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .report-table tr:hover {
+            background: #f5f5f5;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
         }
@@ -395,7 +413,7 @@
             <!-- Reports Tab -->
             <div class="tab-content" id="reports">
                 <div class="card">
-                    <h3>Generate Monthly Report</h3>
+                    <h3>Generate Detailed Attendance Report</h3>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="reportClass"></select>
@@ -408,7 +426,7 @@
                         <label>Month</label>
                         <input type="month" id="reportMonth">
                     </div>
-                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
+                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Detailed Report</button>
                     <div id="reportOutput" style="margin-top: 20px;"></div>
                 </div>
             </div>
@@ -622,7 +640,7 @@
             document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
             // Reports
-            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+            document.getElementById('generateReportBtn').addEventListener('click', generateDetailedReport);
             
             // Principal-only features
             document.getElementById('addTeacherBtn').addEventListener('click', addTeacher);
@@ -1061,8 +1079,8 @@
                 });
         }
 
-        // Reports - Updated for single date attendance
-        function generateReport() {
+        // Updated Detailed Report Function
+        function generateDetailedReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
             const month = document.getElementById('reportMonth').value;
@@ -1073,22 +1091,64 @@
                 return;
             }
             
-            output.innerHTML = '<div class="loading">Generating report...</div>';
+            output.innerHTML = '<div class="loading">Generating detailed report...</div>';
             
-            db.collection('students')
-                .where('grade', '==', selectedClass)
-                .orderBy('id')
+            // Get teacher information for the subject
+            let teacherInfo = { id: 'N/A', name: 'N/A' };
+            
+            db.collection('teachers')
+                .where('subject', '==', selectedSubject)
                 .get()
+                .then((teacherSnapshot) => {
+                    if (!teacherSnapshot.empty) {
+                        const teacher = teacherSnapshot.docs[0].data();
+                        teacherInfo = { id: teacher.id, name: teacher.name };
+                    }
+                    
+                    return db.collection('students')
+                        .where('grade', '==', selectedClass)
+                        .orderBy('id')
+                        .get();
+                })
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
                         output.innerHTML = '<div class="info-box">No students in this class</div>';
                         return;
                     }
                     
-                    let html = `<h3>Monthly Report: ${selectedClass} - ${selectedSubject} (${month})</h3>`;
-                    html += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Present Days</th><th>Total Days</th><th>Percentage</th></tr></thead><tbody>';
+                    let html = `
+                        <div class="card">
+                            <h3>📊 Detailed Attendance Report</h3>
+                            <div class="info-box">
+                                <strong>Class:</strong> ${selectedClass} | 
+                                <strong>Subject:</strong> ${selectedSubject} | 
+                                <strong>Month:</strong> ${month} | 
+                                <strong>Teacher:</strong> ${teacherInfo.name} (${teacherInfo.id})
+                            </div>
+                    `;
+                    
+                    html += `
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Subject</th>
+                                    <th>Teacher ID</th>
+                                    <th>Teacher Name</th>
+                                    <th>Present Dates</th>
+                                    <th>Absent Dates</th>
+                                    <th>Total Present</th>
+                                    <th>Total Days</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
                     
                     const reportPromises = [];
+                    const monthStart = `${month}-01`;
+                    const monthEnd = `${month}-31`;
                     
                     querySnapshot.forEach((doc) => {
                         const student = doc.data();
@@ -1096,27 +1156,43 @@
                             .where('studentId', '==', student.id)
                             .where('class', '==', selectedClass)
                             .where('subject', '==', selectedSubject)
-                            .where('date', '>=', `${month}-01`)
-                            .where('date', '<=', `${month}-31`)
+                            .where('date', '>=', monthStart)
+                            .where('date', '<=', monthEnd)
+                            .orderBy('date')
                             .get()
                             .then((attendanceSnapshot) => {
-                                let presentDays = 0;
-                                let totalDays = attendanceSnapshot.size;
+                                let presentDates = [];
+                                let absentDates = [];
+                                let presentCount = 0;
                                 
                                 attendanceSnapshot.forEach((attendanceDoc) => {
                                     const attendance = attendanceDoc.data();
+                                    const dateStr = attendance.date;
                                     if (attendance.present) {
-                                        presentDays++;
+                                        presentDates.push(dateStr);
+                                        presentCount++;
+                                    } else {
+                                        absentDates.push(dateStr);
                                     }
                                 });
                                 
-                                const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0;
+                                const totalDays = attendanceSnapshot.size;
+                                const percentage = totalDays > 0 ? ((presentCount / totalDays) * 100).toFixed(1) : 0;
                                 
                                 html += `
                                     <tr>
-                                        <td>${student.id}</td>
+                                        <td><strong>${student.id}</strong></td>
                                         <td>${student.name}</td>
-                                        <td>${presentDays}</td>
+                                        <td>${selectedSubject}</td>
+                                        <td>${teacherInfo.id}</td>
+                                        <td>${teacherInfo.name}</td>
+                                        <td>
+                                            <small>${presentDates.length > 0 ? presentDates.join(', ') : 'No present days'}</small>
+                                        </td>
+                                        <td>
+                                            <small>${absentDates.length > 0 ? absentDates.join(', ') : 'No absent days'}</small>
+                                        </td>
+                                        <td><strong class="present">${presentCount}</strong></td>
                                         <td>${totalDays}</td>
                                         <td><strong>${percentage}%</strong></td>
                                     </tr>
@@ -1127,12 +1203,35 @@
                     });
                     
                     Promise.all(reportPromises).then(() => {
-                        html += '</tbody></table>';
+                        html += '</tbody></table></div>';
+                        
+                        // Add summary statistics
+                        const totalStudents = querySnapshot.size;
+                        html += `
+                            <div class="card">
+                                <h3>📈 Summary Statistics</h3>
+                                <div class="grid-2">
+                                    <div class="info-box">
+                                        <strong>Total Students:</strong> ${totalStudents}
+                                    </div>
+                                    <div class="info-box">
+                                        <strong>Subject:</strong> ${selectedSubject}
+                                    </div>
+                                    <div class="info-box">
+                                        <strong>Class:</strong> ${selectedClass}
+                                    </div>
+                                    <div class="info-box">
+                                        <strong>Teacher:</strong> ${teacherInfo.name}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
                         output.innerHTML = html;
                     });
                 })
                 .catch((error) => {
-                    output.innerHTML = '<div class="error-msg">Error generating report</div>';
+                    output.innerHTML = '<div class="error-msg">Error generating detailed report: ' + error.message + '</div>';
                 });
         }
 
