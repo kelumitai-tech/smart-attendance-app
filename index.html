@@ -106,13 +106,6 @@
             background: #004a80;
             transform: translateY(-2px);
         }
-        .btn-google {
-            background: #DB4437;
-            color: white;
-        }
-        .btn-google:hover {
-            background: #c23321;
-        }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
         .btn-warning { background: #ff9800; color: white; }
@@ -342,6 +335,31 @@
             background: #f44336;
             color: white;
         }
+        .registration-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 2px dashed #dee2e6;
+        }
+        .role-description {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #005A9C;
+        }
+        .role-description h4 {
+            color: #005A9C;
+            margin-bottom: 10px;
+        }
+        .role-description ul {
+            margin-left: 20px;
+            color: #555;
+        }
+        .role-description li {
+            margin-bottom: 5px;
+        }
         @media (max-width: 768px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -394,13 +412,40 @@
                     <input type="password" id="loginPassword" placeholder="Enter your password">
                 </div>
                 <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
-                <button class="btn btn-google btn-full" id="googleBtn">🌐 Sign in with Google</button>
                 <div class="error-msg" id="loginError"></div>
                 
                 <!-- Registration Section -->
-                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                    <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
-                    <button class="btn btn-secondary btn-full" id="registerBtn">📝 Register New Account</button>
+                <div class="registration-form">
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #333;">New User Registration</h3>
+                    
+                    <div class="role-description">
+                        <h4>📝 Register as Subject Teacher</h4>
+                        <p><strong>Note:</strong> New users can only register as Subject Teachers. Class Teachers and Principals must be created by existing administrators.</p>
+                        <ul>
+                            <li>✅ Mark attendance registers</li>
+                            <li>✅ Generate reports and PDFs</li>
+                            <li>❌ Cannot manage students, teachers, or classes</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="regName" placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="regEmail" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="regPassword" placeholder="Create a password (min. 6 characters)">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <input type="password" id="regConfirmPassword" placeholder="Confirm your password">
+                    </div>
+                    <button class="btn btn-secondary btn-full" id="registerBtn">📝 Register as Subject Teacher</button>
+                    <div class="success-msg" id="registerSuccess"></div>
                 </div>
             </div>
             
@@ -461,6 +506,7 @@
                         <table id="attendanceTable">
                             <thead>
                                 <tr>
+                                    <th>#</th>
                                     <th>Student ID</th>
                                     <th>Name</th>
                                     <th>Subject</th>
@@ -471,7 +517,7 @@
                                 </tr>
                             </thead>
                             <tbody id="attendanceTbody">
-                                <tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                                <tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -745,26 +791,59 @@
         // Tab configurations for different roles
         const roleTabs = {
             principal: [
-                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋' },
-                { id: 'students', name: '👥 Manage Students', icon: '👥' },
-                { id: 'reports', name: '📊 Generate Reports', icon: '📊' },
-                { id: 'dashboard', name: '🎯 Dashboard', icon: '🎯' },
-                { id: 'teachers', name: '👨‍🏫 Manage Teachers', icon: '👨‍🏫' },
-                { id: 'grades', name: '🎓 Manage Grades', icon: '🎓' },
-                { id: 'subjects', name: '📚 Manage Subjects', icon: '📚' },
-                { id: 'viewAttendance', name: '👀 View Attendance', icon: '👀' }
+                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark student attendance for classes' },
+                { id: 'students', name: '👥 Manage Students', icon: '👥', description: 'Add, edit, and manage students' },
+                { id: 'reports', name: '📊 Generate Reports', icon: '📊', description: 'Generate attendance reports and PDFs' },
+                { id: 'dashboard', name: '🎯 Dashboard', icon: '🎯', description: 'View system statistics and overview' },
+                { id: 'teachers', name: '👨‍🏫 Manage Teachers', icon: '👨‍🏫', description: 'Add and manage teaching staff' },
+                { id: 'grades', name: '🎓 Manage Grades', icon: '🎓', description: 'Manage classes and grades' },
+                { id: 'subjects', name: '📚 Manage Subjects', icon: '📚', description: 'Manage academic subjects' },
+                { id: 'viewAttendance', name: '👀 View Records', icon: '👀', description: 'View attendance records' }
             ],
             classTeacher: [
-                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋' },
-                { id: 'students', name: '👥 Manage Students', icon: '👥' },
-                { id: 'reports', name: '📊 Generate Reports', icon: '📊' },
-                { id: 'grades', name: '🎓 Manage Grades', icon: '🎓' },
-                { id: 'subjects', name: '📚 Manage Subjects', icon: '📚' }
+                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark student attendance for your classes' },
+                { id: 'students', name: '👥 Manage Students', icon: '👥', description: 'Manage students in your classes' },
+                { id: 'reports', name: '📊 Generate Reports', icon: '📊', description: 'Generate class reports and PDFs' },
+                { id: 'grades', name: '🎓 Manage Classes', icon: '🎓', description: 'Manage your assigned classes' },
+                { id: 'subjects', name: '📚 Manage Subjects', icon: '📚', description: 'Manage subjects you teach' }
             ],
             subjectTeacher: [
-                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋' },
-                { id: 'reports', name: '📊 Generate Reports', icon: '📊' }
+                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark attendance for your subject classes' },
+                { id: 'reports', name: '📊 Generate Reports', icon: '📊', description: 'Generate subject attendance reports' }
             ]
+        };
+
+        // Role descriptions for display
+        const roleDescriptions = {
+            principal: {
+                name: 'Principal (Administrator)',
+                permissions: [
+                    'Full system access and control',
+                    'Manage all teachers, students, and classes',
+                    'View all attendance records',
+                    'Generate comprehensive reports',
+                    'System administration and settings'
+                ]
+            },
+            classTeacher: {
+                name: 'Class Teacher',
+                permissions: [
+                    'Manage students in assigned classes',
+                    'Mark attendance for assigned classes',
+                    'Generate class reports and PDFs',
+                    'Manage class subjects and grades',
+                    'Edit student information'
+                ]
+            },
+            subjectTeacher: {
+                name: 'Subject Teacher',
+                permissions: [
+                    'Mark attendance for subject classes',
+                    'Generate subject attendance reports',
+                    'View student lists for subjects',
+                    'No student/class management access'
+                ]
+            }
         };
 
         // Initialize the application
@@ -824,8 +903,7 @@
         function setupEventListeners() {
             // Authentication
             document.getElementById('loginBtn').addEventListener('click', doLogin);
-            document.getElementById('googleBtn').addEventListener('click', googleLogin);
-            document.getElementById('registerBtn').addEventListener('click', showRegistration);
+            document.getElementById('registerBtn').addEventListener('click', registerNewUser);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
             // Students
@@ -862,6 +940,7 @@
         function doLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
+            const selectedRole = document.getElementById('loginRole').value;
             const errorMsg = document.getElementById('loginError');
             
             if (!email || !password) {
@@ -876,10 +955,12 @@
                 })
                 .then((role) => {
                     if (!role) {
-                        role = document.getElementById('loginRole').value;
+                        // If no role found, assign the selected role
+                        role = selectedRole;
                         return db.collection('users').doc(auth.currentUser.uid).set({
                             email: email,
                             role: role,
+                            name: email.split('@')[0],
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
                         }).then(() => role);
                     }
@@ -896,35 +977,17 @@
                 });
         }
 
-        function googleLogin() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    const selectedRole = document.getElementById('loginRole').value;
-                    return db.collection('users').doc(result.user.uid).set({
-                        email: result.user.email,
-                        role: selectedRole,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => selectedRole);
-                })
-                .then((role) => {
-                    appData.userRole = role;
-                    showApp(role);
-                })
-                .catch((error) => {
-                    document.getElementById('loginError').textContent = 'Google login failed: ' + error.message;
-                    document.getElementById('loginError').style.display = 'block';
-                });
-        }
-
-        function showRegistration() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-            const role = document.getElementById('loginRole').value;
+        function registerNewUser() {
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            const successMsg = document.getElementById('registerSuccess');
             const errorMsg = document.getElementById('loginError');
             
-            if (!email || !password) {
-                errorMsg.textContent = 'Please enter both email and password';
+            // Validation
+            if (!name || !email || !password || !confirmPassword) {
+                errorMsg.textContent = 'Please fill all fields';
                 errorMsg.style.display = 'block';
                 return;
             }
@@ -934,19 +997,40 @@
                 errorMsg.style.display = 'block';
                 return;
             }
+            
+            if (password !== confirmPassword) {
+                errorMsg.textContent = 'Passwords do not match';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // New users can only register as Subject Teachers
+            const role = 'subjectTeacher';
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     return db.collection('users').doc(userCredential.user.uid).set({
                         email: email,
                         role: role,
+                        name: name,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 })
                 .then(() => {
-                    appData.userRole = role;
-                    showApp(role);
+                    successMsg.textContent = 'Registration successful! You can now login as a Subject Teacher.';
+                    successMsg.style.display = 'block';
                     errorMsg.style.display = 'none';
+                    
+                    // Clear form
+                    document.getElementById('regName').value = '';
+                    document.getElementById('regEmail').value = '';
+                    document.getElementById('regPassword').value = '';
+                    document.getElementById('regConfirmPassword').value = '';
+                    
+                    // Hide success message after 5 seconds
+                    setTimeout(() => {
+                        successMsg.style.display = 'none';
+                    }, 5000);
                 })
                 .catch((error) => {
                     errorMsg.textContent = 'Registration failed: ' + error.message;
@@ -959,7 +1043,7 @@
             document.getElementById('appContent').style.display = 'block';
             
             // Update user info display
-            updateUserInfo();
+            updateUserInfo(role);
             
             // Setup navigation tabs based on role
             setupNavigationTabs(role);
@@ -968,7 +1052,7 @@
             updateAll();
         }
 
-        function updateUserInfo() {
+        function updateUserInfo(role) {
             const userInfo = document.getElementById('userInfo');
             const userAvatar = document.getElementById('userAvatar');
             const userName = document.getElementById('userName');
@@ -976,21 +1060,23 @@
             
             if (appData.currentUser) {
                 const email = appData.userEmail;
-                const role = appData.userRole;
                 
                 // Set user avatar with first letter of email
                 userAvatar.textContent = email.charAt(0).toUpperCase();
                 
-                // Set user name (extract from email)
-                const nameFromEmail = email.split('@')[0];
-                userName.textContent = nameFromEmail;
+                // Get user name from Firestore or use email prefix
+                db.collection('users').doc(appData.currentUser.uid).get()
+                    .then((doc) => {
+                        if (doc.exists && doc.data().name) {
+                            userName.textContent = doc.data().name;
+                        } else {
+                            userName.textContent = email.split('@')[0];
+                        }
+                    });
                 
-                // Set user role
-                let roleText = '';
-                if (role === 'principal') roleText = 'Principal (Admin)';
-                else if (role === 'classTeacher') roleText = 'Class Teacher';
-                else roleText = 'Subject Teacher';
-                userRole.textContent = roleText;
+                // Set user role with description
+                const roleInfo = roleDescriptions[role];
+                userRole.textContent = roleInfo.name;
                 
                 userInfo.style.display = 'flex';
             }
@@ -1006,6 +1092,7 @@
                 const tabElement = document.createElement('button');
                 tabElement.className = `nav-tab ${index === 0 ? 'active' : ''}`;
                 tabElement.setAttribute('data-tab', tab.id);
+                tabElement.setAttribute('title', tab.description);
                 tabElement.innerHTML = `${tab.icon} ${tab.name}`;
                 
                 tabElement.addEventListener('click', function() {
@@ -1174,12 +1261,13 @@
                     }
                     
                     let html = '';
+                    let counter = 1;
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         html += `
                             <div class="student-item">
                                 <div class="item-info">
-                                    <strong>${data.id}</strong> - ${data.name} (${data.grade}) - ${data.gender}
+                                    <strong>${counter}. ${data.id}</strong> - ${data.name} (${data.grade}) - ${data.gender}
                                 </div>
                                 <div class="item-actions">
                                     <button class="btn btn-warning btn-small" onclick="editStudent('${data.id}')">✏️ Edit</button>
@@ -1187,6 +1275,7 @@
                                 </div>
                             </div>
                         `;
+                        counter++;
                     });
                     
                     studentList.innerHTML = html;
@@ -1276,12 +1365,13 @@
                     }
                     
                     let html = '';
+                    let counter = 1;
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         html += `
                             <div class="teacher-item">
                                 <div class="item-info">
-                                    <strong>${data.id}</strong> - ${data.name} (${data.subject}) - ${data.role}
+                                    <strong>${counter}. ${data.id}</strong> - ${data.name} (${data.subject}) - ${data.role}
                                 </div>
                                 <div class="item-actions">
                                     <button class="btn btn-warning btn-small" onclick="editTeacher('${data.id}')">✏️ Edit</button>
@@ -1289,6 +1379,7 @@
                                 </div>
                             </div>
                         `;
+                        counter++;
                     });
                     
                     teachersList.innerHTML = html;
@@ -1368,12 +1459,13 @@
                     }
                     
                     let html = '';
+                    let counter = 1;
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         html += `
                             <div class="subject-item">
                                 <div class="item-info">
-                                    ${data.name}
+                                    <strong>${counter}. ${data.name}</strong>
                                 </div>
                                 <div class="item-actions">
                                     <button class="btn btn-warning btn-small" onclick="editSubject('${data.name}')">✏️ Edit</button>
@@ -1381,6 +1473,7 @@
                                 </div>
                             </div>
                         `;
+                        counter++;
                     });
                     
                     subjectsList.innerHTML = html;
@@ -1466,12 +1559,13 @@
                     }
                     
                     let html = '';
+                    let counter = 1;
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         html += `
                             <div class="grade-item">
                                 <div class="item-info">
-                                    ${data.fullClass}
+                                    <strong>${counter}. ${data.fullClass}</strong>
                                 </div>
                                 <div class="item-actions">
                                     <button class="btn btn-warning btn-small" onclick="editGradeClass('${doc.id}')">✏️ Edit</button>
@@ -1479,6 +1573,7 @@
                                 </div>
                             </div>
                         `;
+                        counter++;
                     });
                     
                     gradesList.innerHTML = html;
@@ -1551,22 +1646,24 @@
             }
             
             const tbody = document.getElementById('attendanceTbody');
-            tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading students...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading students...</td></tr>';
             
             db.collection('students')
                 .where('grade', '==', selectedClass)
                 .get()
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
-                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">No students found for this class</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students found for this class</td></tr>';
                         return;
                     }
                     
                     let html = '';
+                    let counter = 1;
                     querySnapshot.forEach((doc) => {
                         const student = doc.data();
                         html += `
                             <tr>
+                                <td>${counter}</td>
                                 <td>${student.id}</td>
                                 <td>${student.name}</td>
                                 <td>${selectedSubject}</td>
@@ -1584,6 +1681,7 @@
                                 </td>
                             </tr>
                         `;
+                        counter++;
                     });
                     
                     tbody.innerHTML = html;
@@ -1591,7 +1689,7 @@
                     updateAttendanceSummary();
                 })
                 .catch((error) => {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #c00;">Error loading students: ' + error.message + '</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #c00;">Error loading students: ' + error.message + '</td></tr>';
                 });
         }
 
@@ -1781,6 +1879,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th>#</th>
                                 <th>Student ID</th>
                                 <th>Student Name</th>
                                 ${dates.map(date => `<th>${new Date(date).getDate()}</th>`).join('')}
@@ -1792,6 +1891,7 @@
                         <tbody>
             `;
             
+            let counter = 1;
             Object.keys(studentData).forEach(studentId => {
                 const data = studentData[studentId];
                 const totalDays = dates.length;
@@ -1799,6 +1899,7 @@
                 
                 html += `
                     <tr>
+                        <td><strong>${counter}</strong></td>
                         <td><strong>${studentId}</strong></td>
                         <td>${data.name || 'Unknown'}</td>
                         ${dates.map(date => {
@@ -1816,6 +1917,7 @@
                         <td><strong>${percentage}%</strong></td>
                     </tr>
                 `;
+                counter++;
             });
             
             html += `
@@ -1907,15 +2009,17 @@
                         const tableData = [];
                         
                         // Add headers
-                        const headers = ['Student ID', 'Student Name', ...sortedDates.map(date => new Date(date).getDate()), 'Present', 'Absent', 'Attendance %'];
+                        const headers = ['#', 'Student ID', 'Student Name', ...sortedDates.map(date => new Date(date).getDate()), 'Present', 'Absent', 'Attendance %'];
                         
                         // Add student rows
+                        let counter = 1;
                         Object.keys(studentData).forEach(studentId => {
                             const data = studentData[studentId];
                             const totalDays = sortedDates.length;
                             const percentage = totalDays > 0 ? Math.round((data.present / totalDays) * 100) : 0;
                             
                             const row = [
+                                counter.toString(),
                                 studentId,
                                 data.name || 'Unknown',
                                 ...sortedDates.map(date => {
@@ -1928,6 +2032,7 @@
                             ];
                             
                             tableData.push(row);
+                            counter++;
                         });
                         
                         // Add table to PDF
@@ -1983,6 +2088,7 @@
                             <table>
                                 <thead>
                                     <tr>
+                                        <th>#</th>
                                         <th>Student ID</th>
                                         <th>Student Name</th>
                                         <th>Status</th>
@@ -1991,6 +2097,7 @@
                                 <tbody>
                     `;
                     
+                    let counter = 1;
                     const studentPromises = Object.keys(attendance.records).map(studentId => {
                         return db.collection('students').doc(studentId).get()
                             .then((studentDoc) => {
@@ -2000,11 +2107,13 @@
                                 
                                 html += `
                                     <tr>
+                                        <td>${counter}</td>
                                         <td>${studentId}</td>
                                         <td>${studentName}</td>
                                         <td class="${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</td>
                                     </tr>
                                 `;
+                                counter++;
                             });
                     });
                     
