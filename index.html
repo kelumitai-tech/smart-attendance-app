@@ -373,11 +373,11 @@
             background: #d32f2f;
             color: white;
         }
-        .badge-class-teacher {
+        .badge-classTeacher {
             background: #ff9800;
             color: white;
         }
-        .badge-subject-teacher {
+        .badge-subjectTeacher {
             background: #4CAF50;
             color: white;
         }
@@ -921,11 +921,15 @@
             
             auth.onAuthStateChanged((user) => {
                 if (user) {
+                    console.log("User logged in:", user.email);
                     getUserRole(user.uid).then(role => {
+                        console.log("User role:", role);
                         appData.currentUser = user;
                         appData.userRole = role;
                         appData.userEmail = user.email;
                         showApp(role);
+                    }).catch(error => {
+                        console.error("Error getting user role:", error);
                     });
                 } else {
                     document.getElementById('loginScreen').style.display = 'block';
@@ -939,9 +943,13 @@
             try {
                 const doc = await db.collection('users').doc(uid).get();
                 if (doc.exists) {
-                    return doc.data().role;
+                    const userData = doc.data();
+                    console.log("User data from Firestore:", userData);
+                    return userData.role;
+                } else {
+                    console.log("No user document found for UID:", uid);
+                    return null;
                 }
-                return null;
             } catch (error) {
                 console.error("Error getting user role:", error);
                 return null;
@@ -1011,29 +1019,39 @@
                 return;
             }
             
+            console.log("Attempting login with role:", selectedRole);
+            
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
+                    console.log("Login successful, getting user role...");
                     return getUserRole(userCredential.user.uid);
                 })
                 .then((role) => {
+                    console.log("Retrieved role:", role);
                     if (!role) {
                         // If no role found, assign the selected role
+                        console.log("No role found, assigning role:", selectedRole);
                         role = selectedRole;
                         return db.collection('users').doc(auth.currentUser.uid).set({
                             email: email,
                             role: role,
                             name: email.split('@')[0],
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => role);
+                        }, { merge: true }).then(() => {
+                            console.log("Role assigned successfully:", role);
+                            return role;
+                        });
                     }
                     return role;
                 })
                 .then((role) => {
                     appData.userRole = role;
+                    console.log("Final role to show app:", role);
                     showApp(role);
                     errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
+                    console.error("Login error:", error);
                     errorMsg.textContent = 'Login failed: ' + error.message;
                     errorMsg.style.display = 'block';
                 });
@@ -1069,8 +1087,11 @@
             // New users can only register as Subject Teachers
             const role = 'subjectTeacher';
 
+            console.log("Registering new user with role:", role);
+
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
+                    console.log("User created, saving role to Firestore...");
                     return db.collection('users').doc(userCredential.user.uid).set({
                         email: email,
                         role: role,
@@ -1079,6 +1100,7 @@
                     });
                 })
                 .then(() => {
+                    console.log("User registration completed successfully");
                     successMsg.textContent = 'Registration successful! You can now login as a Subject Teacher.';
                     successMsg.style.display = 'block';
                     errorMsg.style.display = 'none';
@@ -1099,12 +1121,14 @@
                     }, 5000);
                 })
                 .catch((error) => {
+                    console.error("Registration error:", error);
                     errorMsg.textContent = 'Registration failed: ' + error.message;
                     errorMsg.style.display = 'block';
                 });
         }
 
         function showApp(role) {
+            console.log("Showing app for role:", role);
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             
@@ -1142,7 +1166,8 @@
                 
                 // Set user role with description and badge
                 const roleInfo = roleDescriptions[role];
-                userRole.innerHTML = `${roleInfo.name} <span class="role-badge badge-${role}">${role}</span>`;
+                const badgeClass = `badge-${role}`;
+                userRole.innerHTML = `${roleInfo.name} <span class="role-badge ${badgeClass}">${role}</span>`;
                 
                 userInfo.style.display = 'flex';
             }
@@ -1153,6 +1178,7 @@
             navTabs.innerHTML = '';
             
             const tabs = roleTabs[role] || [];
+            console.log("Setting up tabs for role:", role, "Available tabs:", tabs);
             
             tabs.forEach((tab, index) => {
                 const tabElement = document.createElement('button');
@@ -1175,6 +1201,7 @@
         }
 
         function showTab(tabId) {
+            console.log("Showing tab:", tabId);
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.style.display = 'none';
