@@ -88,13 +88,6 @@
             background: #004a80;
             transform: translateY(-2px);
         }
-        .btn-google {
-            background: #DB4437;
-            color: white;
-        }
-        .btn-google:hover {
-            background: #c23321;
-        }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
         .btn-warning { background: #ff9800; color: white; }
@@ -753,12 +746,12 @@
                     console.log("Role found in Firestore:", role);
                     return role;
                 } else {
-                    console.log("No role found in Firestore, defaulting to subjectTeacher");
-                    return 'subjectTeacher';
+                    console.log("No role found in Firestore");
+                    return null;
                 }
             } catch (error) {
                 console.error("Error getting user role:", error);
-                return 'subjectTeacher';
+                return null;
             }
         }
 
@@ -803,6 +796,7 @@
         function doLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
+            const selectedRole = document.getElementById('loginRole').value;
             const errorMsg = document.getElementById('loginError');
             
             if (!email || !password) {
@@ -816,6 +810,19 @@
                     const user = userCredential.user;
                     console.log("Login successful for:", user.email);
                     return getUserRole(user.uid);
+                })
+                .then((role) => {
+                    if (!role) {
+                        // If no role found, assign the selected role during login
+                        const user = auth.currentUser;
+                        const selectedRole = document.getElementById('loginRole').value;
+                        return db.collection('users').doc(user.uid).set({
+                            email: user.email,
+                            role: selectedRole,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }).then(() => selectedRole);
+                    }
+                    return role;
                 })
                 .then((role) => {
                     console.log("Role after login:", role);
@@ -880,7 +887,7 @@
             let roleText = '';
             if (role === 'principal') roleText = 'Principal';
             else if (role === 'classTeacher') roleText = 'Class Teacher';
-            else roleText = 'Subject Teacher';
+            else if (role === 'subjectTeacher') roleText = 'Subject Teacher';
             document.getElementById('roleBadge').textContent = roleText;
             
             // Show/hide elements based on role
@@ -944,8 +951,8 @@
             
             // Make sure first visible tab is active
             const firstVisibleTab = document.querySelector('.nav-tab[style="display: block"], .nav-tab:not([style])');
-            if (firstVisibleTab) {
-                showTab(firstVisibleTab.getAttribute('data-tab'));
+            if (firstVisibleTab && !firstVisibleTab.classList.contains('active')) {
+                firstVisibleTab.click();
             }
         }
 
@@ -963,8 +970,11 @@
             });
             
             // Activate selected tab
-            document.querySelector(`.nav-tab[data-tab="${tabName}"]`).classList.add('active');
-            document.getElementById(tabName).classList.add('active');
+            const selectedTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+                document.getElementById(tabName).classList.add('active');
+            }
             
             // Load tab-specific data
             switch(tabName) {
@@ -1030,7 +1040,7 @@
             db.collection('grades').get().then(snapshot => {
                 const gradeOptions = snapshot.docs.map(doc => {
                     const data = doc.data();
-                    return `<option value="${data.grade} - ${data.className}">${data.grade} - ${data.className}</option>`;
+                    return `<option value="${data.fullName}">${data.fullName}</option>`;
                 }).join('');
                 
                 const gradeSelectors = [
@@ -1082,8 +1092,13 @@
             });
         }
 
-        // Student Management
+        // Student Management (Principal and Class Teacher only)
         function addStudent() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principal and Class Teachers can manage students.');
+                return;
+            }
+            
             const id = document.getElementById('studentId').value.trim();
             const name = document.getElementById('studentName').value.trim();
             const grade = document.getElementById('studentGrade').value;
@@ -1115,6 +1130,8 @@
         }
 
         function loadStudents() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') return;
+            
             const studentList = document.getElementById('studentList');
             studentList.innerHTML = '<div class="loading">Loading students...</div>';
             
@@ -1134,7 +1151,7 @@
                                 <small>${student.grade} • ${student.gender}</small>
                             </div>
                             <div class="item-actions">
-                                ${appData.userRole === 'principal' ? `
+                                ${appData.userRole === 'principal' || appData.userRole === 'classTeacher' ? `
                                     <button class="btn btn-warning btn-small" onclick="editStudent('${doc.id}', '${student.id}', '${student.name}', '${student.grade}', '${student.gender}')">✏️ Edit</button>
                                     <button class="btn btn-danger btn-small" onclick="deleteStudent('${doc.id}')">🗑️ Delete</button>
                                 ` : ''}
@@ -1163,6 +1180,11 @@
         }
 
         function editStudent(docId, currentId, currentName, currentGrade, currentGender) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principal and Class Teachers can edit students.');
+                return;
+            }
+            
             const item = document.querySelector(`.student-item:has(button[onclick*="${docId}"])`);
             
             if (appData.editingItem === docId) {
@@ -1214,6 +1236,11 @@
         }
 
         function saveStudentEdit(docId) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principal and Class Teachers can edit students.');
+                return;
+            }
+            
             const id = document.getElementById('editStudentId').value.trim();
             const name = document.getElementById('editStudentName').value.trim();
             const grade = document.getElementById('editStudentGrade').value;
@@ -1243,6 +1270,11 @@
         }
 
         function deleteStudent(docId) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principal and Class Teachers can delete students.');
+                return;
+            }
+            
             if (confirm('Are you sure you want to delete this student?')) {
                 db.collection('students').doc(docId).delete().then(() => {
                     loadStudents();
@@ -1252,7 +1284,7 @@
             }
         }
 
-        // Attendance Management
+        // Attendance Management (All roles)
         function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
@@ -1449,7 +1481,7 @@
             });
         }
 
-        // Report Generation
+        // Report Generation (All roles)
         function generateReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -1582,6 +1614,11 @@
 
         // Teacher Management (Principal only)
         function addTeacher() {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principal can manage teachers.');
+                return;
+            }
+            
             const id = document.getElementById('teacherId').value.trim();
             const name = document.getElementById('teacherName').value.trim();
             const subject = document.getElementById('teacherSubject').value;
@@ -1659,6 +1696,11 @@
         }
 
         function editTeacher(docId, currentId, currentName, currentSubject, currentRole) {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principal can edit teachers.');
+                return;
+            }
+            
             const item = document.querySelector(`.teacher-item:has(button[onclick*="${docId}"])`);
             
             if (appData.editingItem === docId) {
@@ -1707,6 +1749,11 @@
         }
 
         function saveTeacherEdit(docId) {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principal can edit teachers.');
+                return;
+            }
+            
             const id = document.getElementById('editTeacherId').value.trim();
             const name = document.getElementById('editTeacherName').value.trim();
             const subject = document.getElementById('editTeacherSubject').value;
@@ -1732,6 +1779,11 @@
         }
 
         function deleteTeacher(docId) {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principal can delete teachers.');
+                return;
+            }
+            
             if (confirm('Are you sure you want to delete this teacher?')) {
                 db.collection('teachers').doc(docId).delete().then(() => {
                     loadTeachers();
@@ -1742,8 +1794,13 @@
             }
         }
 
-        // Subject Management
+        // Subject Management (Principal and Class Teacher only)
         function addSubject() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principal and Class Teachers can manage subjects.');
+                return;
+            }
+            
             const name = document.getElementById('subjectName').value.trim();
             
             if (!name) {
@@ -1769,6 +1826,8 @@
         }
 
         function loadSubjects() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') return;
+            
             const subjectsList = document.getElementById('subjectsList');
             subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
             
@@ -1786,7 +1845,7 @@
                             <div class="item-info">
                                 <strong>${subject.name}</strong>
                             </div>
-                            ${appData.userRole === 'principal' ? `
+                            ${appData.userRole === 'principal' || appData.userRole === 'classTeacher' ? `
                                 <div class="item-actions">
                                     <button class="btn btn-danger btn-small" onclick="deleteSubject('${doc.id}')">🗑️ Delete</button>
                                 </div>
@@ -1812,6 +1871,11 @@
         }
 
         function deleteSubject(docId) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principal and Class Teachers can delete subjects.');
+                return;
+            }
+            
             if (confirm('Are you sure you want to delete this subject?')) {
                 db.collection('subjects').doc(docId).delete().then(() => {
                     loadSubjects();
@@ -1822,8 +1886,13 @@
             }
         }
 
-        // Grade/Class Management
+        // Grade/Class Management (Principal and Class Teacher only)
         function addClass() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principal and Class Teachers can manage grades.');
+                return;
+            }
+            
             const grade = document.getElementById('newGrade').value;
             const className = document.getElementById('className').value.trim();
             
@@ -1854,6 +1923,8 @@
         }
 
         function loadGrades() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') return;
+            
             const gradesList = document.getElementById('gradesList');
             gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
             
@@ -1871,7 +1942,7 @@
                             <div class="item-info">
                                 <strong>${grade.fullName}</strong>
                             </div>
-                            ${appData.userRole === 'principal' ? `
+                            ${appData.userRole === 'principal' || appData.userRole === 'classTeacher' ? `
                                 <div class="item-actions">
                                     <button class="btn btn-danger btn-small" onclick="deleteGrade('${doc.id}')">🗑️ Delete</button>
                                 </div>
@@ -1897,6 +1968,11 @@
         }
 
         function deleteGrade(docId) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principal and Class Teachers can delete grades.');
+                return;
+            }
+            
             if (confirm('Are you sure you want to delete this grade/class?')) {
                 db.collection('grades').doc(docId).delete().then(() => {
                     loadGrades();
@@ -1909,6 +1985,11 @@
 
         // View Attendance Records (Principal only)
         function viewAttendanceRecords() {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principal can view all attendance records.');
+                return;
+            }
+            
             const selectedClass = document.getElementById('viewClass').value;
             const selectedSubject = document.getElementById('viewSubject').value;
             const selectedTeacher = document.getElementById('viewTeacher').value;
