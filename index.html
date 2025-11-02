@@ -68,7 +68,6 @@
             border-color: #005A9C;
         }
         .btn {
-            width: 100%;
             padding: 14px;
             border: none;
             border-radius: 8px;
@@ -77,6 +76,9 @@
             cursor: pointer;
             transition: all 0.3s;
             margin-bottom: 10px;
+        }
+        .btn-full {
+            width: 100%;
         }
         .btn-primary {
             background: #005A9C;
@@ -95,6 +97,11 @@
         }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
         .error-msg, .success-msg {
             padding: 12px;
             border-radius: 8px;
@@ -212,12 +219,22 @@
             height: 20px;
             cursor: pointer;
         }
-        .student-item {
+        .student-item, .teacher-item, .subject-item, .grade-item {
             background: white;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 8px;
             border-left: 4px solid #005A9C;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-info {
+            flex: 1;
+        }
+        .item-actions {
+            display: flex;
+            gap: 10px;
         }
         .loading {
             text-align: center;
@@ -260,10 +277,35 @@
         .pdf-btn:hover {
             background: #b71c1c;
         }
+        .edit-form {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #cce7ff;
+        }
+        .edit-form h4 {
+            color: #005A9C;
+            margin-bottom: 15px;
+        }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
             th, td { padding: 8px; }
+            .student-item, .teacher-item, .subject-item, .grade-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .item-actions {
+                margin-top: 10px;
+                width: 100%;
+                justify-content: flex-end;
+            }
         }
     </style>
 </head>
@@ -294,14 +336,14 @@
                     <label>Password</label>
                     <input type="password" id="loginPassword" placeholder="Enter your password">
                 </div>
-                <button class="btn btn-primary" id="loginBtn">🔐 Login</button>
-                <button class="btn btn-google" id="googleBtn">🌐 Sign in with Google</button>
+                <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
+                <button class="btn btn-google btn-full" id="googleBtn">🌐 Sign in with Google</button>
                 <div class="error-msg" id="loginError"></div>
                 
                 <!-- Registration Section -->
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                     <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
-                    <button class="btn btn-secondary" id="registerBtn">📝 Register New Account</button>
+                    <button class="btn btn-secondary btn-full" id="registerBtn">📝 Register New Account</button>
                 </div>
             </div>
             
@@ -351,7 +393,7 @@
                         <label>Date</label>
                         <input type="date" id="startDate">
                     </div>
-                    <button class="btn btn-primary" id="loadAttendanceBtn">Load Attendance Sheet</button>
+                    <button class="btn btn-primary btn-full" id="loadAttendanceBtn">Load Attendance Sheet</button>
                 </div>
 
                 <div class="card">
@@ -418,7 +460,7 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn btn-primary" id="addStudentBtn">Add Student</button>
+                    <button class="btn btn-primary btn-full" id="addStudentBtn">Add Student</button>
                     <div class="success-msg" id="studentSuccess"></div>
                 </div>
 
@@ -482,7 +524,7 @@
                             <input type="date" id="viewDate">
                         </div>
                     </div>
-                    <button class="btn btn-primary" id="viewAttendanceBtn">View Attendance</button>
+                    <button class="btn btn-primary btn-full" id="viewAttendanceBtn">View Attendance</button>
                     <div id="viewAttendanceOutput" style="margin-top: 20px;"></div>
                 </div>
             </div>
@@ -535,7 +577,7 @@
                             <option value="subjectTeacher">Subject Teacher</option>
                         </select>
                     </div>
-                    <button class="btn btn-primary" id="addTeacherBtn">Add Teacher</button>
+                    <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher</button>
                     <div class="success-msg" id="teacherSuccess"></div>
                 </div>
                 <div class="card">
@@ -553,7 +595,7 @@
                         <label>Subject Name</label>
                         <input type="text" id="subjectName" placeholder="e.g., Mathematics">
                     </div>
-                    <button class="btn btn-primary" id="addSubjectBtn">Add Subject</button>
+                    <button class="btn btn-primary btn-full" id="addSubjectBtn">Add Subject</button>
                     <div class="success-msg" id="subjectSuccess"></div>
                 </div>
                 <div class="card">
@@ -587,7 +629,7 @@
                             <input type="text" id="className" placeholder="e.g., A, B, C">
                         </div>
                     </div>
-                    <button class="btn btn-primary" id="addClassBtn">Add Grade & Class</button>
+                    <button class="btn btn-primary btn-full" id="addClassBtn">Add Grade & Class</button>
                     <div class="success-msg" id="classSuccess"></div>
                 </div>
                 <div class="card">
@@ -631,7 +673,8 @@
             currentUser: null,
             userRole: null,
             currentAttendance: {},
-            currentTeacher: null
+            currentTeacher: null,
+            editingItem: null // Track which item is being edited
         };
 
         // Initialize the application
@@ -1078,8 +1121,14 @@
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         html += `
-                            <div class="student-item">
-                                <strong>${data.id}</strong> - ${data.name} (${data.grade}) - ${data.gender}
+                            <div class="student-item" id="student-${data.id}">
+                                <div class="item-info">
+                                    <strong>${data.id}</strong> - ${data.name} (${data.grade}) - ${data.gender}
+                                </div>
+                                <div class="item-actions">
+                                    <button class="btn btn-warning btn-small" onclick="editStudent('${data.id}')">✏️ Edit</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteStudent('${data.id}')">🗑️ Delete</button>
+                                </div>
                             </div>
                         `;
                     });
@@ -1089,6 +1138,119 @@
                 .catch((error) => {
                     studentList.innerHTML = '<div class="error-msg">Error loading students: ' + error.message + '</div>';
                 });
+        }
+
+        function editStudent(studentId) {
+            // Get student data
+            db.collection('students').doc(studentId).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const student = doc.data();
+                        
+                        // Create edit form
+                        const editForm = `
+                            <div class="edit-form">
+                                <h4>Edit Student: ${studentId}</h4>
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label>Student ID</label>
+                                        <input type="text" id="editStudentId" value="${student.id}" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Student Name</label>
+                                        <input type="text" id="editStudentName" value="${student.name}">
+                                    </div>
+                                </div>
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label>Grade</label>
+                                        <select id="editStudentGrade">
+                                            ${document.getElementById('studentGrade').innerHTML}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Gender</label>
+                                        <select id="editStudentGender">
+                                            <option value="Male" ${student.gender === 'Male' ? 'selected' : ''}>Male</option>
+                                            <option value="Female" ${student.gender === 'Female' ? 'selected' : ''}>Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-primary" onclick="saveStudentEdit('${studentId}')">💾 Save Changes</button>
+                                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Replace student item with edit form
+                        document.getElementById(`student-${studentId}`).innerHTML = editForm;
+                        document.getElementById('editStudentGrade').value = student.grade;
+                    }
+                })
+                .catch((error) => {
+                    alert('Error loading student data: ' + error.message);
+                });
+        }
+
+        function saveStudentEdit(studentId) {
+            const newId = document.getElementById('editStudentId').value.trim();
+            const name = document.getElementById('editStudentName').value.trim();
+            const grade = document.getElementById('editStudentGrade').value;
+            const gender = document.getElementById('editStudentGender').value;
+            
+            if (!name || !grade) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            // If ID changed, we need to create a new document and delete the old one
+            if (newId !== studentId) {
+                db.collection('students').doc(newId).set({
+                    id: newId,
+                    name: name,
+                    grade: grade,
+                    gender: gender,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    return db.collection('students').doc(studentId).delete();
+                })
+                .then(() => {
+                    alert('Student updated successfully!');
+                    updateStudentsList();
+                })
+                .catch((error) => {
+                    alert('Error updating student: ' + error.message);
+                });
+            } else {
+                // Just update the existing document
+                db.collection('students').doc(studentId).update({
+                    name: name,
+                    grade: grade,
+                    gender: gender
+                })
+                .then(() => {
+                    alert('Student updated successfully!');
+                    updateStudentsList();
+                })
+                .catch((error) => {
+                    alert('Error updating student: ' + error.message);
+                });
+            }
+        }
+
+        function deleteStudent(studentId) {
+            if (confirm(`Are you sure you want to delete student ${studentId}?`)) {
+                db.collection('students').doc(studentId).delete()
+                    .then(() => {
+                        alert('Student deleted successfully!');
+                        updateStudentsList();
+                    })
+                    .catch((error) => {
+                        alert('Error deleting student: ' + error.message);
+                    });
+            }
         }
 
         function filterStudents() {
@@ -1102,7 +1264,7 @@
                 const gradeMatch = grade ? grade[1] === classFilter : true;
                 
                 if ((text.includes(filter) || filter === '') && (classFilter === '' || gradeMatch)) {
-                    item.style.display = 'block';
+                    item.style.display = 'flex';
                 } else {
                     item.style.display = 'none';
                 }
@@ -1158,8 +1320,14 @@
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         html += `
-                            <div class="student-item">
-                                <strong>${data.id}</strong> - ${data.name} (${data.subject}) - ${data.role}
+                            <div class="teacher-item" id="teacher-${data.id}">
+                                <div class="item-info">
+                                    <strong>${data.id}</strong> - ${data.name} (${data.subject}) - ${data.role}
+                                </div>
+                                <div class="item-actions">
+                                    <button class="btn btn-warning btn-small" onclick="editTeacher('${data.id}')">✏️ Edit</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteTeacher('${data.id}')">🗑️ Delete</button>
+                                </div>
                             </div>
                         `;
                     });
@@ -1171,14 +1339,128 @@
                 });
         }
 
+        function editTeacher(teacherId) {
+            // Get teacher data
+            db.collection('teachers').doc(teacherId).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const teacher = doc.data();
+                        
+                        // Create edit form
+                        const editForm = `
+                            <div class="edit-form">
+                                <h4>Edit Teacher: ${teacherId}</h4>
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label>Teacher ID</label>
+                                        <input type="text" id="editTeacherId" value="${teacher.id}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Teacher Name</label>
+                                        <input type="text" id="editTeacherName" value="${teacher.name}">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Subject</label>
+                                    <select id="editTeacherSubject">
+                                        ${document.getElementById('teacherSubject').innerHTML}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Role</label>
+                                    <select id="editTeacherRole">
+                                        <option value="classTeacher" ${teacher.role === 'classTeacher' ? 'selected' : ''}>Class Teacher</option>
+                                        <option value="subjectTeacher" ${teacher.role === 'subjectTeacher' ? 'selected' : ''}>Subject Teacher</option>
+                                    </select>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-primary" onclick="saveTeacherEdit('${teacherId}')">💾 Save Changes</button>
+                                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Replace teacher item with edit form
+                        document.getElementById(`teacher-${teacherId}`).innerHTML = editForm;
+                        document.getElementById('editTeacherSubject').value = teacher.subject;
+                    }
+                })
+                .catch((error) => {
+                    alert('Error loading teacher data: ' + error.message);
+                });
+        }
+
+        function saveTeacherEdit(teacherId) {
+            const newId = document.getElementById('editTeacherId').value.trim();
+            const name = document.getElementById('editTeacherName').value.trim();
+            const subject = document.getElementById('editTeacherSubject').value;
+            const role = document.getElementById('editTeacherRole').value;
+            
+            if (!newId || !name || !subject) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            // If ID changed, we need to create a new document and delete the old one
+            if (newId !== teacherId) {
+                db.collection('teachers').doc(newId).set({
+                    id: newId,
+                    name: name,
+                    subject: subject,
+                    role: role,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    return db.collection('teachers').doc(teacherId).delete();
+                })
+                .then(() => {
+                    alert('Teacher updated successfully!');
+                    updateTeachersList();
+                    updateSelectors();
+                })
+                .catch((error) => {
+                    alert('Error updating teacher: ' + error.message);
+                });
+            } else {
+                // Just update the existing document
+                db.collection('teachers').doc(teacherId).update({
+                    name: name,
+                    subject: subject,
+                    role: role
+                })
+                .then(() => {
+                    alert('Teacher updated successfully!');
+                    updateTeachersList();
+                    updateSelectors();
+                })
+                .catch((error) => {
+                    alert('Error updating teacher: ' + error.message);
+                });
+            }
+        }
+
+        function deleteTeacher(teacherId) {
+            if (confirm(`Are you sure you want to delete teacher ${teacherId}?`)) {
+                db.collection('teachers').doc(teacherId).delete()
+                    .then(() => {
+                        alert('Teacher deleted successfully!');
+                        updateTeachersList();
+                        updateSelectors();
+                    })
+                    .catch((error) => {
+                        alert('Error deleting teacher: ' + error.message);
+                    });
+            }
+        }
+
         function filterTeachers() {
             const filter = document.getElementById('teacherFilter').value.toLowerCase();
-            const items = document.querySelectorAll('#teachersList .student-item');
+            const items = document.querySelectorAll('.teacher-item');
             
             items.forEach(item => {
                 const text = item.textContent.toLowerCase();
                 if (text.includes(filter) || filter === '') {
-                    item.style.display = 'block';
+                    item.style.display = 'flex';
                 } else {
                     item.style.display = 'none';
                 }
@@ -1227,8 +1509,14 @@
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         html += `
-                            <div class="student-item">
-                                ${data.name}
+                            <div class="subject-item" id="subject-${data.name}">
+                                <div class="item-info">
+                                    ${data.name}
+                                </div>
+                                <div class="item-actions">
+                                    <button class="btn btn-warning btn-small" onclick="editSubject('${data.name}')">✏️ Edit</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteSubject('${data.name}')">🗑️ Delete</button>
+                                </div>
                             </div>
                         `;
                     });
@@ -1240,14 +1528,79 @@
                 });
         }
 
+        function editSubject(subjectName) {
+            // Create edit form
+            const editForm = `
+                <div class="edit-form">
+                    <h4>Edit Subject</h4>
+                    <div class="form-group">
+                        <label>Subject Name</label>
+                        <input type="text" id="editSubjectName" value="${subjectName}">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" onclick="saveSubjectEdit('${subjectName}')">💾 Save Changes</button>
+                        <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            // Replace subject item with edit form
+            document.getElementById(`subject-${subjectName}`).innerHTML = editForm;
+        }
+
+        function saveSubjectEdit(oldName) {
+            const newName = document.getElementById('editSubjectName').value.trim();
+            
+            if (!newName) {
+                alert('Please enter a subject name');
+                return;
+            }
+            
+            // If name changed, we need to create a new document and delete the old one
+            if (newName !== oldName) {
+                db.collection('subjects').doc(newName).set({
+                    name: newName,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    return db.collection('subjects').doc(oldName).delete();
+                })
+                .then(() => {
+                    alert('Subject updated successfully!');
+                    updateSubjectsList();
+                    updateSelectors();
+                })
+                .catch((error) => {
+                    alert('Error updating subject: ' + error.message);
+                });
+            } else {
+                alert('No changes made to subject name.');
+                updateSubjectsList();
+            }
+        }
+
+        function deleteSubject(subjectName) {
+            if (confirm(`Are you sure you want to delete subject "${subjectName}"?`)) {
+                db.collection('subjects').doc(subjectName).delete()
+                    .then(() => {
+                        alert('Subject deleted successfully!');
+                        updateSubjectsList();
+                        updateSelectors();
+                    })
+                    .catch((error) => {
+                        alert('Error deleting subject: ' + error.message);
+                    });
+            }
+        }
+
         function filterSubjects() {
             const filter = document.getElementById('subjectFilter').value.toLowerCase();
-            const items = document.querySelectorAll('#subjectsList .student-item');
+            const items = document.querySelectorAll('.subject-item');
             
             items.forEach(item => {
                 const text = item.textContent.toLowerCase();
                 if (text.includes(filter) || filter === '') {
-                    item.style.display = 'block';
+                    item.style.display = 'flex';
                 } else {
                     item.style.display = 'none';
                 }
@@ -1302,8 +1655,14 @@
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         html += `
-                            <div class="student-item">
-                                ${data.fullClass}
+                            <div class="grade-item" id="grade-${data.fullClass}">
+                                <div class="item-info">
+                                    ${data.fullClass}
+                                </div>
+                                <div class="item-actions">
+                                    <button class="btn btn-warning btn-small" onclick="editGrade('${data.fullClass}')">✏️ Edit</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteGrade('${data.fullClass}')">🗑️ Delete</button>
+                                </div>
                             </div>
                         `;
                     });
@@ -1315,18 +1674,139 @@
                 });
         }
 
+        function editGrade(fullClass) {
+            // Get grade data
+            db.collection('grades').doc(fullClass).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const grade = doc.data();
+                        
+                        // Create edit form
+                        const editForm = `
+                            <div class="edit-form">
+                                <h4>Edit Grade & Class</h4>
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label>Grade</label>
+                                        <select id="editGrade">
+                                            <option value="">-- Select Grade --</option>
+                                            <option value="Grade 6" ${grade.grade === 'Grade 6' ? 'selected' : ''}>Grade 6</option>
+                                            <option value="Grade 7" ${grade.grade === 'Grade 7' ? 'selected' : ''}>Grade 7</option>
+                                            <option value="Grade 8" ${grade.grade === 'Grade 8' ? 'selected' : ''}>Grade 8</option>
+                                            <option value="Grade 9" ${grade.grade === 'Grade 9' ? 'selected' : ''}>Grade 9</option>
+                                            <option value="Grade 10" ${grade.grade === 'Grade 10' ? 'selected' : ''}>Grade 10</option>
+                                            <option value="Grade 11" ${grade.grade === 'Grade 11' ? 'selected' : ''}>Grade 11</option>
+                                            <option value="Grade 12" ${grade.grade === 'Grade 12' ? 'selected' : ''}>Grade 12</option>
+                                            <option value="Grade 13" ${grade.grade === 'Grade 13' ? 'selected' : ''}>Grade 13</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Class Name</label>
+                                        <input type="text" id="editClassName" value="${grade.class}">
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-primary" onclick="saveGradeEdit('${fullClass}')">💾 Save Changes</button>
+                                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Replace grade item with edit form
+                        document.getElementById(`grade-${fullClass}`).innerHTML = editForm;
+                    }
+                })
+                .catch((error) => {
+                    alert('Error loading grade data: ' + error.message);
+                });
+        }
+
+        function saveGradeEdit(oldFullClass) {
+            const grade = document.getElementById('editGrade').value;
+            const className = document.getElementById('editClassName').value.trim();
+            
+            if (!grade || !className) {
+                alert('Please select a grade and enter a class name');
+                return;
+            }
+            
+            const newFullClass = grade + ' - ' + className;
+            
+            // If full class changed, we need to create a new document and delete the old one
+            if (newFullClass !== oldFullClass) {
+                db.collection('grades').doc(newFullClass).set({
+                    grade: grade,
+                    class: className,
+                    fullClass: newFullClass,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    return db.collection('grades').doc(oldFullClass).delete();
+                })
+                .then(() => {
+                    alert('Grade & Class updated successfully!');
+                    updateGradesList();
+                    updateSelectors();
+                })
+                .catch((error) => {
+                    alert('Error updating grade/class: ' + error.message);
+                });
+            } else {
+                // Just update the existing document
+                db.collection('grades').doc(oldFullClass).update({
+                    grade: grade,
+                    class: className
+                })
+                .then(() => {
+                    alert('Grade & Class updated successfully!');
+                    updateGradesList();
+                    updateSelectors();
+                })
+                .catch((error) => {
+                    alert('Error updating grade/class: ' + error.message);
+                });
+            }
+        }
+
+        function deleteGrade(fullClass) {
+            if (confirm(`Are you sure you want to delete grade/class "${fullClass}"?`)) {
+                db.collection('grades').doc(fullClass).delete()
+                    .then(() => {
+                        alert('Grade & Class deleted successfully!');
+                        updateGradesList();
+                        updateSelectors();
+                    })
+                    .catch((error) => {
+                        alert('Error deleting grade/class: ' + error.message);
+                    });
+            }
+        }
+
         function filterGrades() {
             const filter = document.getElementById('gradeFilter').value.toLowerCase();
-            const items = document.querySelectorAll('#gradesList .student-item');
+            const items = document.querySelectorAll('.grade-item');
             
             items.forEach(item => {
                 const text = item.textContent.toLowerCase();
                 if (text.includes(filter) || filter === '') {
-                    item.style.display = 'block';
+                    item.style.display = 'flex';
                 } else {
                     item.style.display = 'none';
                 }
             });
+        }
+
+        function cancelEdit() {
+            // Refresh the lists to cancel editing
+            if (document.getElementById('students').classList.contains('active')) {
+                updateStudentsList();
+            } else if (document.getElementById('teachers').classList.contains('active')) {
+                updateTeachersList();
+            } else if (document.getElementById('subjects').classList.contains('active')) {
+                updateSubjectsList();
+            } else if (document.getElementById('grades').classList.contains('active')) {
+                updateGradesList();
+            }
         }
 
         // Dashboard (Principal only)
@@ -1351,6 +1831,9 @@
                 document.getElementById('totalSubjects').textContent = snapshot.size;
             });
         }
+
+        // The rest of the functions (attendance, reports, etc.) remain the same as in the previous version
+        // For brevity, I'm not including them again here since they haven't changed
 
         // Attendance Management
         function loadAttendance() {
