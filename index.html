@@ -68,6 +68,7 @@
             border-color: #005A9C;
         }
         .btn {
+            width: 100%;
             padding: 14px;
             border: none;
             border-radius: 8px;
@@ -77,9 +78,6 @@
             transition: all 0.3s;
             margin-bottom: 10px;
         }
-        .btn-full {
-            width: 100%;
-        }
         .btn-primary {
             background: #005A9C;
             color: white;
@@ -88,13 +86,15 @@
             background: #004a80;
             transform: translateY(-2px);
         }
+        .btn-google {
+            background: #DB4437;
+            color: white;
+        }
+        .btn-google:hover {
+            background: #c23321;
+        }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
-        .btn-warning { background: #ff9800; color: white; }
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 14px;
-        }
         .error-msg, .success-msg {
             padding: 12px;
             border-radius: 8px;
@@ -197,8 +197,6 @@
         }
         .stats-card h2 { font-size: 3em; margin: 10px 0; }
         .principal-only { display: none; }
-        .class-teacher-only { display: none; }
-        .subject-teacher-only { display: none; }
         .filter-input {
             width: 100%;
             padding: 12px;
@@ -212,22 +210,12 @@
             height: 20px;
             cursor: pointer;
         }
-        .student-item, .teacher-item, .subject-item, .grade-item {
+        .student-item {
             background: white;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 8px;
             border-left: 4px solid #005A9C;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .item-info {
-            flex: 1;
-        }
-        .item-actions {
-            display: flex;
-            gap: 10px;
         }
         .loading {
             text-align: center;
@@ -245,60 +233,26 @@
         }
         .present { color: #4CAF50; font-weight: bold; }
         .absent { color: #f44336; font-weight: bold; }
-        .teacher-info {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #ffc107;
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
-        .weekend-date {
-            background-color: #f5f5f5;
-            color: #999;
-            cursor: not-allowed;
-        }
-        .pdf-btn {
-            background: #d32f2f;
+        .report-table th {
+            background: #005A9C;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-top: 15px;
+            padding: 12px;
+            text-align: left;
         }
-        .pdf-btn:hover {
-            background: #b71c1c;
+        .report-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
         }
-        .edit-form {
-            background: #f0f8ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 15px;
-            border: 1px solid #cce7ff;
-        }
-        .edit-form h4 {
-            color: #005A9C;
-            margin-bottom: 15px;
-        }
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
+        .report-table tr:hover {
+            background: #f5f5f5;
         }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
-            table { font-size: 14px; }
-            th, td { padding: 8px; }
-            .student-item, .teacher-item, .subject-item, .grade-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .item-actions {
-                margin-top: 10px;
-                width: 100%;
-                justify-content: flex-end;
-            }
         }
     </style>
 </head>
@@ -316,9 +270,8 @@
                 <div class="form-group">
                     <label>Login As</label>
                     <select id="loginRole">
+                        <option value="teacher">Teacher</option>
                         <option value="principal">Principal (Admin)</option>
-                        <option value="classTeacher">Class Teacher</option>
-                        <option value="subjectTeacher">Subject Teacher</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -329,15 +282,15 @@
                     <label>Password</label>
                     <input type="password" id="loginPassword" placeholder="Enter your password">
                 </div>
-                <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
+                <button class="btn btn-primary" id="loginBtn">🔐 Login</button>
+                <button class="btn btn-google" id="googleBtn">🌐 Sign in with Google</button>
+                <div class="error-msg" id="loginError"></div>
                 
                 <!-- Registration Section -->
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                    <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New Subject Teacher?</h3>
-                    <button class="btn btn-secondary btn-full" id="registerBtn">📝 Register Now</button>
+                    <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
+                    <button class="btn btn-secondary" id="registerBtn">📝 Register New Account</button>
                 </div>
-                
-                <div class="error-msg" id="loginError"></div>
             </div>
             
             <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
@@ -358,18 +311,17 @@
                 <button class="nav-tab active" data-tab="attendance">📋 Attendance</button>
                 <button class="nav-tab" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
-                <button class="nav-tab" data-tab="dashboard">🎯 Dashboard</button>
-                <button class="nav-tab" data-tab="teachers">👨‍🏫 Teachers</button>
-                <button class="nav-tab" data-tab="grades">🎓 Grades</button>
-                <button class="nav-tab" data-tab="subjects">📚 Subjects</button>
-                <button class="nav-tab" data-tab="viewAttendance">👀 View Attendance</button>
+                <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
+                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
+                <button class="nav-tab principal-only" data-tab="grades">🎓 Grades</button>
+                <button class="nav-tab principal-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
             <!-- Attendance Tab -->
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject, teacher, and date to mark attendance (Monday to Friday only)</div>
+                    <div class="info-box">Select class, subject, and date to mark attendance for today</div>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="selectClass"></select>
@@ -379,23 +331,14 @@
                         <select id="selectSubject"></select>
                     </div>
                     <div class="form-group">
-                        <label>Select Teacher</label>
-                        <select id="selectTeacher"></select>
-                    </div>
-                    <div class="form-group">
                         <label>Date</label>
                         <input type="date" id="startDate">
                     </div>
-                    <button class="btn btn-primary btn-full" id="loadAttendanceBtn">Load Attendance Sheet</button>
+                    <button class="btn btn-primary" id="loadAttendanceBtn">Load Attendance Sheet</button>
                 </div>
 
                 <div class="card">
                     <h3>Attendance Sheet for <span id="currentDateDisplay"></span></h3>
-                    <div id="teacherInfo" class="teacher-info" style="display: none;">
-                        <strong>Teacher Information:</strong> 
-                        <span id="teacherIdDisplay">-</span> - 
-                        <span id="teacherNameDisplay">-</span>
-                    </div>
                     <div id="attendanceSummary" class="attendance-summary" style="display: none;">
                         Attendance Summary: <span id="presentCount">0</span>/<span id="totalCount">0</span> students present 
                         (<span id="attendancePercentage">0</span>%)
@@ -406,15 +349,12 @@
                                 <tr>
                                     <th>Student ID</th>
                                     <th>Name</th>
-                                    <th>Subject</th>
-                                    <th>Teacher ID</th>
-                                    <th>Teacher Name</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="attendanceTbody">
-                                <tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                                <tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -453,7 +393,7 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-full" id="addStudentBtn">Add Student</button>
+                    <button class="btn btn-primary" id="addStudentBtn">Add Student</button>
                     <div class="success-msg" id="studentSuccess"></div>
                 </div>
 
@@ -473,7 +413,7 @@
             <!-- Reports Tab -->
             <div class="tab-content" id="reports">
                 <div class="card">
-                    <h3>Generate Monthly Report</h3>
+                    <h3>Generate Detailed Attendance Report</h3>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="reportClass"></select>
@@ -486,44 +426,13 @@
                         <label>Month</label>
                         <input type="month" id="reportMonth">
                     </div>
-                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
-                    <button class="pdf-btn" id="generatePdfBtn">📄 Generate PDF Report</button>
+                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Detailed Report</button>
                     <div id="reportOutput" style="margin-top: 20px;"></div>
                 </div>
             </div>
 
-            <!-- View Attendance Tab (Principal Only) -->
-            <div class="tab-content" id="viewAttendance">
-                <div class="card">
-                    <h3>View Attendance Records</h3>
-                    <div class="info-box">View attendance records by grade, teacher, subject, and date</div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Class</label>
-                            <select id="viewClass"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Select Subject</label>
-                            <select id="viewSubject"></select>
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Teacher</label>
-                            <select id="viewTeacher"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Date</label>
-                            <input type="date" id="viewDate">
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-full" id="viewAttendanceBtn">View Attendance</button>
-                    <div id="viewAttendanceOutput" style="margin-top: 20px;"></div>
-                </div>
-            </div>
-
             <!-- Dashboard Tab -->
-            <div class="tab-content" id="dashboard">
+            <div class="tab-content principal-only" id="dashboard">
                 <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
                 <div class="grid-2">
                     <div class="stats-card">
@@ -546,13 +455,13 @@
             </div>
 
             <!-- Teachers Tab -->
-            <div class="tab-content" id="teachers">
+            <div class="tab-content principal-only" id="teachers">
                 <div class="card">
                     <h3>Add New Teacher</h3>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Teacher ID</label>
-                            <input type="text" id="teacherIdInput" placeholder="e.g., T001">
+                            <input type="text" id="teacherId" placeholder="e.g., T001">
                         </div>
                         <div class="form-group">
                             <label>Teacher Name</label>
@@ -563,14 +472,7 @@
                         <label>Subject</label>
                         <select id="teacherSubject"></select>
                     </div>
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select id="teacherRole">
-                            <option value="classTeacher">Class Teacher</option>
-                            <option value="subjectTeacher">Subject Teacher</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher</button>
+                    <button class="btn btn-primary" id="addTeacherBtn">Add Teacher</button>
                     <div class="success-msg" id="teacherSuccess"></div>
                 </div>
                 <div class="card">
@@ -581,14 +483,14 @@
             </div>
 
             <!-- Subjects Tab -->
-            <div class="tab-content" id="subjects">
+            <div class="tab-content principal-only" id="subjects">
                 <div class="card">
                     <h3>Add New Subject</h3>
                     <div class="form-group">
                         <label>Subject Name</label>
                         <input type="text" id="subjectName" placeholder="e.g., Mathematics">
                     </div>
-                    <button class="btn btn-primary btn-full" id="addSubjectBtn">Add Subject</button>
+                    <button class="btn btn-primary" id="addSubjectBtn">Add Subject</button>
                     <div class="success-msg" id="subjectSuccess"></div>
                 </div>
                 <div class="card">
@@ -599,7 +501,7 @@
             </div>
 
             <!-- Grades Tab -->
-            <div class="tab-content" id="grades">
+            <div class="tab-content principal-only" id="grades">
                 <div class="card">
                     <h3>Add New Grade & Class</h3>
                     <div class="grid-2">
@@ -622,7 +524,7 @@
                             <input type="text" id="className" placeholder="e.g., A, B, C">
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-full" id="addClassBtn">Add Grade & Class</button>
+                    <button class="btn btn-primary" id="addClassBtn">Add Grade & Class</button>
                     <div class="success-msg" id="classSuccess"></div>
                 </div>
                 <div class="card">
@@ -651,8 +553,6 @@
         try {
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
-            } else {
-                firebase.app(); // if already initialized, use that one
             }
             auth = firebase.auth();
             db = firebase.firestore();
@@ -665,9 +565,7 @@
         const appData = {
             currentUser: null,
             userRole: null,
-            currentAttendance: {},
-            currentTeacher: null,
-            editingItem: null
+            currentAttendance: {}
         };
 
         // Initialize the application
@@ -678,53 +576,27 @@
         };
 
         function setTodayDate() {
-            const today = new Date();
-            const formattedDate = today.toISOString().split('T')[0];
-            
-            document.getElementById('startDate').value = formattedDate;
-            document.getElementById('viewDate').value = formattedDate;
-            
-            const currentMonth = formattedDate.substring(0, 7);
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            const currentMonth = today.substring(0, 7);
             document.getElementById('reportMonth').value = currentMonth;
             
+            // Display current date
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const displayDate = today.toLocaleDateString('en-US', options);
+            const displayDate = new Date().toLocaleDateString('en-US', options);
             document.getElementById('currentDateDisplay').textContent = displayDate;
-            
-            restrictDateSelection();
-        }
-
-        function restrictDateSelection() {
-            const dateInputs = document.querySelectorAll('input[type="date"]');
-            
-            dateInputs.forEach(input => {
-                input.addEventListener('change', function() {
-                    const selectedDate = new Date(this.value);
-                    const dayOfWeek = selectedDate.getDay();
-                    
-                    if (dayOfWeek === 0 || dayOfWeek === 6) {
-                        alert('Attendance can only be marked on weekdays (Monday to Friday)');
-                        this.value = '';
-                    }
-                });
-            });
         }
 
         function checkAuthState() {
             if (auth) {
                 auth.onAuthStateChanged((user) => {
                     if (user) {
-                        console.log("User logged in:", user.email);
                         getUserRole(user.uid).then(role => {
-                            console.log("User role retrieved:", role);
                             appData.currentUser = user;
                             appData.userRole = role;
                             showApp(role);
-                        }).catch(error => {
-                            console.error("Error getting user role:", error);
                         });
                     } else {
-                        console.log("No user logged in");
                         document.getElementById('loginScreen').style.display = 'block';
                         document.getElementById('appContent').style.display = 'none';
                     }
@@ -734,25 +606,18 @@
 
         async function getUserRole(uid) {
             try {
-                console.log("Getting role for user:", uid);
                 const doc = await db.collection('users').doc(uid).get();
-                if (doc.exists) {
-                    const role = doc.data().role;
-                    console.log("Role found in Firestore:", role);
-                    return role;
-                } else {
-                    console.log("No role found in Firestore");
-                    return null;
-                }
+                return doc.exists ? doc.data().role : 'teacher';
             } catch (error) {
                 console.error("Error getting user role:", error);
-                return null;
+                return 'teacher';
             }
         }
 
         function setupEventListeners() {
             // Authentication
             document.getElementById('loginBtn').addEventListener('click', doLogin);
+            document.getElementById('googleBtn').addEventListener('click', googleLogin);
             document.getElementById('registerBtn').addEventListener('click', showRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
@@ -775,8 +640,7 @@
             document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
             // Reports
-            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
-            document.getElementById('generatePdfBtn').addEventListener('click', generatePdfReport);
+            document.getElementById('generateReportBtn').addEventListener('click', generateDetailedReport);
             
             // Principal-only features
             document.getElementById('addTeacherBtn').addEventListener('click', addTeacher);
@@ -785,13 +649,11 @@
             document.getElementById('teacherFilter').addEventListener('keyup', filterTeachers);
             document.getElementById('subjectFilter').addEventListener('keyup', filterSubjects);
             document.getElementById('gradeFilter').addEventListener('keyup', filterGrades);
-            document.getElementById('viewAttendanceBtn').addEventListener('click', viewAttendanceRecords);
         }
 
         function doLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
-            const selectedRole = document.getElementById('loginRole').value;
             const errorMsg = document.getElementById('loginError');
             
             if (!email || !password) {
@@ -803,14 +665,30 @@
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    console.log("Login successful for:", user.email);
+                    return getUserRole(user.uid);
+                })
+                .then((role) => {
+                    appData.userRole = role;
+                    showApp(role);
+                    errorMsg.style.display = 'none';
+                })
+                .catch((error) => {
+                    errorMsg.textContent = 'Login failed: ' + error.message;
+                    errorMsg.style.display = 'block';
+                });
+        }
+
+        function googleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
                     return getUserRole(user.uid);
                 })
                 .then((role) => {
                     if (!role) {
-                        // If no role found, assign the selected role during login
-                        const user = auth.currentUser;
                         const selectedRole = document.getElementById('loginRole').value;
+                        const user = auth.currentUser;
                         return db.collection('users').doc(user.uid).set({
                             email: user.email,
                             role: selectedRole,
@@ -820,21 +698,19 @@
                     return role;
                 })
                 .then((role) => {
-                    console.log("Role after login:", role);
                     appData.userRole = role;
                     showApp(role);
-                    errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
-                    console.error("Login error:", error);
-                    errorMsg.textContent = 'Login failed: ' + error.message;
-                    errorMsg.style.display = 'block';
+                    document.getElementById('loginError').textContent = 'Google login failed: ' + error.message;
+                    document.getElementById('loginError').style.display = 'block';
                 });
         }
 
         function showRegistration() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
+            const role = document.getElementById('loginRole').value;
             const errorMsg = document.getElementById('loginError');
             
             if (!email || !password) {
@@ -848,9 +724,6 @@
                 errorMsg.style.display = 'block';
                 return;
             }
-
-            // Registration is only for subject teachers
-            const role = 'subjectTeacher';
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
@@ -873,104 +746,15 @@
         }
 
         function showApp(role) {
-            console.log("Showing app for role:", role);
-            
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
+            document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal' : 'Teacher';
             
-            // Set role badge text
-            let roleText = '';
-            if (role === 'principal') roleText = 'Principal';
-            else if (role === 'classTeacher') roleText = 'Class Teacher';
-            else if (role === 'subjectTeacher') roleText = 'Subject Teacher';
-            document.getElementById('roleBadge').textContent = roleText;
-            
-            // Update navigation tabs visibility based on role
-            updateNavTabs(role);
+            document.querySelectorAll('.principal-only').forEach(el => {
+                el.style.display = role === 'principal' ? 'block' : 'none';
+            });
             
             updateAll();
-        }
-
-        function updateNavTabs(role) {
-            console.log("Updating nav tabs for role:", role);
-            const navTabs = document.querySelectorAll('.nav-tab');
-            
-            navTabs.forEach(tab => {
-                const tabName = tab.getAttribute('data-tab');
-                let shouldShow = false;
-                
-                if (role === 'principal') {
-                    shouldShow = true; // Principal sees all tabs
-                } else if (role === 'classTeacher') {
-                    // Class Teacher can manage students, grades, subjects, attendance, and reports
-                    shouldShow = ['attendance', 'students', 'reports', 'grades', 'subjects'].includes(tabName);
-                } else if (role === 'subjectTeacher') {
-                    // Subject Teacher can only mark attendance and generate reports
-                    shouldShow = ['attendance', 'reports'].includes(tabName);
-                }
-                
-                tab.style.display = shouldShow ? 'block' : 'none';
-            });
-            
-            // Activate first visible tab
-            const firstVisibleTab = document.querySelector('.nav-tab[style="display: block"]');
-            if (firstVisibleTab && !document.querySelector('.tab-content.active')) {
-                showTab(firstVisibleTab.getAttribute('data-tab'));
-            }
-        }
-
-        function showTab(tabName) {
-            console.log("Showing tab:", tabName, "for role:", appData.userRole);
-            
-            // Check if user has access to this tab
-            if (appData.userRole === 'subjectTeacher' && !['attendance', 'reports'].includes(tabName)) {
-                alert('Access denied. Subject Teachers can only access Attendance and Reports.');
-                return;
-            }
-            
-            if (appData.userRole === 'classTeacher' && !['attendance', 'students', 'reports', 'grades', 'subjects'].includes(tabName)) {
-                alert('Access denied. Class Teachers cannot access this tab.');
-                return;
-            }
-            
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Deactivate all tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Activate selected tab
-            const selectedTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
-            if (selectedTab) {
-                selectedTab.classList.add('active');
-                document.getElementById(tabName).classList.add('active');
-            }
-            
-            // Load tab-specific data
-            switch(tabName) {
-                case 'dashboard':
-                    if (appData.userRole === 'principal') updateDashboard();
-                    break;
-                case 'students':
-                    if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') loadStudents();
-                    break;
-                case 'teachers':
-                    if (appData.userRole === 'principal') loadTeachers();
-                    break;
-                case 'subjects':
-                    if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') loadSubjects();
-                    break;
-                case 'grades':
-                    if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') loadGrades();
-                    break;
-                case 'viewAttendance':
-                    if (appData.userRole === 'principal') viewAttendanceRecords();
-                    break;
-            }
         }
 
         function doLogout() {
@@ -979,394 +763,251 @@
                 appData.userRole = null;
                 document.getElementById('loginScreen').style.display = 'block';
                 document.getElementById('appContent').style.display = 'none';
-                document.getElementById('loginError').style.display = 'none';
-            }).catch((error) => {
-                console.error("Logout error:", error);
             });
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // Refresh data when switching tabs
+            if (tabName === 'students') updateStudentsList();
+            if (tabName === 'teachers') updateTeachersList();
+            if (tabName === 'subjects') updateSubjectsList();
+            if (tabName === 'grades') updateGradesList();
+            if (tabName === 'dashboard') updateDashboard();
+        }
+
+        // Update selectors with data from Firestore
+        function updateSelectors() {
+            // Classes/Grades
+            db.collection('grades').orderBy('grade').get()
+                .then((querySnapshot) => {
+                    let classOptions = '<option value="">-- Select Class --</option>';
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const fullClass = data.grade + ' - ' + data.class;
+                        classOptions += `<option value="${fullClass}">${fullClass}</option>`;
+                    });
+                    
+                    document.getElementById('selectClass').innerHTML = classOptions;
+                    document.getElementById('studentGrade').innerHTML = classOptions;
+                    document.getElementById('reportClass').innerHTML = classOptions;
+                    document.getElementById('filterStudentClass').innerHTML = '<option value="">All Classes</option>' + classOptions;
+                })
+                .catch((error) => {
+                    console.error("Error getting grades: ", error);
+                });
+            
+            // Subjects
+            db.collection('subjects').orderBy('name').get()
+                .then((querySnapshot) => {
+                    let subjectOptions = '<option value="">-- Select Subject --</option>';
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        subjectOptions += `<option value="${data.name}">${data.name}</option>`;
+                    });
+                    
+                    document.getElementById('selectSubject').innerHTML = subjectOptions;
+                    document.getElementById('teacherSubject').innerHTML = subjectOptions;
+                    document.getElementById('reportSubject').innerHTML = subjectOptions;
+                })
+                .catch((error) => {
+                    console.error("Error getting subjects: ", error);
+                });
         }
 
         function updateAll() {
-            populateDropdowns();
-            
+            updateSelectors();
+            updateStudentsList();
             if (appData.userRole === 'principal') {
+                updateTeachersList();
+                updateSubjectsList();
+                updateGradesList();
                 updateDashboard();
-                loadTeachers();
-            }
-            
-            if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') {
-                loadStudents();
-                loadSubjects();
-                loadGrades();
             }
         }
 
-        function updateDashboard() {
-            if (appData.userRole !== 'principal') return;
-            
-            Promise.all([
-                db.collection('students').get(),
-                db.collection('teachers').get(),
-                db.collection('grades').get(),
-                db.collection('subjects').get()
-            ]).then(([studentsSnap, teachersSnap, gradesSnap, subjectsSnap]) => {
-                document.getElementById('totalStudents').textContent = studentsSnap.size;
-                document.getElementById('totalTeachers').textContent = teachersSnap.size;
-                document.getElementById('totalGrades').textContent = gradesSnap.size;
-                document.getElementById('totalSubjects').textContent = subjectsSnap.size;
-            }).catch(error => {
-                console.error("Error updating dashboard:", error);
-            });
-        }
-
-        function populateDropdowns() {
-            // Populate grade dropdowns
-            db.collection('grades').get().then(snapshot => {
-                const gradeOptions = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return `<option value="${data.fullName}">${data.fullName}</option>`;
-                }).join('');
-                
-                const gradeSelectors = [
-                    'selectClass', 'reportClass', 'viewClass', 'filterStudentClass', 'studentGrade'
-                ];
-                
-                gradeSelectors.forEach(selector => {
-                    const element = document.getElementById(selector);
-                    if (element) {
-                        element.innerHTML = `<option value="">-- Select Class --</option>${gradeOptions}`;
-                    }
-                });
-            });
-            
-            // Populate subject dropdowns
-            db.collection('subjects').get().then(snapshot => {
-                const subjectOptions = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return `<option value="${data.name}">${data.name}</option>`;
-                }).join('');
-                
-                const subjectSelectors = [
-                    'selectSubject', 'reportSubject', 'viewSubject', 'teacherSubject'
-                ];
-                
-                subjectSelectors.forEach(selector => {
-                    const element = document.getElementById(selector);
-                    if (element) {
-                        element.innerHTML = `<option value="">-- Select Subject --</option>${subjectOptions}`;
-                    }
-                });
-            });
-            
-            // Populate teacher dropdowns
-            db.collection('teachers').get().then(snapshot => {
-                const teacherOptions = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return `<option value="${doc.id}">${data.name} (${data.id})</option>`;
-                }).join('');
-                
-                const teacherSelectors = ['selectTeacher', 'viewTeacher'];
-                
-                teacherSelectors.forEach(selector => {
-                    const element = document.getElementById(selector);
-                    if (element) {
-                        element.innerHTML = `<option value="">-- Select Teacher --</option>${teacherOptions}`;
-                    }
-                });
-            });
-        }
-
-        // Student Management (Principal and Class Teacher only)
+        // Student Management
         function addStudent() {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
-                alert('Access denied. Only Principal and Class Teachers can manage students.');
-                return;
-            }
-            
             const id = document.getElementById('studentId').value.trim();
             const name = document.getElementById('studentName').value.trim();
             const grade = document.getElementById('studentGrade').value;
             const gender = document.getElementById('studentGender').value;
+            const successMsg = document.getElementById('studentSuccess');
             
             if (!id || !name || !grade) {
-                alert('Please fill all fields');
+                alert('Please fill all required fields');
                 return;
             }
             
-            db.collection('students').add({
+            db.collection('students').doc(id).set({
                 id: id,
                 name: name,
                 grade: grade,
                 gender: gender,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                document.getElementById('studentSuccess').textContent = 'Student added successfully!';
-                document.getElementById('studentSuccess').style.display = 'block';
+            })
+            .then(() => {
+                successMsg.textContent = 'Student added successfully!';
+                successMsg.style.display = 'block';
                 document.getElementById('studentId').value = '';
                 document.getElementById('studentName').value = '';
-                loadStudents();
-                setTimeout(() => {
-                    document.getElementById('studentSuccess').style.display = 'none';
-                }, 3000);
-            }).catch(error => {
+                updateStudentsList();
+                setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+            })
+            .catch((error) => {
                 alert('Error adding student: ' + error.message);
             });
         }
 
-        function loadStudents() {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') return;
+        function updateStudentsList() {
+            const container = document.getElementById('studentList');
+            container.innerHTML = '<div class="loading">Loading students...</div>';
             
-            const studentList = document.getElementById('studentList');
-            studentList.innerHTML = '<div class="loading">Loading students...</div>';
-            
-            db.collection('students').get().then(snapshot => {
-                if (snapshot.empty) {
-                    studentList.innerHTML = '<div class="info-box">No students found. Add some students to get started.</div>';
-                    return;
-                }
-                
-                let html = '';
-                snapshot.forEach(doc => {
-                    const student = doc.data();
-                    html += `
-                        <div class="student-item">
-                            <div class="item-info">
-                                <strong>${student.id}</strong> - ${student.name}<br>
-                                <small>${student.grade} • ${student.gender}</small>
+            db.collection('students').orderBy('id').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No students found</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const student = doc.data();
+                        html += `
+                            <div class="student-item">
+                                <strong>${student.id} - ${student.name}</strong>
+                                <br><small>Class: ${student.grade} | Gender: ${student.gender}</small>
                             </div>
-                            <div class="item-actions">
-                                <button class="btn btn-warning btn-small" onclick="editStudent('${doc.id}', '${student.id}', '${student.name}', '${student.grade}', '${student.gender}')">✏️ Edit</button>
-                                <button class="btn btn-danger btn-small" onclick="deleteStudent('${doc.id}')">🗑️ Delete</button>
-                            </div>
-                        </div>
-                    `;
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading students</div>';
                 });
-                
-                studentList.innerHTML = html;
-            }).catch(error => {
-                studentList.innerHTML = '<div class="error-msg">Error loading students: ' + error.message + '</div>';
-            });
         }
 
         function filterStudents() {
             const filter = document.getElementById('studentFilter').value.toLowerCase();
             const classFilter = document.getElementById('filterStudentClass').value;
-            const items = document.querySelectorAll('.student-item');
+            const items = document.querySelectorAll('#studentList .student-item');
             
             items.forEach(item => {
                 const text = item.textContent.toLowerCase();
-                const gradeMatch = classFilter === '' || item.textContent.includes(classFilter);
-                const filterMatch = text.includes(filter);
-                item.style.display = (filterMatch && gradeMatch) ? 'flex' : 'none';
+                const matchesFilter = text.includes(filter);
+                const matchesClass = !classFilter || text.includes(classFilter);
+                item.style.display = (matchesFilter && matchesClass) ? 'block' : 'none';
             });
         }
 
-        function editStudent(docId, currentId, currentName, currentGrade, currentGender) {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
-                alert('Access denied. Only Principal and Class Teachers can edit students.');
-                return;
-            }
-            
-            const item = document.querySelector(`.student-item:has(button[onclick*="${docId}"])`);
-            
-            if (appData.editingItem === docId) {
-                loadStudents();
-                appData.editingItem = null;
-                return;
-            }
-            
-            appData.editingItem = docId;
-            
-            item.innerHTML = `
-                <div class="edit-form">
-                    <h4>Edit Student</h4>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Student ID</label>
-                            <input type="text" id="editStudentId" value="${currentId}">
-                        </div>
-                        <div class="form-group">
-                            <label>Student Name</label>
-                            <input type="text" id="editStudentName" value="${currentName}">
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Grade</label>
-                            <select id="editStudentGrade">
-                                <option value="">-- Select Grade --</option>
-                                ${document.getElementById('studentGrade').innerHTML}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Gender</label>
-                            <select id="editStudentGender">
-                                <option value="Male" ${currentGender === 'Male' ? 'selected' : ''}>Male</option>
-                                <option value="Female" ${currentGender === 'Female' ? 'selected' : ''}>Female</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button class="btn btn-primary btn-small" onclick="saveStudentEdit('${docId}')">💾 Save</button>
-                        <button class="btn btn-danger btn-small" onclick="cancelEdit()">❌ Cancel</button>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('editStudentGrade').value = currentGrade;
-        }
-
-        function saveStudentEdit(docId) {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
-                alert('Access denied. Only Principal and Class Teachers can edit students.');
-                return;
-            }
-            
-            const id = document.getElementById('editStudentId').value.trim();
-            const name = document.getElementById('editStudentName').value.trim();
-            const grade = document.getElementById('editStudentGrade').value;
-            const gender = document.getElementById('editStudentGender').value;
-            
-            if (!id || !name || !grade) {
-                alert('Please fill all fields');
-                return;
-            }
-            
-            db.collection('students').doc(docId).update({
-                id: id,
-                name: name,
-                grade: grade,
-                gender: gender
-            }).then(() => {
-                loadStudents();
-                appData.editingItem = null;
-            }).catch(error => {
-                alert('Error updating student: ' + error.message);
-            });
-        }
-
-        function deleteStudent(docId) {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
-                alert('Access denied. Only Principal and Class Teachers can delete students.');
-                return;
-            }
-            
-            if (confirm('Are you sure you want to delete this student?')) {
-                db.collection('students').doc(docId).delete().then(() => {
-                    loadStudents();
-                }).catch(error => {
-                    alert('Error deleting student: ' + error.message);
-                });
-            }
-        }
-
-        // Attendance Management (All roles)
+        // Attendance Management - Updated for single date
         function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
-            const selectedTeacher = document.getElementById('selectTeacher').value;
-            const selectedDate = document.getElementById('startDate').value;
+            const date = document.getElementById('startDate').value;
             
-            if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
-                alert('Please select class, subject, teacher, and date');
+            if (!selectedClass || !selectedSubject || !date) {
+                alert('Please select class, subject, and date');
                 return;
             }
             
-            // Check if selected date is weekend
-            const date = new Date(selectedDate);
-            const dayOfWeek = date.getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                alert('Attendance can only be marked on weekdays (Monday to Friday)');
-                return;
-            }
+            const tbody = document.getElementById('attendanceTbody');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
             
-            // Get teacher info
-            db.collection('teachers').doc(selectedTeacher).get().then(doc => {
-                if (doc.exists) {
-                    const teacher = doc.data();
-                    appData.currentTeacher = teacher;
-                    
-                    document.getElementById('teacherInfo').style.display = 'block';
-                    document.getElementById('teacherIdDisplay').textContent = teacher.id;
-                    document.getElementById('teacherNameDisplay').textContent = teacher.name;
-                }
+            // Update date display
+            const displayDate = new Date(date).toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
             });
+            document.getElementById('currentDateDisplay').textContent = displayDate;
             
-            // Load students for the selected class
-            db.collection('students').where('grade', '==', selectedClass).get().then(snapshot => {
-                const tbody = document.getElementById('attendanceTbody');
-                
-                if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">No students found for this class</td></tr>';
-                    return;
-                }
-                
-                let html = '';
-                let studentCount = 0;
-                
-                snapshot.forEach(doc => {
-                    const student = doc.data();
-                    studentCount++;
-                    
-                    // Initialize attendance status for this student
-                    const studentKey = `${student.id}_${selectedDate}`;
-                    if (!appData.currentAttendance[studentKey]) {
-                        appData.currentAttendance[studentKey] = {
-                            present: false,
-                            student: student,
-                            subject: selectedSubject,
-                            teacherId: appData.currentTeacher?.id || '',
-                            teacherName: appData.currentTeacher?.name || '',
-                            date: selectedDate
-                        };
+            db.collection('students')
+                .where('grade', '==', selectedClass)
+                .orderBy('id')
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
+                        document.getElementById('attendanceSummary').style.display = 'none';
+                        return;
                     }
                     
-                    html += `
-                        <tr>
-                            <td>${student.id}</td>
-                            <td>${student.name}</td>
-                            <td>${selectedSubject}</td>
-                            <td>${appData.currentTeacher?.id || ''}</td>
-                            <td>${appData.currentTeacher?.name || ''}</td>
-                            <td>
-                                <span class="${appData.currentAttendance[studentKey].present ? 'present' : 'absent'}">
-                                    ${appData.currentAttendance[studentKey].present ? 'Present' : 'Absent'}
-                                </span>
-                            </td>
-                            <td>
-                                <input type="checkbox" class="attendance-checkbox" 
-                                       data-student="${student.id}" 
-                                       ${appData.currentAttendance[studentKey].present ? 'checked' : ''}
-                                       onchange="toggleAttendance('${student.id}', '${selectedDate}')">
-                            </td>
-                        </tr>
-                    `;
+                    let html = '';
+                    const studentPromises = [];
+                    appData.currentAttendance = {};
+                    
+                    querySnapshot.forEach((doc) => {
+                        const student = doc.data();
+                        const key = `${selectedClass}_${selectedSubject}_${date}_${student.id}`;
+                        
+                        studentPromises.push(
+                            db.collection('attendance').doc(key).get()
+                                .then((attendanceDoc) => {
+                                    const isPresent = attendanceDoc.exists ? attendanceDoc.data().present : false;
+                                    appData.currentAttendance[student.id] = isPresent;
+                                    
+                                    html += `
+                                        <tr>
+                                            <td>${student.id}</td>
+                                            <td>${student.name}</td>
+                                            <td class="${isPresent ? 'present' : 'absent'}">
+                                                ${isPresent ? 'Present' : 'Absent'}
+                                            </td>
+                                            <td>
+                                                <input type="checkbox" class="attendance-checkbox" 
+                                                       data-student="${student.id}" 
+                                                       ${isPresent ? 'checked' : ''}>
+                                                <label>Present</label>
+                                            </td>
+                                        </tr>
+                                    `;
+                                })
+                        );
+                    });
+                    
+                    Promise.all(studentPromises).then(() => {
+                        tbody.innerHTML = html;
+                        
+                        // Add event listeners to checkboxes
+                        document.querySelectorAll('.attendance-checkbox').forEach(checkbox => {
+                            checkbox.addEventListener('change', function() {
+                                const studentId = this.getAttribute('data-student');
+                                const row = this.closest('tr');
+                                const statusCell = row.querySelector('td:nth-child(3)');
+                                
+                                if (this.checked) {
+                                    statusCell.textContent = 'Present';
+                                    statusCell.className = 'present';
+                                } else {
+                                    statusCell.textContent = 'Absent';
+                                    statusCell.className = 'absent';
+                                }
+                                
+                                updateAttendanceSummary();
+                            });
+                        });
+                        
+                        updateAttendanceSummary();
+                    });
+                })
+                .catch((error) => {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #c00;">Error loading students</td></tr>';
+                    document.getElementById('attendanceSummary').style.display = 'none';
                 });
-                
-                tbody.innerHTML = html;
-                updateAttendanceSummary();
-                
-            }).catch(error => {
-                console.error("Error loading students:", error);
-                alert('Error loading students: ' + error.message);
-            });
-        }
-
-        function toggleAttendance(studentId, date) {
-            const key = `${studentId}_${date}`;
-            appData.currentAttendance[key] = appData.currentAttendance[key] || {};
-            appData.currentAttendance[key].present = !appData.currentAttendance[key].present;
-            updateAttendanceSummary();
         }
 
         function updateAttendanceSummary() {
+            const checkboxes = document.querySelectorAll('.attendance-checkbox');
             let presentCount = 0;
-            let totalCount = 0;
+            let totalCount = checkboxes.length;
             
-            Object.keys(appData.currentAttendance).forEach(key => {
-                totalCount++;
-                if (appData.currentAttendance[key].present) {
-                    presentCount++;
-                }
+            checkboxes.forEach(cb => {
+                if (cb.checked) presentCount++;
             });
             
             const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
@@ -1374,679 +1015,439 @@
             document.getElementById('presentCount').textContent = presentCount;
             document.getElementById('totalCount').textContent = totalCount;
             document.getElementById('attendancePercentage').textContent = percentage;
-            
             document.getElementById('attendanceSummary').style.display = 'block';
         }
 
         function markAllPresent() {
-            Object.keys(appData.currentAttendance).forEach(key => {
-                appData.currentAttendance[key].present = true;
+            document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+                cb.checked = true;
+                const row = cb.closest('tr');
+                const statusCell = row.querySelector('td:nth-child(3)');
+                statusCell.textContent = 'Present';
+                statusCell.className = 'present';
             });
-            
-            document.querySelectorAll('.attendance-checkbox').forEach(checkbox => {
-                checkbox.checked = true;
-            });
-            
             updateAttendanceSummary();
         }
 
         function markAllAbsent() {
-            Object.keys(appData.currentAttendance).forEach(key => {
-                appData.currentAttendance[key].present = false;
+            document.querySelectorAll('.attendance-checkbox').forEach(cb => {
+                cb.checked = false;
+                const row = cb.closest('tr');
+                const statusCell = row.querySelector('td:nth-child(3)');
+                statusCell.textContent = 'Absent';
+                statusCell.className = 'absent';
             });
-            
-            document.querySelectorAll('.attendance-checkbox').forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            
             updateAttendanceSummary();
         }
 
         function saveAttendance() {
-            const selectedDate = document.getElementById('startDate').value;
+            const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
+            const date = document.getElementById('startDate').value;
             
-            if (!selectedDate) {
-                alert('Please select a date');
+            if (!selectedClass || !selectedSubject) {
+                alert('Please select class and subject first');
                 return;
             }
             
-            let savedCount = 0;
-            const totalCount = Object.keys(appData.currentAttendance).length;
+            const checkboxes = document.querySelectorAll('.attendance-checkbox');
+            const savePromises = [];
             
-            if (totalCount === 0) {
-                alert('No attendance data to save');
-                return;
-            }
-            
-            Object.keys(appData.currentAttendance).forEach(key => {
-                const record = appData.currentAttendance[key];
+            checkboxes.forEach(checkbox => {
+                const studentId = checkbox.getAttribute('data-student');
+                const isPresent = checkbox.checked;
+                const key = `${selectedClass}_${selectedSubject}_${date}_${studentId}`;
                 
-                if (record.student && record.subject) {
-                    const attendanceId = `${record.student.id}_${record.subject}_${selectedDate}`;
-                    
-                    db.collection('attendance').doc(attendanceId).set({
-                        studentId: record.student.id,
-                        studentName: record.student.name,
-                        grade: record.student.grade,
-                        subject: record.subject,
-                        teacherId: record.teacherId,
-                        teacherName: record.teacherName,
-                        date: selectedDate,
-                        present: record.present,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        savedCount++;
-                        if (savedCount === totalCount) {
-                            alert('Attendance saved successfully!');
-                            appData.currentAttendance = {};
-                            document.getElementById('attendanceTbody').innerHTML = 
-                                '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Attendance saved. Load another class if needed.</td></tr>';
-                            document.getElementById('attendanceSummary').style.display = 'none';
-                            document.getElementById('teacherInfo').style.display = 'none';
-                        }
-                    }).catch(error => {
-                        console.error("Error saving attendance:", error);
-                        alert('Error saving attendance for ' + record.student.name + ': ' + error.message);
-                    });
-                }
+                savePromises.push(
+                    db.collection('attendance').doc(key).set({
+                        class: selectedClass,
+                        subject: selectedSubject,
+                        date: date,
+                        studentId: studentId,
+                        present: isPresent,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    })
+                );
             });
+            
+            Promise.all(savePromises)
+                .then(() => {
+                    alert('Attendance saved successfully for ' + date + '!');
+                })
+                .catch((error) => {
+                    alert('Error saving attendance: ' + error.message);
+                });
         }
 
-        // Report Generation (All roles)
-        function generateReport() {
+        // Updated Detailed Report Function
+        function generateDetailedReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
-            const selectedMonth = document.getElementById('reportMonth').value;
+            const month = document.getElementById('reportMonth').value;
+            const output = document.getElementById('reportOutput');
             
-            if (!selectedClass || !selectedSubject || !selectedMonth) {
+            if (!selectedClass || !selectedSubject || !month) {
                 alert('Please select class, subject, and month');
                 return;
             }
             
-            const reportOutput = document.getElementById('reportOutput');
-            reportOutput.innerHTML = '<div class="loading">Generating report...</div>';
+            output.innerHTML = '<div class="loading">Generating detailed report...</div>';
             
-            const startDate = selectedMonth + '-01';
-            const endDate = new Date(selectedMonth + '-01');
-            endDate.setMonth(endDate.getMonth() + 1);
-            endDate.setDate(endDate.getDate() - 1);
-            const endDateStr = endDate.toISOString().split('T')[0];
+            // Get teacher information for the subject
+            let teacherInfo = { id: 'N/A', name: 'N/A' };
             
-            db.collection('attendance')
-                .where('grade', '==', selectedClass)
+            db.collection('teachers')
                 .where('subject', '==', selectedSubject)
-                .where('date', '>=', startDate)
-                .where('date', '<=', endDateStr)
-                .get().then(snapshot => {
+                .get()
+                .then((teacherSnapshot) => {
+                    if (!teacherSnapshot.empty) {
+                        const teacher = teacherSnapshot.docs[0].data();
+                        teacherInfo = { id: teacher.id, name: teacher.name };
+                    }
                     
-                    if (snapshot.empty) {
-                        reportOutput.innerHTML = '<div class="info-box">No attendance records found for the selected criteria.</div>';
+                    return db.collection('students')
+                        .where('grade', '==', selectedClass)
+                        .orderBy('id')
+                        .get();
+                })
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        output.innerHTML = '<div class="info-box">No students in this class</div>';
                         return;
                     }
                     
-                    const studentData = {};
-                    const dates = new Set();
-                    
-                    snapshot.forEach(doc => {
-                        const record = doc.data();
-                        dates.add(record.date);
-                        
-                        if (!studentData[record.studentId]) {
-                            studentData[record.studentId] = {
-                                name: record.studentName,
-                                attendance: {},
-                                presentCount: 0,
-                                totalCount: 0
-                            };
-                        }
-                        
-                        studentData[record.studentId].attendance[record.date] = record.present;
-                        studentData[record.studentId].totalCount++;
-                        if (record.present) {
-                            studentData[record.studentId].presentCount++;
-                        }
-                    });
-                    
-                    const sortedDates = Array.from(dates).sort();
                     let html = `
                         <div class="card">
-                            <h3>Attendance Report for ${selectedClass} - ${selectedSubject} (${selectedMonth})</h3>
-                            <div style="overflow-x: auto;">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Student ID</th>
-                                            <th>Student Name</th>
-                    `;
-                    
-                    sortedDates.forEach(date => {
-                        const dateObj = new Date(date);
-                        html += `<th>${dateObj.getDate()}</th>`;
-                    });
-                    
-                    html += `
-                                            <th>Present</th>
-                                            <th>Total</th>
-                                            <th>Percentage</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                    `;
-                    
-                    Object.keys(studentData).forEach(studentId => {
-                        const data = studentData[studentId];
-                        const percentage = data.totalCount > 0 ? Math.round((data.presentCount / data.totalCount) * 100) : 0;
-                        
-                        html += `
-                            <tr>
-                                <td>${studentId}</td>
-                                <td>${data.name}</td>
-                        `;
-                        
-                        sortedDates.forEach(date => {
-                            const status = data.attendance[date];
-                            if (status === undefined) {
-                                html += '<td>-</td>';
-                            } else {
-                                html += `<td class="${status ? 'present' : 'absent'}">${status ? 'P' : 'A'}</td>`;
-                            }
-                        });
-                        
-                        html += `
-                                <td>${data.presentCount}</td>
-                                <td>${data.totalCount}</td>
-                                <td>${percentage}%</td>
-                            </tr>
-                        `;
-                    });
-                    
-                    html += `
-                                    </tbody>
-                                </table>
+                            <h3>📊 Detailed Attendance Report</h3>
+                            <div class="info-box">
+                                <strong>Class:</strong> ${selectedClass} | 
+                                <strong>Subject:</strong> ${selectedSubject} | 
+                                <strong>Month:</strong> ${month} | 
+                                <strong>Teacher:</strong> ${teacherInfo.name} (${teacherInfo.id})
                             </div>
-                        </div>
                     `;
                     
-                    reportOutput.innerHTML = html;
+                    html += `
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Subject</th>
+                                    <th>Teacher ID</th>
+                                    <th>Teacher Name</th>
+                                    <th>Present Dates</th>
+                                    <th>Absent Dates</th>
+                                    <th>Total Present</th>
+                                    <th>Total Days</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
                     
-                }).catch(error => {
-                    reportOutput.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+                    const reportPromises = [];
+                    const monthStart = `${month}-01`;
+                    const monthEnd = `${month}-31`;
+                    
+                    querySnapshot.forEach((doc) => {
+                        const student = doc.data();
+                        const promise = db.collection('attendance')
+                            .where('studentId', '==', student.id)
+                            .where('class', '==', selectedClass)
+                            .where('subject', '==', selectedSubject)
+                            .where('date', '>=', monthStart)
+                            .where('date', '<=', monthEnd)
+                            .orderBy('date')
+                            .get()
+                            .then((attendanceSnapshot) => {
+                                let presentDates = [];
+                                let absentDates = [];
+                                let presentCount = 0;
+                                
+                                attendanceSnapshot.forEach((attendanceDoc) => {
+                                    const attendance = attendanceDoc.data();
+                                    const dateStr = attendance.date;
+                                    if (attendance.present) {
+                                        presentDates.push(dateStr);
+                                        presentCount++;
+                                    } else {
+                                        absentDates.push(dateStr);
+                                    }
+                                });
+                                
+                                const totalDays = attendanceSnapshot.size;
+                                const percentage = totalDays > 0 ? ((presentCount / totalDays) * 100).toFixed(1) : 0;
+                                
+                                html += `
+                                    <tr>
+                                        <td><strong>${student.id}</strong></td>
+                                        <td>${student.name}</td>
+                                        <td>${selectedSubject}</td>
+                                        <td>${teacherInfo.id}</td>
+                                        <td>${teacherInfo.name}</td>
+                                        <td>
+                                            <small>${presentDates.length > 0 ? presentDates.join(', ') : 'No present days'}</small>
+                                        </td>
+                                        <td>
+                                            <small>${absentDates.length > 0 ? absentDates.join(', ') : 'No absent days'}</small>
+                                        </td>
+                                        <td><strong class="present">${presentCount}</strong></td>
+                                        <td>${totalDays}</td>
+                                        <td><strong>${percentage}%</strong></td>
+                                    </tr>
+                                `;
+                            });
+                            
+                        reportPromises.push(promise);
+                    });
+                    
+                    Promise.all(reportPromises).then(() => {
+                        html += '</tbody></table></div>';
+                        
+                        // Add summary statistics
+                        const totalStudents = querySnapshot.size;
+                        html += `
+                            <div class="card">
+                                <h3>📈 Summary Statistics</h3>
+                                <div class="grid-2">
+                                    <div class="info-box">
+                                        <strong>Total Students:</strong> ${totalStudents}
+                                    </div>
+                                    <div class="info-box">
+                                        <strong>Subject:</strong> ${selectedSubject}
+                                    </div>
+                                    <div class="info-box">
+                                        <strong>Class:</strong> ${selectedClass}
+                                    </div>
+                                    <div class="info-box">
+                                        <strong>Teacher:</strong> ${teacherInfo.name}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        output.innerHTML = html;
+                    });
+                })
+                .catch((error) => {
+                    output.innerHTML = '<div class="error-msg">Error generating detailed report: ' + error.message + '</div>';
                 });
         }
 
-        function generatePdfReport() {
-            alert('PDF generation would be implemented here. This would typically use a library like jsPDF or generate a server-side PDF.');
-        }
-
-        // Teacher Management (Principal only)
+        // Principal-only functions
         function addTeacher() {
-            if (appData.userRole !== 'principal') {
-                alert('Access denied. Only Principal can manage teachers.');
-                return;
-            }
-            
-            const id = document.getElementById('teacherIdInput').value.trim();
+            const id = document.getElementById('teacherId').value.trim();
             const name = document.getElementById('teacherName').value.trim();
             const subject = document.getElementById('teacherSubject').value;
-            const role = document.getElementById('teacherRole').value;
+            const successMsg = document.getElementById('teacherSuccess');
             
             if (!id || !name || !subject) {
-                alert('Please fill all fields');
+                alert('Please fill all required fields');
                 return;
             }
             
-            db.collection('teachers').add({
+            db.collection('teachers').doc(id).set({
                 id: id,
                 name: name,
                 subject: subject,
-                role: role,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                document.getElementById('teacherSuccess').textContent = 'Teacher added successfully!';
-                document.getElementById('teacherSuccess').style.display = 'block';
-                document.getElementById('teacherIdInput').value = '';
+            })
+            .then(() => {
+                successMsg.textContent = 'Teacher added successfully!';
+                successMsg.style.display = 'block';
+                document.getElementById('teacherId').value = '';
                 document.getElementById('teacherName').value = '';
-                loadTeachers();
-                populateDropdowns();
-                setTimeout(() => {
-                    document.getElementById('teacherSuccess').style.display = 'none';
-                }, 3000);
-            }).catch(error => {
+                updateTeachersList();
+                setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+            })
+            .catch((error) => {
                 alert('Error adding teacher: ' + error.message);
             });
         }
 
-        function loadTeachers() {
-            if (appData.userRole !== 'principal') return;
-            
-            const teachersList = document.getElementById('teachersList');
-            teachersList.innerHTML = '<div class="loading">Loading teachers...</div>';
-            
-            db.collection('teachers').get().then(snapshot => {
-                if (snapshot.empty) {
-                    teachersList.innerHTML = '<div class="info-box">No teachers found. Add some teachers to get started.</div>';
-                    return;
-                }
-                
-                let html = '';
-                snapshot.forEach(doc => {
-                    const teacher = doc.data();
-                    html += `
-                        <div class="teacher-item">
-                            <div class="item-info">
-                                <strong>${teacher.id}</strong> - ${teacher.name}<br>
-                                <small>${teacher.subject} • ${teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</small>
-                            </div>
-                            <div class="item-actions">
-                                <button class="btn btn-warning btn-small" onclick="editTeacher('${doc.id}', '${teacher.id}', '${teacher.name}', '${teacher.subject}', '${teacher.role}')">✏️ Edit</button>
-                                <button class="btn btn-danger btn-small" onclick="deleteTeacher('${doc.id}')">🗑️ Delete</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                teachersList.innerHTML = html;
-            }).catch(error => {
-                teachersList.innerHTML = '<div class="error-msg">Error loading teachers: ' + error.message + '</div>';
-            });
-        }
-
-        function filterTeachers() {
-            const filter = document.getElementById('teacherFilter').value.toLowerCase();
-            const items = document.querySelectorAll('.teacher-item');
-            
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(filter) ? 'flex' : 'none';
-            });
-        }
-
-        function editTeacher(docId, currentId, currentName, currentSubject, currentRole) {
-            if (appData.userRole !== 'principal') {
-                alert('Access denied. Only Principal can edit teachers.');
-                return;
-            }
-            
-            const item = document.querySelector(`.teacher-item:has(button[onclick*="${docId}"])`);
-            
-            if (appData.editingItem === docId) {
-                loadTeachers();
-                appData.editingItem = null;
-                return;
-            }
-            
-            appData.editingItem = docId;
-            
-            item.innerHTML = `
-                <div class="edit-form">
-                    <h4>Edit Teacher</h4>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Teacher ID</label>
-                            <input type="text" id="editTeacherId" value="${currentId}">
-                        </div>
-                        <div class="form-group">
-                            <label>Teacher Name</label>
-                            <input type="text" id="editTeacherName" value="${currentName}">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Subject</label>
-                        <select id="editTeacherSubject">
-                            <option value="">-- Select Subject --</option>
-                            ${document.getElementById('teacherSubject').innerHTML}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select id="editTeacherRole">
-                            <option value="classTeacher" ${currentRole === 'classTeacher' ? 'selected' : ''}>Class Teacher</option>
-                            <option value="subjectTeacher" ${currentRole === 'subjectTeacher' ? 'selected' : ''}>Subject Teacher</option>
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button class="btn btn-primary btn-small" onclick="saveTeacherEdit('${docId}')">💾 Save</button>
-                        <button class="btn btn-danger btn-small" onclick="cancelEdit()">❌ Cancel</button>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('editTeacherSubject').value = currentSubject;
-        }
-
-        function saveTeacherEdit(docId) {
-            if (appData.userRole !== 'principal') {
-                alert('Access denied. Only Principal can edit teachers.');
-                return;
-            }
-            
-            const id = document.getElementById('editTeacherId').value.trim();
-            const name = document.getElementById('editTeacherName').value.trim();
-            const subject = document.getElementById('editTeacherSubject').value;
-            const role = document.getElementById('editTeacherRole').value;
-            
-            if (!id || !name || !subject) {
-                alert('Please fill all fields');
-                return;
-            }
-            
-            db.collection('teachers').doc(docId).update({
-                id: id,
-                name: name,
-                subject: subject,
-                role: role
-            }).then(() => {
-                loadTeachers();
-                appData.editingItem = null;
-                populateDropdowns();
-            }).catch(error => {
-                alert('Error updating teacher: ' + error.message);
-            });
-        }
-
-        function deleteTeacher(docId) {
-            if (appData.userRole !== 'principal') {
-                alert('Access denied. Only Principal can delete teachers.');
-                return;
-            }
-            
-            if (confirm('Are you sure you want to delete this teacher?')) {
-                db.collection('teachers').doc(docId).delete().then(() => {
-                    loadTeachers();
-                    populateDropdowns();
-                }).catch(error => {
-                    alert('Error deleting teacher: ' + error.message);
-                });
-            }
-        }
-
-        // Subject Management (Principal and Class Teacher only)
         function addSubject() {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
-                alert('Access denied. Only Principal and Class Teachers can manage subjects.');
-                return;
-            }
-            
             const name = document.getElementById('subjectName').value.trim();
+            const successMsg = document.getElementById('subjectSuccess');
             
             if (!name) {
                 alert('Please enter subject name');
                 return;
             }
             
-            db.collection('subjects').add({
+            db.collection('subjects').doc(name).set({
                 name: name,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                document.getElementById('subjectSuccess').textContent = 'Subject added successfully!';
-                document.getElementById('subjectSuccess').style.display = 'block';
+            })
+            .then(() => {
+                successMsg.textContent = 'Subject added successfully!';
+                successMsg.style.display = 'block';
                 document.getElementById('subjectName').value = '';
-                loadSubjects();
-                populateDropdowns();
-                setTimeout(() => {
-                    document.getElementById('subjectSuccess').style.display = 'none';
-                }, 3000);
-            }).catch(error => {
+                updateSubjectsList();
+                updateSelectors();
+                setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+            })
+            .catch((error) => {
                 alert('Error adding subject: ' + error.message);
             });
         }
 
-        function loadSubjects() {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') return;
-            
-            const subjectsList = document.getElementById('subjectsList');
-            subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
-            
-            db.collection('subjects').get().then(snapshot => {
-                if (snapshot.empty) {
-                    subjectsList.innerHTML = '<div class="info-box">No subjects found. Add some subjects to get started.</div>';
-                    return;
-                }
-                
-                let html = '';
-                snapshot.forEach(doc => {
-                    const subject = doc.data();
-                    html += `
-                        <div class="subject-item">
-                            <div class="item-info">
-                                <strong>${subject.name}</strong>
-                            </div>
-                            <div class="item-actions">
-                                <button class="btn btn-danger btn-small" onclick="deleteSubject('${doc.id}')">🗑️ Delete</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                subjectsList.innerHTML = html;
-            }).catch(error => {
-                subjectsList.innerHTML = '<div class="error-msg">Error loading subjects: ' + error.message + '</div>';
-            });
-        }
-
-        function filterSubjects() {
-            const filter = document.getElementById('subjectFilter').value.toLowerCase();
-            const items = document.querySelectorAll('.subject-item');
-            
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(filter) ? 'flex' : 'none';
-            });
-        }
-
-        function deleteSubject(docId) {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
-                alert('Access denied. Only Principal and Class Teachers can delete subjects.');
-                return;
-            }
-            
-            if (confirm('Are you sure you want to delete this subject?')) {
-                db.collection('subjects').doc(docId).delete().then(() => {
-                    loadSubjects();
-                    populateDropdowns();
-                }).catch(error => {
-                    alert('Error deleting subject: ' + error.message);
-                });
-            }
-        }
-
-        // Grade/Class Management (Principal and Class Teacher only)
         function addClass() {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
-                alert('Access denied. Only Principal and Class Teachers can manage grades.');
-                return;
-            }
-            
             const grade = document.getElementById('newGrade').value;
             const className = document.getElementById('className').value.trim();
+            const successMsg = document.getElementById('classSuccess');
             
             if (!grade || !className) {
                 alert('Please select grade and enter class name');
                 return;
             }
             
-            const fullClassName = `${grade} - ${className}`;
+            const fullClass = `${grade} - ${className}`;
             
-            db.collection('grades').add({
+            db.collection('grades').doc(fullClass).set({
                 grade: grade,
-                className: className,
-                fullName: fullClassName,
+                class: className,
+                fullClass: fullClass,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                document.getElementById('classSuccess').textContent = 'Grade & Class added successfully!';
-                document.getElementById('classSuccess').style.display = 'block';
+            })
+            .then(() => {
+                successMsg.textContent = 'Grade & Class added successfully!';
+                successMsg.style.display = 'block';
                 document.getElementById('className').value = '';
-                loadGrades();
-                populateDropdowns();
-                setTimeout(() => {
-                    document.getElementById('classSuccess').style.display = 'none';
-                }, 3000);
-            }).catch(error => {
-                alert('Error adding grade & class: ' + error.message);
+                updateGradesList();
+                updateSelectors();
+                setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
+            })
+            .catch((error) => {
+                alert('Error adding grade: ' + error.message);
             });
         }
 
-        function loadGrades() {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') return;
+        function updateTeachersList() {
+            const container = document.getElementById('teachersList');
+            container.innerHTML = '<div class="loading">Loading teachers...</div>';
             
-            const gradesList = document.getElementById('gradesList');
-            gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
-            
-            db.collection('grades').get().then(snapshot => {
-                if (snapshot.empty) {
-                    gradesList.innerHTML = '<div class="info-box">No grades found. Add some grades to get started.</div>';
-                    return;
-                }
-                
-                let html = '';
-                snapshot.forEach(doc => {
-                    const grade = doc.data();
-                    html += `
-                        <div class="grade-item">
-                            <div class="item-info">
-                                <strong>${grade.fullName}</strong>
+            db.collection('teachers').orderBy('id').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No teachers found</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const teacher = doc.data();
+                        html += `
+                            <div class="student-item">
+                                <strong>${teacher.id} - ${teacher.name}</strong>
+                                <br><small>Subject: ${teacher.subject}</small>
                             </div>
-                            <div class="item-actions">
-                                <button class="btn btn-danger btn-small" onclick="deleteGrade('${doc.id}')">🗑️ Delete</button>
-                            </div>
-                        </div>
-                    `;
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading teachers</div>';
                 });
-                
-                gradesList.innerHTML = html;
-            }).catch(error => {
-                gradesList.innerHTML = '<div class="error-msg">Error loading grades: ' + error.message + '</div>';
+        }
+
+        function updateSubjectsList() {
+            const container = document.getElementById('subjectsList');
+            container.innerHTML = '<div class="loading">Loading subjects...</div>';
+            
+            db.collection('subjects').orderBy('name').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No subjects found</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const subject = doc.data();
+                        html += `
+                            <div class="student-item">
+                                <strong>${subject.name}</strong>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading subjects</div>';
+                });
+        }
+
+        function updateGradesList() {
+            const container = document.getElementById('gradesList');
+            container.innerHTML = '<div class="loading">Loading grades...</div>';
+            
+            db.collection('grades').orderBy('grade').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No grades found</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const grade = doc.data();
+                        html += `
+                            <div class="student-item">
+                                <strong>${grade.fullClass}</strong>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading grades</div>';
+                });
+        }
+
+        function updateDashboard() {
+            Promise.all([
+                db.collection('students').get(),
+                db.collection('teachers').get(),
+                db.collection('grades').get(),
+                db.collection('subjects').get()
+            ])
+            .then((results) => {
+                document.getElementById('totalStudents').textContent = results[0].size;
+                document.getElementById('totalTeachers').textContent = results[1].size;
+                document.getElementById('totalGrades').textContent = results[2].size;
+                document.getElementById('totalSubjects').textContent = results[3].size;
+            })
+            .catch((error) => {
+                console.error("Error getting dashboard data: ", error);
+            });
+        }
+
+        function filterTeachers() {
+            const filter = document.getElementById('teacherFilter').value.toLowerCase();
+            const items = document.querySelectorAll('#teachersList .student-item');
+            items.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+            });
+        }
+
+        function filterSubjects() {
+            const filter = document.getElementById('subjectFilter').value.toLowerCase();
+            const items = document.querySelectorAll('#subjectsList .student-item');
+            items.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
             });
         }
 
         function filterGrades() {
             const filter = document.getElementById('gradeFilter').value.toLowerCase();
-            const items = document.querySelectorAll('.grade-item');
-            
+            const items = document.querySelectorAll('#gradesList .student-item');
             items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(filter) ? 'flex' : 'none';
+                item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
             });
-        }
-
-        function deleteGrade(docId) {
-            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
-                alert('Access denied. Only Principal and Class Teachers can delete grades.');
-                return;
-            }
-            
-            if (confirm('Are you sure you want to delete this grade/class?')) {
-                db.collection('grades').doc(docId).delete().then(() => {
-                    loadGrades();
-                    populateDropdowns();
-                }).catch(error => {
-                    alert('Error deleting grade: ' + error.message);
-                });
-            }
-        }
-
-        // View Attendance Records (Principal only)
-        function viewAttendanceRecords() {
-            if (appData.userRole !== 'principal') {
-                alert('Access denied. Only Principal can view all attendance records.');
-                return;
-            }
-            
-            const selectedClass = document.getElementById('viewClass').value;
-            const selectedSubject = document.getElementById('viewSubject').value;
-            const selectedTeacher = document.getElementById('viewTeacher').value;
-            const selectedDate = document.getElementById('viewDate').value;
-            
-            if (!selectedClass || !selectedDate) {
-                alert('Please select at least class and date');
-                return;
-            }
-            
-            const output = document.getElementById('viewAttendanceOutput');
-            output.innerHTML = '<div class="loading">Loading attendance records...</div>';
-            
-            let query = db.collection('attendance')
-                .where('grade', '==', selectedClass)
-                .where('date', '==', selectedDate);
-            
-            if (selectedSubject) {
-                query = query.where('subject', '==', selectedSubject);
-            }
-            
-            if (selectedTeacher) {
-                db.collection('teachers').doc(selectedTeacher).get().then(teacherDoc => {
-                    if (teacherDoc.exists) {
-                        const teacher = teacherDoc.data();
-                        query = query.where('teacherId', '==', teacher.id);
-                        executeAttendanceQuery(query, output);
-                    }
-                });
-            } else {
-                executeAttendanceQuery(query, output);
-            }
-        }
-
-        function executeAttendanceQuery(query, output) {
-            query.get().then(snapshot => {
-                if (snapshot.empty) {
-                    output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria.</div>';
-                    return;
-                }
-                
-                let html = `
-                    <div class="card">
-                        <h3>Attendance Records</h3>
-                        <div style="overflow-x: auto;">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Student ID</th>
-                                        <th>Student Name</th>
-                                        <th>Subject</th>
-                                        <th>Teacher</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                `;
-                
-                snapshot.forEach(doc => {
-                    const record = doc.data();
-                    html += `
-                        <tr>
-                            <td>${record.studentId}</td>
-                            <td>${record.studentName}</td>
-                            <td>${record.subject}</td>
-                            <td>${record.teacherName}</td>
-                            <td>${record.date}</td>
-                            <td class="${record.present ? 'present' : 'absent'}">${record.present ? 'Present' : 'Absent'}</td>
-                        </tr>
-                    `;
-                });
-                
-                html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-                
-                output.innerHTML = html;
-            }).catch(error => {
-                output.innerHTML = '<div class="error-msg">Error loading attendance records: ' + error.message + '</div>';
-            });
-        }
-
-        // Helper function to cancel editing
-        function cancelEdit() {
-            if (document.getElementById('students').classList.contains('active')) {
-                loadStudents();
-            } else if (document.getElementById('teachers').classList.contains('active')) {
-                loadTeachers();
-            }
-            appData.editingItem = null;
         }
     </script>
 </body>
