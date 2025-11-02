@@ -10,6 +10,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -36,7 +40,7 @@
         }
         .header h1 { font-size: 2em; margin-bottom: 5px; }
         .header p { opacity: 0.9; font-size: 0.9em; }
-        .role-badge {
+        .user-info {
             position: absolute;
             top: 20px;
             left: 20px;
@@ -45,6 +49,20 @@
             border-radius: 20px;
             font-size: 0.85em;
             border: 2px solid white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            color: #005A9C;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
         }
         .content { padding: 40px; }
         .login-box { max-width: 400px; margin: 0 auto; }
@@ -98,6 +116,7 @@
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
         .btn-warning { background: #ff9800; color: white; }
+        .btn-info { background: #2196F3; color: white; }
         .btn-small {
             padding: 8px 16px;
             font-size: 14px;
@@ -193,6 +212,11 @@
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
         }
         .stats-card {
@@ -293,8 +317,36 @@
             gap: 10px;
             margin-top: 15px;
         }
+        .report-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .report-header {
+            background: #005A9C;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .attendance-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .badge-present {
+            background: #4CAF50;
+            color: white;
+        }
+        .badge-absent {
+            background: #f44336;
+            color: white;
+        }
         @media (max-width: 768px) {
-            .grid-2 { grid-template-columns: 1fr; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
             th, td { padding: 8px; }
             .student-item, .teacher-item, .subject-item, .grade-item {
@@ -312,8 +364,16 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="user-info" id="userInfo" style="display: none;">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div>
+                    <div id="userName">User</div>
+                    <div id="userRole" style="font-size: 0.8em; opacity: 0.9;"></div>
+                </div>
+            </div>
             <h1>📚 Smart Attendance Tracker</h1>
             <p>Efficient Student Attendance Management System</p>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
         </div>
 
         <!-- Login Screen -->
@@ -358,22 +418,15 @@
 
         <!-- Main App -->
         <div class="content app-main" id="appContent">
-            <button class="logout-btn" id="logoutBtn">Logout</button>
-            <div class="role-badge" id="roleBadge">Teacher</div>
-            
+            <!-- Navigation Tabs - Will be dynamically shown based on role -->
             <div class="nav-tabs" id="navTabs">
-                <button class="nav-tab active principal-only class-teacher-only subject-teacher-only" data-tab="attendance">📋 Attendance</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
-                <button class="nav-tab principal-only class-teacher-only subject-teacher-only" data-tab="reports">📊 Reports</button>
-                <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
-                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="grades">🎓 Grades</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
-                <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
+                <!-- Tabs will be populated by JavaScript based on user role -->
             </div>
 
+            <!-- Tab Contents -->
+            
             <!-- Attendance Tab -->
-            <div class="tab-content active principal-only class-teacher-only subject-teacher-only" id="attendance">
+            <div class="tab-content active" id="attendance" style="display: none;">
                 <div class="card">
                     <h3>Mark Attendance</h3>
                     <div class="info-box">Select class, subject, teacher, and date to mark attendance (Monday to Friday only)</div>
@@ -434,7 +487,7 @@
             </div>
 
             <!-- Students Tab -->
-            <div class="tab-content principal-only class-teacher-only" id="students">
+            <div class="tab-content" id="students" style="display: none;">
                 <div class="card">
                     <h3>Add New Student</h3>
                     <div class="grid-2">
@@ -478,29 +531,44 @@
             </div>
 
             <!-- Reports Tab -->
-            <div class="tab-content principal-only class-teacher-only subject-teacher-only" id="reports">
+            <div class="tab-content" id="reports" style="display: none;">
                 <div class="card">
                     <h3>Generate Monthly Report</h3>
-                    <div class="form-group">
-                        <label>Select Class</label>
-                        <select id="reportClass"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Select Subject</label>
-                        <select id="reportSubject"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Month</label>
-                        <input type="month" id="reportMonth">
+                    <div class="grid-3">
+                        <div class="form-group">
+                            <label>Select Class</label>
+                            <select id="reportClass"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Subject</label>
+                            <select id="reportSubject"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Month</label>
+                            <input type="month" id="reportMonth">
+                        </div>
                     </div>
                     <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
-                    <button class="pdf-btn" id="generatePdfBtn">📄 Generate PDF Report</button>
+                    <button class="btn btn-info" id="generatePdfBtn">📄 Generate PDF Report</button>
                     <div id="reportOutput" style="margin-top: 20px;"></div>
+                </div>
+
+                <!-- Monthly Report Display Area -->
+                <div id="monthlyReport" style="display: none;">
+                    <div class="report-card">
+                        <div class="report-header">
+                            <h3 id="reportTitle">Monthly Attendance Report</h3>
+                            <p id="reportSubtitle">Class: - | Subject: - | Month: -</p>
+                        </div>
+                        <div id="reportContent">
+                            <!-- Report content will be generated here -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- View Attendance Tab (Principal Only) -->
-            <div class="tab-content principal-only" id="viewAttendance">
+            <!-- View Attendance Tab -->
+            <div class="tab-content" id="viewAttendance" style="display: none;">
                 <div class="card">
                     <h3>View Attendance Records</h3>
                     <div class="info-box">View attendance records by grade, teacher, subject, and date</div>
@@ -530,7 +598,7 @@
             </div>
 
             <!-- Dashboard Tab -->
-            <div class="tab-content principal-only" id="dashboard">
+            <div class="tab-content" id="dashboard" style="display: none;">
                 <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
                 <div class="grid-2">
                     <div class="stats-card">
@@ -553,7 +621,7 @@
             </div>
 
             <!-- Teachers Tab -->
-            <div class="tab-content principal-only" id="teachers">
+            <div class="tab-content" id="teachers" style="display: none;">
                 <div class="card">
                     <h3>Add New Teacher</h3>
                     <div class="grid-2">
@@ -588,7 +656,7 @@
             </div>
 
             <!-- Subjects Tab -->
-            <div class="tab-content principal-only class-teacher-only" id="subjects">
+            <div class="tab-content" id="subjects" style="display: none;">
                 <div class="card">
                     <h3>Add New Subject</h3>
                     <div class="form-group">
@@ -606,7 +674,7 @@
             </div>
 
             <!-- Grades Tab -->
-            <div class="tab-content principal-only class-teacher-only" id="grades">
+            <div class="tab-content" id="grades" style="display: none;">
                 <div class="card">
                     <h3>Add New Grade & Class</h3>
                     <div class="grid-2">
@@ -666,17 +734,40 @@
             console.log("✅ Firebase initialized successfully!");
         } catch (error) {
             console.error("❌ Firebase initialization error:", error);
-            document.getElementById('loginError').textContent = 'Firebase initialization failed. Please check your configuration.';
-            document.getElementById('loginError').style.display = 'block';
         }
 
         // Global app data
         const appData = {
             currentUser: null,
             userRole: null,
+            userEmail: null,
             currentAttendance: {},
-            currentTeacher: null,
-            editingItem: null
+            currentTeacher: null
+        };
+
+        // Tab configurations for different roles
+        const roleTabs = {
+            principal: [
+                { id: 'attendance', name: '📋 Attendance', icon: '📋' },
+                { id: 'students', name: '👥 Students', icon: '👥' },
+                { id: 'reports', name: '📊 Reports', icon: '📊' },
+                { id: 'dashboard', name: '🎯 Dashboard', icon: '🎯' },
+                { id: 'teachers', name: '👨‍🏫 Teachers', icon: '👨‍🏫' },
+                { id: 'grades', name: '🎓 Grades', icon: '🎓' },
+                { id: 'subjects', name: '📚 Subjects', icon: '📚' },
+                { id: 'viewAttendance', name: '👀 View Attendance', icon: '👀' }
+            ],
+            classTeacher: [
+                { id: 'attendance', name: '📋 Attendance', icon: '📋' },
+                { id: 'students', name: '👥 Students', icon: '👥' },
+                { id: 'reports', name: '📊 Reports', icon: '📊' },
+                { id: 'grades', name: '🎓 Grades', icon: '🎓' },
+                { id: 'subjects', name: '📚 Subjects', icon: '📚' }
+            ],
+            subjectTeacher: [
+                { id: 'attendance', name: '📋 Attendance', icon: '📋' },
+                { id: 'reports', name: '📊 Reports', icon: '📊' }
+            ]
         };
 
         // Initialize the application
@@ -702,42 +793,31 @@
         }
 
         function checkAuthState() {
-            if (!auth) {
-                console.error("Auth not initialized");
-                return;
-            }
+            if (!auth) return;
             
             auth.onAuthStateChanged((user) => {
                 if (user) {
-                    console.log("User logged in:", user.email);
                     getUserRole(user.uid).then(role => {
-                        console.log("User role retrieved:", role);
                         appData.currentUser = user;
                         appData.userRole = role;
+                        appData.userEmail = user.email;
                         showApp(role);
-                    }).catch(error => {
-                        console.error("Error getting user role:", error);
                     });
                 } else {
-                    console.log("No user logged in");
                     document.getElementById('loginScreen').style.display = 'block';
                     document.getElementById('appContent').style.display = 'none';
+                    document.getElementById('userInfo').style.display = 'none';
                 }
             });
         }
 
         async function getUserRole(uid) {
             try {
-                console.log("Getting role for user:", uid);
                 const doc = await db.collection('users').doc(uid).get();
                 if (doc.exists) {
-                    const role = doc.data().role;
-                    console.log("Role found in Firestore:", role);
-                    return role;
-                } else {
-                    console.log("No role found in Firestore");
-                    return null;
+                    return doc.data().role;
                 }
+                return null;
             } catch (error) {
                 console.error("Error getting user role:", error);
                 return null;
@@ -751,13 +831,6 @@
             document.getElementById('registerBtn').addEventListener('click', showRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
-            // Navigation
-            document.querySelectorAll('.nav-tab').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    showTab(this.getAttribute('data-tab'));
-                });
-            });
-            
             // Students
             document.getElementById('addStudentBtn').addEventListener('click', addStudent);
             document.getElementById('studentFilter').addEventListener('keyup', filterStudents);
@@ -770,7 +843,7 @@
             document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
             // Reports
-            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+            document.getElementById('generateReportBtn').addEventListener('click', generateMonthlyReport);
             document.getElementById('generatePdfBtn').addEventListener('click', generatePdfReport);
             
             // Teachers
@@ -800,21 +873,12 @@
                 return;
             }
             
-            if (!auth) {
-                errorMsg.textContent = 'Authentication not initialized. Please refresh the page.';
-                errorMsg.style.display = 'block';
-                return;
-            }
-            
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log("Login successful for:", user.email);
-                    return getUserRole(user.uid);
+                    return getUserRole(userCredential.user.uid);
                 })
                 .then((role) => {
                     if (!role) {
-                        // If no role found, use the selected role from dropdown
                         role = document.getElementById('loginRole').value;
                         return db.collection('users').doc(auth.currentUser.uid).set({
                             email: email,
@@ -825,34 +889,23 @@
                     return role;
                 })
                 .then((role) => {
-                    console.log("Role after login:", role);
                     appData.userRole = role;
                     showApp(role);
                     errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
-                    console.error("Login error:", error);
                     errorMsg.textContent = 'Login failed: ' + error.message;
                     errorMsg.style.display = 'block';
                 });
         }
 
         function googleLogin() {
-            if (!auth) {
-                document.getElementById('loginError').textContent = 'Authentication not initialized. Please refresh the page.';
-                document.getElementById('loginError').style.display = 'block';
-                return;
-            }
-            
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider)
                 .then((result) => {
-                    const user = result.user;
                     const selectedRole = document.getElementById('loginRole').value;
-                    
-                    // Store user role in Firestore
-                    return db.collection('users').doc(user.uid).set({
-                        email: user.email,
+                    return db.collection('users').doc(result.user.uid).set({
+                        email: result.user.email,
                         role: selectedRole,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     }).then(() => selectedRole);
@@ -862,7 +915,6 @@
                     showApp(role);
                 })
                 .catch((error) => {
-                    console.error("Google login error:", error);
                     document.getElementById('loginError').textContent = 'Google login failed: ' + error.message;
                     document.getElementById('loginError').style.display = 'block';
                 });
@@ -886,16 +938,9 @@
                 return;
             }
 
-            if (!auth) {
-                errorMsg.textContent = 'Authentication not initialized. Please refresh the page.';
-                errorMsg.style.display = 'block';
-                return;
-            }
-
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
-                    const user = userCredential.user;
-                    return db.collection('users').doc(user.uid).set({
+                    return db.collection('users').doc(userCredential.user.uid).set({
                         email: email,
                         role: role,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -907,109 +952,82 @@
                     errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
-                    console.error("Registration error:", error);
                     errorMsg.textContent = 'Registration failed: ' + error.message;
                     errorMsg.style.display = 'block';
                 });
         }
 
         function showApp(role) {
-            console.log("Showing app for role:", role);
-            
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             
-            // Set role badge text
-            let roleText = '';
-            if (role === 'principal') roleText = 'Principal';
-            else if (role === 'classTeacher') roleText = 'Class Teacher';
-            else roleText = 'Subject Teacher';
-            document.getElementById('roleBadge').textContent = roleText;
+            // Update user info display
+            updateUserInfo();
             
-            // Show/hide elements based on role
-            updateRoleBasedVisibility(role);
+            // Setup navigation tabs based on role
+            setupNavigationTabs(role);
             
             // Load initial data
             updateAll();
         }
 
-        function updateRoleBasedVisibility(role) {
-            console.log("Updating visibility for role:", role);
+        function updateUserInfo() {
+            const userInfo = document.getElementById('userInfo');
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+            const userRole = document.getElementById('userRole');
             
-            // Hide all role-specific elements first
-            document.querySelectorAll('.principal-only, .class-teacher-only, .subject-teacher-only').forEach(el => {
-                el.style.display = 'none';
-            });
-            
-            // Show elements based on role
-            if (role === 'principal') {
-                document.querySelectorAll('.principal-only').forEach(el => {
-                    el.style.display = 'block';
-                });
-            } else if (role === 'classTeacher') {
-                document.querySelectorAll('.class-teacher-only').forEach(el => {
-                    el.style.display = 'block';
-                });
-            } else if (role === 'subjectTeacher') {
-                document.querySelectorAll('.subject-teacher-only').forEach(el => {
-                    el.style.display = 'block';
-                });
-            }
-            
-            // Always show common elements
-            document.querySelectorAll('.principal-only.class-teacher-only.subject-teacher-only').forEach(el => {
-                el.style.display = 'block';
-            });
-            
-            // Update navigation tabs
-            updateNavTabs(role);
-        }
-
-        function updateNavTabs(role) {
-            console.log("Updating nav tabs for role:", role);
-            const navTabs = document.querySelectorAll('.nav-tab');
-            let hasActiveTab = false;
-            
-            navTabs.forEach(tab => {
-                const tabName = tab.getAttribute('data-tab');
-                let showTab = false;
+            if (appData.currentUser) {
+                const email = appData.userEmail;
+                const role = appData.userRole;
                 
-                if (role === 'principal') {
-                    showTab = true;
-                } else if (role === 'classTeacher') {
-                    showTab = ['attendance', 'students', 'reports', 'grades', 'subjects'].includes(tabName);
-                } else if (role === 'subjectTeacher') {
-                    showTab = ['attendance', 'reports'].includes(tabName);
-                }
+                // Set user avatar with first letter of email
+                userAvatar.textContent = email.charAt(0).toUpperCase();
                 
-                if (showTab) {
-                    tab.style.display = 'block';
-                    if (tab.classList.contains('active')) {
-                        hasActiveTab = true;
-                    }
-                } else {
-                    tab.style.display = 'none';
-                    tab.classList.remove('active');
-                }
-            });
-            
-            // If no active tab, activate the first visible tab
-            if (!hasActiveTab) {
-                const firstVisibleTab = document.querySelector('.nav-tab[style="display: block"]');
-                if (firstVisibleTab) {
-                    firstVisibleTab.classList.add('active');
-                    const tabName = firstVisibleTab.getAttribute('data-tab');
-                    showTab(tabName);
-                }
+                // Set user name (extract from email)
+                const nameFromEmail = email.split('@')[0];
+                userName.textContent = nameFromEmail;
+                
+                // Set user role
+                let roleText = '';
+                if (role === 'principal') roleText = 'Principal';
+                else if (role === 'classTeacher') roleText = 'Class Teacher';
+                else roleText = 'Subject Teacher';
+                userRole.textContent = roleText;
+                
+                userInfo.style.display = 'flex';
             }
         }
 
-        function showTab(tabName) {
-            console.log("Showing tab:", tabName);
+        function setupNavigationTabs(role) {
+            const navTabs = document.getElementById('navTabs');
+            navTabs.innerHTML = '';
             
+            const tabs = roleTabs[role] || [];
+            
+            tabs.forEach((tab, index) => {
+                const tabElement = document.createElement('button');
+                tabElement.className = `nav-tab ${index === 0 ? 'active' : ''}`;
+                tabElement.setAttribute('data-tab', tab.id);
+                tabElement.innerHTML = `${tab.icon} ${tab.name}`;
+                
+                tabElement.addEventListener('click', function() {
+                    showTab(tab.id);
+                });
+                
+                navTabs.appendChild(tabElement);
+            });
+            
+            // Show first tab by default
+            if (tabs.length > 0) {
+                showTab(tabs[0].id);
+            }
+        }
+
+        function showTab(tabId) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
+                tab.style.display = 'none';
             });
             
             // Remove active class from all tabs
@@ -1018,19 +1036,19 @@
             });
             
             // Show selected tab content
-            const tabContent = document.getElementById(tabName);
+            const tabContent = document.getElementById(tabId);
             if (tabContent) {
-                tabContent.classList.add('active');
+                tabContent.style.display = 'block';
             }
             
             // Add active class to clicked tab
-            const navTab = document.querySelector(`[data-tab="${tabName}"]`);
+            const navTab = document.querySelector(`[data-tab="${tabId}"]`);
             if (navTab) {
                 navTab.classList.add('active');
             }
             
-            // Refresh data when switching tabs
-            switch(tabName) {
+            // Refresh data when switching to specific tabs
+            switch(tabId) {
                 case 'students':
                     updateStudentsList();
                     break;
@@ -1046,13 +1064,10 @@
                 case 'dashboard':
                     updateDashboard();
                     break;
-                case 'attendance':
-                    // Refresh selectors for attendance tab
-                    updateSelectors();
-                    break;
             }
         }
 
+        // Update all dropdown selectors
         function updateSelectors() {
             // Update grade selectors
             db.collection('grades').orderBy('grade').get()
@@ -1063,23 +1078,16 @@
                         classOptions += `<option value="${data.fullClass}">${data.fullClass}</option>`;
                     });
                     
-                    // Update all class dropdowns
                     const classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
                     classSelectors.forEach(selectorId => {
                         const select = document.getElementById(selectorId);
-                        if (select) {
-                            select.innerHTML = classOptions;
-                        }
+                        if (select) select.innerHTML = classOptions;
                     });
                     
-                    // Update filter dropdown separately
                     const filterSelect = document.getElementById('filterStudentClass');
                     if (filterSelect) {
                         filterSelect.innerHTML = '<option value="">All Classes</option>' + classOptions.replace('<option value="">-- Select Class --</option>', '');
                     }
-                })
-                .catch((error) => {
-                    console.error("Error getting grades: ", error);
                 });
             
             // Update subject selectors
@@ -1094,13 +1102,8 @@
                     const subjectSelectors = ['selectSubject', 'reportSubject', 'viewSubject', 'teacherSubject'];
                     subjectSelectors.forEach(selectorId => {
                         const select = document.getElementById(selectorId);
-                        if (select) {
-                            select.innerHTML = subjectOptions;
-                        }
+                        if (select) select.innerHTML = subjectOptions;
                     });
-                })
-                .catch((error) => {
-                    console.error("Error getting subjects: ", error);
                 });
             
             // Update teacher selectors
@@ -1115,13 +1118,8 @@
                     const teacherSelectors = ['selectTeacher', 'viewTeacher'];
                     teacherSelectors.forEach(selectorId => {
                         const select = document.getElementById(selectorId);
-                        if (select) {
-                            select.innerHTML = teacherOptions;
-                        }
+                        if (select) select.innerHTML = teacherOptions;
                     });
-                })
-                .catch((error) => {
-                    console.error("Error getting teachers: ", error);
                 });
         }
 
@@ -1147,34 +1145,24 @@
                 return;
             }
             
-            // Check if student ID already exists
-            db.collection('students').doc(studentId).get()
-                .then((doc) => {
-                    if (doc.exists) {
-                        alert('Student ID already exists');
-                        return;
-                    }
-                    
-                    // Add new student
-                    return db.collection('students').doc(studentId).set({
-                        id: studentId,
-                        name: studentName,
-                        grade: studentGrade,
-                        gender: studentGender,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                })
-                .then(() => {
-                    document.getElementById('studentId').value = '';
-                    document.getElementById('studentName').value = '';
-                    successMsg.textContent = 'Student added successfully!';
-                    successMsg.style.display = 'block';
-                    updateStudentsList();
-                    setTimeout(() => successMsg.style.display = 'none', 3000);
-                })
-                .catch((error) => {
-                    alert('Error adding student: ' + error.message);
-                });
+            db.collection('students').doc(studentId).set({
+                id: studentId,
+                name: studentName,
+                grade: studentGrade,
+                gender: studentGender,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('studentId').value = '';
+                document.getElementById('studentName').value = '';
+                successMsg.textContent = 'Student added successfully!';
+                successMsg.style.display = 'block';
+                updateStudentsList();
+                setTimeout(() => successMsg.style.display = 'none', 3000);
+            })
+            .catch((error) => {
+                alert('Error adding student: ' + error.message);
+            });
         }
 
         function updateStudentsList() {
@@ -1184,7 +1172,7 @@
             db.collection('students').orderBy('name').get()
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
-                        studentList.innerHTML = '<div class="info-box">No students found. Add some students to get started.</div>';
+                        studentList.innerHTML = '<div class="info-box">No students found.</div>';
                         return;
                     }
                     
@@ -1212,15 +1200,13 @@
         }
 
         function editStudent(studentId) {
-            // Implementation for editing student
-            alert('Edit student functionality would be implemented here');
+            alert('Edit student: ' + studentId);
         }
 
         function deleteStudent(studentId) {
-            if (confirm(`Are you sure you want to delete student ${studentId}?`)) {
+            if (confirm(`Delete student ${studentId}?`)) {
                 db.collection('students').doc(studentId).delete()
                     .then(() => {
-                        alert('Student deleted successfully!');
                         updateStudentsList();
                     })
                     .catch((error) => {
@@ -1288,7 +1274,7 @@
             db.collection('teachers').orderBy('name').get()
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
-                        teachersList.innerHTML = '<div class="info-box">No teachers found. Add some teachers to get started.</div>';
+                        teachersList.innerHTML = '<div class="info-box">No teachers found.</div>';
                         return;
                     }
                     
@@ -1316,15 +1302,13 @@
         }
 
         function editTeacher(teacherId) {
-            // Implementation for editing teacher
-            alert('Edit teacher functionality would be implemented here');
+            alert('Edit teacher: ' + teacherId);
         }
 
         function deleteTeacher(teacherId) {
-            if (confirm(`Are you sure you want to delete teacher ${teacherId}?`)) {
+            if (confirm(`Delete teacher ${teacherId}?`)) {
                 db.collection('teachers').doc(teacherId).delete()
                     .then(() => {
-                        alert('Teacher deleted successfully!');
                         updateTeachersList();
                         updateSelectors();
                     })
@@ -1382,7 +1366,7 @@
             db.collection('subjects').orderBy('name').get()
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
-                        subjectsList.innerHTML = '<div class="info-box">No subjects found. Add some subjects to get started.</div>';
+                        subjectsList.innerHTML = '<div class="info-box">No subjects found.</div>';
                         return;
                     }
                     
@@ -1410,15 +1394,13 @@
         }
 
         function editSubject(subjectName) {
-            // Implementation for editing subject
-            alert('Edit subject functionality would be implemented here');
+            alert('Edit subject: ' + subjectName);
         }
 
         function deleteSubject(subjectName) {
-            if (confirm(`Are you sure you want to delete subject "${subjectName}"?`)) {
+            if (confirm(`Delete subject "${subjectName}"?`)) {
                 db.collection('subjects').doc(subjectName).delete()
                     .then(() => {
-                        alert('Subject deleted successfully!');
                         updateSubjectsList();
                         updateSelectors();
                     })
@@ -1442,7 +1424,7 @@
             });
         }
 
-        // Grade/Class Management - FIXED
+        // Grade/Class Management
         function addGradeClass() {
             const grade = document.getElementById('newGrade').value;
             const className = document.getElementById('className').value.trim().toUpperCase();
@@ -1455,33 +1437,24 @@
             
             const fullClass = grade + ' - ' + className;
             
-            // Check if already exists
-            db.collection('grades').doc(fullClass).get()
-                .then((doc) => {
-                    if (doc.exists) {
-                        alert('This grade and class combination already exists!');
-                        return;
-                    }
-                    
-                    return db.collection('grades').doc(fullClass).set({
-                        grade: grade,
-                        class: className,
-                        fullClass: fullClass,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                })
-                .then(() => {
-                    document.getElementById('newGrade').value = '';
-                    document.getElementById('className').value = '';
-                    successMsg.textContent = 'Grade & Class added successfully!';
-                    successMsg.style.display = 'block';
-                    updateGradesList();
-                    updateSelectors();
-                    setTimeout(() => successMsg.style.display = 'none', 3000);
-                })
-                .catch((error) => {
-                    alert('Error adding grade/class: ' + error.message);
-                });
+            db.collection('grades').doc(fullClass).set({
+                grade: grade,
+                class: className,
+                fullClass: fullClass,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('newGrade').value = '';
+                document.getElementById('className').value = '';
+                successMsg.textContent = 'Grade & Class added successfully!';
+                successMsg.style.display = 'block';
+                updateGradesList();
+                updateSelectors();
+                setTimeout(() => successMsg.style.display = 'none', 3000);
+            })
+            .catch((error) => {
+                alert('Error adding grade/class: ' + error.message);
+            });
         }
 
         function updateGradesList() {
@@ -1491,7 +1464,7 @@
             db.collection('grades').orderBy('grade').get()
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
-                        gradesList.innerHTML = '<div class="info-box">No grades found. Add some grades to get started.</div>';
+                        gradesList.innerHTML = '<div class="info-box">No grades found.</div>';
                         return;
                     }
                     
@@ -1519,15 +1492,13 @@
         }
 
         function editGradeClass(gradeId) {
-            // Implementation for editing grade
-            alert('Edit grade functionality would be implemented here');
+            alert('Edit grade: ' + gradeId);
         }
 
         function deleteGradeClass(gradeId) {
-            if (confirm('Are you sure you want to delete this grade?')) {
+            if (confirm('Delete this grade?')) {
                 db.collection('grades').doc(gradeId).delete()
                     .then(() => {
-                        alert('Grade deleted successfully!');
                         updateGradesList();
                         updateSelectors();
                     })
@@ -1553,22 +1524,18 @@
 
         // Dashboard
         function updateDashboard() {
-            // Count students
             db.collection('students').get().then(snapshot => {
                 document.getElementById('totalStudents').textContent = snapshot.size;
             });
             
-            // Count teachers
             db.collection('teachers').get().then(snapshot => {
                 document.getElementById('totalTeachers').textContent = snapshot.size;
             });
             
-            // Count grades
             db.collection('grades').get().then(snapshot => {
                 document.getElementById('totalGrades').textContent = snapshot.size;
             });
             
-            // Count subjects
             db.collection('subjects').get().then(snapshot => {
                 document.getElementById('totalSubjects').textContent = snapshot.size;
             });
@@ -1586,7 +1553,6 @@
                 return;
             }
             
-            // Load students for the selected class
             const tbody = document.getElementById('attendanceTbody');
             tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading students...</td></tr>';
             
@@ -1624,8 +1590,6 @@
                     });
                     
                     tbody.innerHTML = html;
-                    
-                    // Show attendance summary
                     document.getElementById('attendanceSummary').style.display = 'block';
                     updateAttendanceSummary();
                 })
@@ -1636,17 +1600,13 @@
 
         function markStudentPresent(studentId) {
             const select = document.querySelector(`.attendance-status[data-student="${studentId}"]`);
-            if (select) {
-                select.value = 'present';
-            }
+            if (select) select.value = 'present';
             updateAttendanceSummary();
         }
 
         function markStudentAbsent(studentId) {
             const select = document.querySelector(`.attendance-status[data-student="${studentId}"]`);
-            if (select) {
-                select.value = 'absent';
-            }
+            if (select) select.value = 'absent';
             updateAttendanceSummary();
         }
 
@@ -1716,18 +1676,349 @@
             });
         }
 
-        // Reports
-        function generateReport() {
-            alert('Report generation would be implemented here');
+        // Monthly Reports with PDF Generation
+        function generateMonthlyReport() {
+            const selectedClass = document.getElementById('reportClass').value;
+            const selectedSubject = document.getElementById('reportSubject').value;
+            const selectedMonth = document.getElementById('reportMonth').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedMonth) {
+                alert('Please select class, subject, and month');
+                return;
+            }
+            
+            const reportOutput = document.getElementById('reportOutput');
+            reportOutput.innerHTML = '<div class="loading">Generating monthly report...</div>';
+            
+            // Calculate date range for the selected month
+            const startDate = selectedMonth + '-01';
+            const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0)
+                .toISOString().split('T')[0];
+            
+            // Get all attendance records for the selected criteria
+            db.collection('attendance')
+                .where('class', '==', selectedClass)
+                .where('subject', '==', selectedSubject)
+                .where('date', '>=', startDate)
+                .where('date', '<=', endDate)
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        reportOutput.innerHTML = '<div class="info-box">No attendance records found for the selected criteria.</div>';
+                        return;
+                    }
+                    
+                    // Process attendance data
+                    const studentData = {};
+                    const dates = new Set();
+                    
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        dates.add(data.date);
+                        
+                        Object.keys(data.records).forEach(studentId => {
+                            if (!studentData[studentId]) {
+                                studentData[studentId] = {
+                                    present: 0,
+                                    absent: 0,
+                                    records: {}
+                                };
+                            }
+                            
+                            studentData[studentId].records[data.date] = data.records[studentId];
+                            if (data.records[studentId] === 'present') {
+                                studentData[studentId].present++;
+                            } else {
+                                studentData[studentId].absent++;
+                            }
+                        });
+                    });
+                    
+                    // Get student names
+                    const studentPromises = Object.keys(studentData).map(studentId => {
+                        return db.collection('students').doc(studentId).get()
+                            .then((doc) => {
+                                if (doc.exists) {
+                                    studentData[studentId].name = doc.data().name;
+                                }
+                            });
+                    });
+                    
+                    Promise.all(studentPromises).then(() => {
+                        displayMonthlyReport(selectedClass, selectedSubject, selectedMonth, studentData, Array.from(dates).sort());
+                    });
+                })
+                .catch((error) => {
+                    reportOutput.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+                });
+        }
+
+        function displayMonthlyReport(className, subject, month, studentData, dates) {
+            const monthlyReport = document.getElementById('monthlyReport');
+            const reportTitle = document.getElementById('reportTitle');
+            const reportSubtitle = document.getElementById('reportSubtitle');
+            const reportContent = document.getElementById('reportContent');
+            
+            // Update report headers
+            reportTitle.textContent = `Monthly Attendance Report - ${month}`;
+            reportSubtitle.textContent = `Class: ${className} | Subject: ${subject} | Total Days: ${dates.length}`;
+            
+            // Generate report content
+            let html = `
+                <div class="grid-2">
+                    <div class="info-box">
+                        <strong>Report Summary</strong><br>
+                        Total Students: ${Object.keys(studentData).length}<br>
+                        Total School Days: ${dates.length}<br>
+                        Reporting Period: ${dates[0]} to ${dates[dates.length - 1]}
+                    </div>
+                    <div class="info-box">
+                        <strong>Legend</strong><br>
+                        <span class="attendance-badge badge-present">P</span> - Present<br>
+                        <span class="attendance-badge badge-absent">A</span> - Absent<br>
+                        <span class="attendance-badge" style="background: #666; color: white;">-</span> - No Record
+                    </div>
+                </div>
+                
+                <div style="overflow-x: auto; margin-top: 20px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Student Name</th>
+                                ${dates.map(date => `<th>${new Date(date).getDate()}</th>`).join('')}
+                                <th>Present</th>
+                                <th>Absent</th>
+                                <th>Attendance %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            Object.keys(studentData).forEach(studentId => {
+                const data = studentData[studentId];
+                const totalDays = dates.length;
+                const percentage = totalDays > 0 ? Math.round((data.present / totalDays) * 100) : 0;
+                
+                html += `
+                    <tr>
+                        <td><strong>${studentId}</strong></td>
+                        <td>${data.name || 'Unknown'}</td>
+                        ${dates.map(date => {
+                            const status = data.records[date];
+                            if (status === 'present') {
+                                return '<td><span class="attendance-badge badge-present">P</span></td>';
+                            } else if (status === 'absent') {
+                                return '<td><span class="attendance-badge badge-absent">A</span></td>';
+                            } else {
+                                return '<td><span class="attendance-badge" style="background: #666; color: white;">-</span></td>';
+                            }
+                        }).join('')}
+                        <td class="present">${data.present}</td>
+                        <td class="absent">${data.absent}</td>
+                        <td><strong>${percentage}%</strong></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            reportContent.innerHTML = html;
+            monthlyReport.style.display = 'block';
+            document.getElementById('reportOutput').innerHTML = '';
         }
 
         function generatePdfReport() {
-            alert('PDF generation would be implemented here');
+            const selectedClass = document.getElementById('reportClass').value;
+            const selectedSubject = document.getElementById('reportSubject').value;
+            const selectedMonth = document.getElementById('reportMonth').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedMonth) {
+                alert('Please select class, subject, and month first');
+                return;
+            }
+            
+            // Use jsPDF to generate PDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add title
+            doc.setFontSize(16);
+            doc.text(`Monthly Attendance Report - ${selectedMonth}`, 20, 20);
+            doc.setFontSize(12);
+            doc.text(`Class: ${selectedClass} | Subject: ${selectedSubject}`, 20, 30);
+            
+            // Get report data for PDF
+            const startDate = selectedMonth + '-01';
+            const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0)
+                .toISOString().split('T')[0];
+            
+            db.collection('attendance')
+                .where('class', '==', selectedClass)
+                .where('subject', '==', selectedSubject)
+                .where('date', '>=', startDate)
+                .where('date', '<=', endDate)
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        alert('No data available for PDF generation');
+                        return;
+                    }
+                    
+                    const studentData = {};
+                    const dates = new Set();
+                    
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        dates.add(data.date);
+                        
+                        Object.keys(data.records).forEach(studentId => {
+                            if (!studentData[studentId]) {
+                                studentData[studentId] = {
+                                    present: 0,
+                                    absent: 0,
+                                    records: {}
+                                };
+                            }
+                            
+                            studentData[studentId].records[data.date] = data.records[studentId];
+                            if (data.records[studentId] === 'present') {
+                                studentData[studentId].present++;
+                            } else {
+                                studentData[studentId].absent++;
+                            }
+                        });
+                    });
+                    
+                    // Get student names for PDF
+                    const studentPromises = Object.keys(studentData).map(studentId => {
+                        return db.collection('students').doc(studentId).get()
+                            .then((doc) => {
+                                if (doc.exists) {
+                                    studentData[studentId].name = doc.data().name;
+                                }
+                            });
+                    });
+                    
+                    Promise.all(studentPromises).then(() => {
+                        // Prepare data for PDF table
+                        const sortedDates = Array.from(dates).sort();
+                        const tableData = [];
+                        
+                        // Add headers
+                        const headers = ['Student ID', 'Student Name', ...sortedDates.map(date => new Date(date).getDate()), 'Present', 'Absent', 'Attendance %'];
+                        
+                        // Add student rows
+                        Object.keys(studentData).forEach(studentId => {
+                            const data = studentData[studentId];
+                            const totalDays = sortedDates.length;
+                            const percentage = totalDays > 0 ? Math.round((data.present / totalDays) * 100) : 0;
+                            
+                            const row = [
+                                studentId,
+                                data.name || 'Unknown',
+                                ...sortedDates.map(date => {
+                                    const status = data.records[date];
+                                    return status === 'present' ? 'P' : status === 'absent' ? 'A' : '-';
+                                }),
+                                data.present.toString(),
+                                data.absent.toString(),
+                                percentage + '%'
+                            ];
+                            
+                            tableData.push(row);
+                        });
+                        
+                        // Add table to PDF
+                        doc.autoTable({
+                            startY: 40,
+                            head: [headers],
+                            body: tableData,
+                            theme: 'grid',
+                            styles: { fontSize: 8 },
+                            headStyles: { fillColor: [0, 90, 156] }
+                        });
+                        
+                        // Save the PDF
+                        doc.save(`Attendance_Report_${selectedClass}_${selectedSubject}_${selectedMonth}.pdf`);
+                    });
+                })
+                .catch((error) => {
+                    alert('Error generating PDF: ' + error.message);
+                });
         }
 
-        // View Attendance
+        // View Attendance Records
         function viewAttendanceRecords() {
-            alert('View attendance functionality would be implemented here');
+            const selectedClass = document.getElementById('viewClass').value;
+            const selectedSubject = document.getElementById('viewSubject').value;
+            const selectedTeacher = document.getElementById('viewTeacher').value;
+            const selectedDate = document.getElementById('viewDate').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
+                alert('Please select class, subject, teacher, and date');
+                return;
+            }
+            
+            const output = document.getElementById('viewAttendanceOutput');
+            output.innerHTML = '<div class="loading">Loading attendance records...</div>';
+            
+            const attendanceId = `${selectedClass}_${selectedSubject}_${selectedTeacher}_${selectedDate}`;
+            
+            db.collection('attendance').doc(attendanceId).get()
+                .then((doc) => {
+                    if (!doc.exists) {
+                        output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria.</div>';
+                        return;
+                    }
+                    
+                    const attendance = doc.data();
+                    let html = `
+                        <div class="report-card">
+                            <div class="report-header">
+                                <h3>Attendance Records</h3>
+                                <p>Date: ${attendance.date} | Class: ${attendance.class} | Subject: ${attendance.subject}</p>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Student Name</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    const studentPromises = Object.keys(attendance.records).map(studentId => {
+                        return db.collection('students').doc(studentId).get()
+                            .then((studentDoc) => {
+                                const studentName = studentDoc.exists ? studentDoc.data().name : 'Unknown';
+                                const status = attendance.records[studentId];
+                                const statusClass = status === 'present' ? 'present' : 'absent';
+                                
+                                html += `
+                                    <tr>
+                                        <td>${studentId}</td>
+                                        <td>${studentName}</td>
+                                        <td class="${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</td>
+                                    </tr>
+                                `;
+                            });
+                    });
+                    
+                    Promise.all(studentPromises).then(() => {
+                        html += '</tbody></table></div>';
+                        output.innerHTML = html;
+                    });
+                })
+                .catch((error) => {
+                    output.innerHTML = '<div class="error-msg">Error loading attendance: ' + error.message + '</div>';
+                });
         }
 
         function doLogout() {
@@ -1737,6 +2028,7 @@
                     appData.userRole = null;
                     document.getElementById('loginScreen').style.display = 'block';
                     document.getElementById('appContent').style.display = 'none';
+                    document.getElementById('userInfo').style.display = 'none';
                 });
             }
         }
