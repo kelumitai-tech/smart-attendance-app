@@ -752,8 +752,15 @@
                     console.log("Role found in Firestore:", role);
                     return role;
                 } else {
-                    console.log("No role found in Firestore, defaulting to subjectTeacher");
-                    return 'subjectTeacher';
+                    console.log("No role found in Firestore, creating default role...");
+                    // Create default role as subjectTeacher
+                    const defaultRole = 'subjectTeacher';
+                    await db.collection('users').doc(uid).set({
+                        email: auth.currentUser.email,
+                        role: defaultRole,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return defaultRole;
                 }
             } catch (error) {
                 console.error("Error getting user role:", error);
@@ -803,6 +810,7 @@
         function doLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
+            const selectedRole = document.getElementById('loginRole').value;
             const errorMsg = document.getElementById('loginError');
             
             if (!email || !password) {
@@ -815,7 +823,21 @@
                 .then((userCredential) => {
                     const user = userCredential.user;
                     console.log("Login successful for:", user.email);
-                    return getUserRole(user.uid);
+                    
+                    // Check if user exists in Firestore, if not create with selected role
+                    return db.collection('users').doc(user.uid).get()
+                        .then((doc) => {
+                            if (doc.exists) {
+                                return doc.data().role;
+                            } else {
+                                // Create new user with selected role
+                                return db.collection('users').doc(user.uid).set({
+                                    email: email,
+                                    role: selectedRole,
+                                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }).then(() => selectedRole);
+                            }
+                        });
                 })
                 .then((role) => {
                     console.log("Role after login:", role);
@@ -832,22 +854,17 @@
 
         function googleLogin() {
             const provider = new firebase.auth.GoogleAuthProvider();
+            const selectedRole = document.getElementById('loginRole').value;
+            
             auth.signInWithPopup(provider)
                 .then((result) => {
                     const user = result.user;
-                    return getUserRole(user.uid);
-                })
-                .then((role) => {
-                    if (!role) {
-                        const selectedRole = document.getElementById('loginRole').value;
-                        const user = auth.currentUser;
-                        return db.collection('users').doc(user.uid).set({
-                            email: user.email,
-                            role: selectedRole,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => selectedRole);
-                    }
-                    return role;
+                    // Always create/update user with selected role for Google login
+                    return db.collection('users').doc(user.uid).set({
+                        email: user.email,
+                        role: selectedRole,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true }).then(() => selectedRole);
                 })
                 .then((role) => {
                     appData.userRole = role;
@@ -905,7 +922,7 @@
             
             // Set role badge text
             let roleText = '';
-            if (role === 'principal') roleText = 'Principal';
+            if (role === 'principal') roleText = 'Principal (Admin)';
             else if (role === 'classTeacher') roleText = 'Class Teacher';
             else roleText = 'Subject Teacher';
             document.getElementById('roleBadge').textContent = roleText;
@@ -924,8 +941,9 @@
                 el.style.display = 'none';
             });
             
-            // Show elements based on role
+            // Show elements based on role with proper permissions
             if (role === 'principal') {
+                // Principal sees everything
                 document.querySelectorAll('.principal-only').forEach(el => {
                     el.style.display = 'block';
                 });
@@ -934,6 +952,7 @@
                     tab.style.display = 'block';
                 });
             } else if (role === 'classTeacher') {
+                // Class Teacher sees class-teacher-only elements
                 document.querySelectorAll('.class-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
@@ -944,6 +963,7 @@
                     tab.style.display = allowedTabs.includes(tabName) ? 'block' : 'none';
                 });
             } else if (role === 'subjectTeacher') {
+                // Subject Teacher sees only attendance and reports
                 document.querySelectorAll('.subject-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
@@ -992,6 +1012,11 @@
             else if (tabName === 'dashboard') updateDashboard();
         }
 
+        // Rest of the functions remain the same as previous version...
+        // [All other functions for student management, teacher management, 
+        // attendance, reports, etc. remain unchanged from the previous corrected version]
+
+        // Update selectors with data from Firestore
         function updateSelectors() {
             // Classes/Grades
             db.collection('grades').orderBy('grade').get()
