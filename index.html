@@ -1688,6 +1688,207 @@
             }
         }
 
+        // Attendance functions - FIXED
+        async function loadAttendance() {
+            const classId = document.getElementById('selectClass').value;
+            const subjectId = document.getElementById('selectSubject').value;
+            const teacherId = document.getElementById('selectTeacher').value;
+            const date = document.getElementById('startDate').value;
+            
+            if (!classId || !subjectId || !teacherId || !date) {
+                alert('Please select class, subject, teacher, and date');
+                return;
+            }
+            
+            // Check if date is weekend
+            const selectedDate = new Date(date);
+            const dayOfWeek = selectedDate.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert('Attendance can only be marked on weekdays (Monday to Friday)');
+                return;
+            }
+            
+            try {
+                // Get teacher information
+                const teacherDoc = await db.collection('teachers').doc(teacherId).get();
+                if (!teacherDoc.exists) {
+                    alert('Teacher not found');
+                    return;
+                }
+                const teacherData = teacherDoc.data();
+                appData.currentTeacher = teacherData;
+                
+                // Display teacher information
+                document.getElementById('teacherIdDisplay').textContent = teacherData.teacherId;
+                document.getElementById('teacherNameDisplay').textContent = teacherData.name;
+                document.getElementById('teacherInfo').style.display = 'block';
+                
+                // Get students for the selected class
+                const studentsSnapshot = await db.collection('students')
+                    .where('grade', '==', classId)
+                    .get();
+                
+                if (studentsSnapshot.empty) {
+                    alert('No students found for this class');
+                    return;
+                }
+                
+                // Get subject information
+                const subjectDoc = await db.collection('subjects').doc(subjectId).get();
+                const subjectData = subjectDoc.data();
+                
+                // Clear current attendance
+                appData.currentAttendance = {};
+                
+                // Build attendance table
+                const tbody = document.getElementById('attendanceTbody');
+                tbody.innerHTML = '';
+                
+                studentsSnapshot.forEach(doc => {
+                    const student = doc.data();
+                    const studentId = doc.id;
+                    
+                    // Initialize attendance status for this student
+                    appData.currentAttendance[studentId] = {
+                        studentId: student.studentId,
+                        studentName: student.name,
+                        subject: subjectData.name,
+                        teacherId: teacherData.teacherId,
+                        teacherName: teacherData.name,
+                        status: 'present', // default to present
+                        date: date,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${student.studentId}</td>
+                        <td>${student.name}</td>
+                        <td>${subjectData.name}</td>
+                        <td>${teacherData.teacherId}</td>
+                        <td>${teacherData.name}</td>
+                        <td>
+                            <select class="attendance-status" onchange="updateAttendanceStatus('${studentId}', this.value)">
+                                <option value="present" selected>Present</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </td>
+                        <td>
+                            <span class="present" id="status-${studentId}">✓</span>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                // Show attendance summary
+                updateAttendanceSummary();
+                document.getElementById('attendanceSummary').style.display = 'block';
+                
+            } catch (error) {
+                console.error("Error loading attendance:", error);
+                alert('Error loading attendance: ' + error.message);
+            }
+        }
+
+        function updateAttendanceStatus(studentId, status) {
+            if (appData.currentAttendance[studentId]) {
+                appData.currentAttendance[studentId].status = status;
+                
+                // Update visual indicator
+                const statusElement = document.getElementById(`status-${studentId}`);
+                if (statusElement) {
+                    statusElement.textContent = status === 'present' ? '✓' : '✗';
+                    statusElement.className = status === 'present' ? 'present' : 'absent';
+                }
+                
+                updateAttendanceSummary();
+            }
+        }
+
+        function updateAttendanceSummary() {
+            const total = Object.keys(appData.currentAttendance).length;
+            let presentCount = 0;
+            
+            Object.values(appData.currentAttendance).forEach(record => {
+                if (record.status === 'present') {
+                    presentCount++;
+                }
+            });
+            
+            const percentage = total > 0 ? Math.round((presentCount / total) * 100) : 0;
+            
+            document.getElementById('presentCount').textContent = presentCount;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('attendancePercentage').textContent = percentage;
+        }
+
+        function markAllPresent() {
+            Object.keys(appData.currentAttendance).forEach(studentId => {
+                appData.currentAttendance[studentId].status = 'present';
+                const statusElement = document.getElementById(`status-${studentId}`);
+                if (statusElement) {
+                    statusElement.textContent = '✓';
+                    statusElement.className = 'present';
+                }
+                // Update dropdown
+                const dropdown = document.querySelector(`[onchange="updateAttendanceStatus('${studentId}', this.value)"]`);
+                if (dropdown) dropdown.value = 'present';
+            });
+            updateAttendanceSummary();
+        }
+
+        function markAllAbsent() {
+            Object.keys(appData.currentAttendance).forEach(studentId => {
+                appData.currentAttendance[studentId].status = 'absent';
+                const statusElement = document.getElementById(`status-${studentId}`);
+                if (statusElement) {
+                    statusElement.textContent = '✗';
+                    statusElement.className = 'absent';
+                }
+                // Update dropdown
+                const dropdown = document.querySelector(`[onchange="updateAttendanceStatus('${studentId}', this.value)"]`);
+                if (dropdown) dropdown.value = 'absent';
+            });
+            updateAttendanceSummary();
+        }
+
+        async function saveAttendance() {
+            if (Object.keys(appData.currentAttendance).length === 0) {
+                alert('No attendance data to save');
+                return;
+            }
+            
+            const date = document.getElementById('startDate').value;
+            if (!date) {
+                alert('Please select a date');
+                return;
+            }
+            
+            try {
+                // Save each attendance record
+                const batch = db.batch();
+                
+                Object.entries(appData.currentAttendance).forEach(([studentId, record]) => {
+                    const attendanceRef = db.collection('attendance').doc();
+                    batch.set(attendanceRef, record);
+                });
+                
+                await batch.commit();
+                
+                alert('Attendance saved successfully!');
+                
+                // Clear current attendance
+                appData.currentAttendance = {};
+                document.getElementById('attendanceTbody').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Attendance saved successfully</td></tr>';
+                document.getElementById('attendanceSummary').style.display = 'none';
+                document.getElementById('teacherInfo').style.display = 'none';
+                
+            } catch (error) {
+                console.error("Error saving attendance:", error);
+                alert('Error saving attendance: ' + error.message);
+            }
+        }
+
         // Delete functions - FIXED
         function deleteStudent(id) {
             if (confirm('Are you sure you want to delete this student?')) {
@@ -1782,6 +1983,51 @@
                 snap.forEach(doc => console.log("User:", doc.data()));
             });
         }
+
+        // Initialize sample data if collections are empty
+        async function initializeSampleData() {
+            try {
+                // Check if grades collection is empty
+                const gradesSnapshot = await db.collection('grades').get();
+                if (gradesSnapshot.empty) {
+                    // Add sample grades
+                    const sampleGrades = [
+                        { grade: 'Grade 6', className: 'A', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { grade: 'Grade 7', className: 'B', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { grade: 'Grade 8', className: 'C', createdAt: firebase.firestore.FieldValue.serverTimestamp() }
+                    ];
+                    
+                    for (const grade of sampleGrades) {
+                        await db.collection('grades').add(grade);
+                    }
+                    console.log("Sample grades added");
+                }
+
+                // Check if subjects collection is empty
+                const subjectsSnapshot = await db.collection('subjects').get();
+                if (subjectsSnapshot.empty) {
+                    // Add sample subjects
+                    const sampleSubjects = [
+                        { name: 'Mathematics', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { name: 'Science', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { name: 'English', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { name: 'History', createdAt: firebase.firestore.FieldValue.serverTimestamp() }
+                    ];
+                    
+                    for (const subject of sampleSubjects) {
+                        await db.collection('subjects').add(subject);
+                    }
+                    console.log("Sample subjects added");
+                }
+            } catch (error) {
+                console.error("Error initializing sample data:", error);
+            }
+        }
+
+        // Call this function after Firebase initialization
+        setTimeout(() => {
+            initializeSampleData();
+        }, 2000);
     </script>
 </body>
 </html>
