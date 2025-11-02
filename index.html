@@ -10,6 +10,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -293,6 +297,15 @@
             gap: 10px;
             margin-top: 15px;
         }
+        
+        /* Ensure proper role-based visibility */
+        .principal-only.class-teacher-only,
+        .principal-only.subject-teacher-only, 
+        .class-teacher-only.subject-teacher-only,
+        .principal-only.class-teacher-only.subject-teacher-only {
+            display: block !important;
+        }
+        
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -840,7 +853,7 @@
                 })
                 .then((role) => {
                     if (!role) {
-                        const selectedRole = document.getElementById('loginRole').value;
+                        const selectedRole = document.getElementById('loginRole').value; // Use selected role
                         const user = auth.currentUser;
                         return db.collection('users').doc(user.uid).set({
                             email: user.email,
@@ -863,7 +876,7 @@
         function showRegistration() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
-            const role = document.getElementById('loginRole').value;
+            const role = document.getElementById('loginRole').value; // Get selected role from dropdown
             const errorMsg = document.getElementById('loginError');
             
             if (!email || !password) {
@@ -883,7 +896,7 @@
                     const user = userCredential.user;
                     return db.collection('users').doc(user.uid).set({
                         email: email,
-                        role: role,
+                        role: role, // Use the selected role from dropdown
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 })
@@ -937,14 +950,18 @@
                 document.querySelectorAll('.class-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
+                // Class teachers should also see subject-teacher-only elements
+                document.querySelectorAll('.subject-teacher-only').forEach(el => {
+                    el.style.display = 'block';
+                });
             } else if (role === 'subjectTeacher') {
                 document.querySelectorAll('.subject-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
             }
             
-            // Always show common elements
-            document.querySelectorAll('.principal-only.class-teacher-only.subject-teacher-only').forEach(el => {
+            // Always show common elements (elements with multiple classes)
+            document.querySelectorAll('.principal-only.class-teacher-only, .principal-only.subject-teacher-only, .class-teacher-only.subject-teacher-only, .principal-only.class-teacher-only.subject-teacher-only').forEach(el => {
                 el.style.display = 'block';
             });
         }
@@ -975,7 +992,8 @@
             if (activeTabs.length === 0) {
                 const firstVisibleTab = document.querySelector('.nav-tab[style="display: block;"], .nav-tab:not([style*="display: none"])');
                 if (firstVisibleTab) {
-                    firstVisibleTab.click();
+                    firstVisibleTab.classList.add('active');
+                    showTab(firstVisibleTab.getAttribute('data-tab'));
                 }
             }
         }
@@ -1831,9 +1849,6 @@
                 document.getElementById('totalSubjects').textContent = snapshot.size;
             });
         }
-
-        // The rest of the functions (attendance, reports, etc.) remain the same as in the previous version
-        // For brevity, I'm not including them again here since they haven't changed
 
         // Attendance Management
         function loadAttendance() {
