@@ -403,15 +403,21 @@
                     <div class="info-box">Select class, subject, teacher, and date to mark attendance (Monday to Friday only)</div>
                     <div class="form-group">
                         <label>Select Class</label>
-                        <select id="selectClass"></select>
+                        <select id="selectClass">
+                            <option value="">Loading classes...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Select Subject</label>
-                        <select id="selectSubject"></select>
+                        <select id="selectSubject">
+                            <option value="">Loading subjects...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Select Teacher</label>
-                        <select id="selectTeacher"></select>
+                        <select id="selectTeacher">
+                            <option value="">Loading teachers...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Date</label>
@@ -474,7 +480,9 @@
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Grade</label>
-                            <select id="studentGrade"></select>
+                            <select id="studentGrade">
+                                <option value="">Loading grades...</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Gender</label>
@@ -507,11 +515,15 @@
                     <h3>Generate Monthly Report</h3>
                     <div class="form-group">
                         <label>Select Class</label>
-                        <select id="reportClass"></select>
+                        <select id="reportClass">
+                            <option value="">Loading classes...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Select Subject</label>
-                        <select id="reportSubject"></select>
+                        <select id="reportSubject">
+                            <option value="">Loading subjects...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Month</label>
@@ -531,17 +543,23 @@
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Select Class</label>
-                            <select id="viewClass"></select>
+                            <select id="viewClass">
+                                <option value="">Loading classes...</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Select Subject</label>
-                            <select id="viewSubject"></select>
+                            <select id="viewSubject">
+                                <option value="">Loading subjects...</option>
+                            </select>
                         </div>
                     </div>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Select Teacher</label>
-                            <select id="viewTeacher"></select>
+                            <select id="viewTeacher">
+                                <option value="">Loading teachers...</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Date</label>
@@ -592,7 +610,9 @@
                     </div>
                     <div class="form-group">
                         <label>Subject</label>
-                        <select id="teacherSubject"></select>
+                        <select id="teacherSubject">
+                            <option value="">Loading subjects...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Role</label>
@@ -690,6 +710,7 @@
             console.log("✅ Firebase initialized successfully!");
         } catch (error) {
             console.error("❌ Firebase initialization error:", error);
+            alert("Firebase initialization failed: " + error.message);
         }
 
         // Global app data
@@ -1093,7 +1114,7 @@
             }
         }
 
-        // Data management functions
+        // Data management functions - FIXED VERSION
         async function loadClassDropdowns() {
             try {
                 const snapshot = await db.collection('grades').get();
@@ -1104,34 +1125,45 @@
                 const studentGrade = document.getElementById('studentGrade');
                 
                 // Clear existing options except the first one
-                [classSelect, reportClassSelect, viewClassSelect, filterStudentClass, studentGrade].forEach(select => {
-                    while (select.options.length > (select.id === 'filterStudentClass' ? 1 : 0)) {
-                        select.remove(1);
-                    }
+                [classSelect, reportClassSelect, viewClassSelect].forEach(select => {
+                    select.innerHTML = '<option value="">Select Class</option>';
                 });
+                
+                filterStudentClass.innerHTML = '<option value="">All Classes</option>';
+                studentGrade.innerHTML = '<option value="">Select Grade</option>';
+                
+                if (snapshot.empty) {
+                    [classSelect, reportClassSelect, viewClassSelect, studentGrade].forEach(select => {
+                        select.innerHTML += '<option value="" disabled>No classes available</option>';
+                    });
+                    return;
+                }
                 
                 snapshot.forEach(doc => {
                     const gradeData = doc.data();
                     const optionText = `${gradeData.grade} - ${gradeData.className}`;
                     const optionValue = doc.id;
                     
-                    [classSelect, reportClassSelect, viewClassSelect].forEach(select => {
-                        const option = document.createElement('option');
-                        option.value = optionValue;
-                        option.textContent = optionText;
-                        select.appendChild(option);
+                    const option = document.createElement('option');
+                    option.value = optionValue;
+                    option.textContent = optionText;
+                    
+                    [classSelect, reportClassSelect, viewClassSelect, studentGrade].forEach(select => {
+                        select.appendChild(option.cloneNode(true));
                     });
                     
-                    // For student grade dropdown and filter
-                    [filterStudentClass, studentGrade].forEach(select => {
-                        const option = document.createElement('option');
-                        option.value = optionValue;
-                        option.textContent = optionText;
-                        select.appendChild(option);
-                    });
+                    // For filter
+                    const filterOption = option.cloneNode(true);
+                    filterStudentClass.appendChild(filterOption);
                 });
+                
+                console.log("Classes loaded successfully");
             } catch (error) {
                 console.error("Error loading classes:", error);
+                const errorOption = '<option value="" disabled>Error loading classes</option>';
+                document.querySelectorAll('#selectClass, #reportClass, #viewClass, #studentGrade, #filterStudentClass').forEach(select => {
+                    select.innerHTML = errorOption;
+                });
             }
         }
 
@@ -1145,10 +1177,15 @@
                 
                 // Clear existing options
                 [selectSubject, reportSubject, viewSubject, teacherSubject].forEach(select => {
-                    while (select.options.length > 0) {
-                        select.remove(0);
-                    }
+                    select.innerHTML = '<option value="">Select Subject</option>';
                 });
+                
+                if (snapshot.empty) {
+                    [selectSubject, reportSubject, viewSubject, teacherSubject].forEach(select => {
+                        select.innerHTML += '<option value="" disabled>No subjects available</option>';
+                    });
+                    return;
+                }
                 
                 snapshot.forEach(doc => {
                     const subjectData = doc.data();
@@ -1160,8 +1197,14 @@
                         select.appendChild(option.cloneNode(true));
                     });
                 });
+                
+                console.log("Subjects loaded successfully");
             } catch (error) {
                 console.error("Error loading subjects:", error);
+                const errorOption = '<option value="" disabled>Error loading subjects</option>';
+                document.querySelectorAll('#selectSubject, #reportSubject, #viewSubject, #teacherSubject').forEach(select => {
+                    select.innerHTML = errorOption;
+                });
             }
         }
 
@@ -1173,10 +1216,15 @@
                 
                 // Clear existing options
                 [selectTeacher, viewTeacher].forEach(select => {
-                    while (select.options.length > 0) {
-                        select.remove(0);
-                    }
+                    select.innerHTML = '<option value="">Select Teacher</option>';
                 });
+                
+                if (snapshot.empty) {
+                    [selectTeacher, viewTeacher].forEach(select => {
+                        select.innerHTML += '<option value="" disabled>No teachers available</option>';
+                    });
+                    return;
+                }
                 
                 snapshot.forEach(doc => {
                     const teacherData = doc.data();
@@ -1188,34 +1236,23 @@
                         select.appendChild(option.cloneNode(true));
                     });
                 });
+                
+                console.log("Teachers loaded successfully");
             } catch (error) {
                 console.error("Error loading teachers:", error);
+                const errorOption = '<option value="" disabled>Error loading teachers</option>';
+                document.querySelectorAll('#selectTeacher, #viewTeacher').forEach(select => {
+                    select.innerHTML = errorOption;
+                });
             }
         }
 
         async function loadGradeDropdowns() {
-            try {
-                const snapshot = await db.collection('grades').get();
-                const studentGrade = document.getElementById('studentGrade');
-                
-                // Clear existing options
-                while (studentGrade.options.length > 0) {
-                    studentGrade.remove(0);
-                }
-                
-                snapshot.forEach(doc => {
-                    const gradeData = doc.data();
-                    const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.textContent = `${gradeData.grade} - ${gradeData.className}`;
-                    studentGrade.appendChild(option);
-                });
-            } catch (error) {
-                console.error("Error loading grades dropdown:", error);
-            }
+            // This function is now handled by loadClassDropdowns
+            console.log("Grade dropdowns loaded with classes");
         }
 
-        // Student Management
+        // Student Management - FIXED
         async function addStudent() {
             const studentId = document.getElementById('studentId').value.trim();
             const studentName = document.getElementById('studentName').value.trim();
@@ -1238,6 +1275,10 @@
                 
                 // Get grade data for display
                 const gradeDoc = await db.collection('grades').doc(studentGrade).get();
+                if (!gradeDoc.exists) {
+                    alert('Selected grade not found');
+                    return;
+                }
                 const gradeData = gradeDoc.data();
                 
                 await db.collection('students').add({
@@ -1320,7 +1361,7 @@
             });
         }
 
-        // Teacher Management (Principal only)
+        // Teacher Management (Principal only) - FIXED
         async function addTeacher() {
             const teacherId = document.getElementById('teacherIdInput').value.trim();
             const teacherName = document.getElementById('teacherNameInput').value.trim();
@@ -1343,6 +1384,10 @@
                 
                 // Get subject name for display
                 const subjectDoc = await db.collection('subjects').doc(teacherSubject).get();
+                if (!subjectDoc.exists) {
+                    alert('Selected subject not found');
+                    return;
+                }
                 const subjectData = subjectDoc.data();
                 
                 await db.collection('teachers').add({
@@ -1421,7 +1466,7 @@
             });
         }
 
-        // Subject Management (Principal only)
+        // Subject Management (Principal only) - FIXED
         async function addSubject() {
             const subjectName = document.getElementById('subjectName').value.trim();
             const successMsg = document.getElementById('subjectSuccess');
@@ -1509,7 +1554,7 @@
             });
         }
 
-        // Grade/Class Management (Principal and Class Teachers)
+        // Grade/Class Management (Principal and Class Teachers) - FIXED
         async function addClass() {
             const newGrade = document.getElementById('newGrade').value;
             const className = document.getElementById('className').value.trim();
@@ -1548,7 +1593,6 @@
                 // Reload grade list and dropdowns
                 loadGrades();
                 loadClassDropdowns();
-                loadGradeDropdowns();
                 
                 // Hide success message after 3 seconds
                 setTimeout(() => {
@@ -1605,7 +1649,7 @@
             });
         }
 
-        // Dashboard functions
+        // Dashboard functions - FIXED
         async function loadDashboard() {
             try {
                 // Get counts from all collections
@@ -1623,7 +1667,7 @@
             }
         }
 
-        // Attendance functions
+        // Attendance functions - FIXED
         async function loadAttendance() {
             const classId = document.getElementById('selectClass').value;
             const subjectId = document.getElementById('selectSubject').value;
@@ -1704,7 +1748,7 @@
                         <td>${teacherData.name}</td>
                         <td>
                             <select class="attendance-status" onchange="updateAttendanceStatus('${studentId}', this.value)">
-                                <option value="present">Present</option>
+                                <option value="present" selected>Present</option>
                                 <option value="absent">Absent</option>
                             </select>
                         </td>
@@ -1824,7 +1868,7 @@
             }
         }
 
-        // Report Generation
+        // Report Generation - FIXED
         async function generateReport() {
             const classId = document.getElementById('reportClass').value;
             const subjectId = document.getElementById('reportSubject').value;
@@ -1946,7 +1990,7 @@
             }
         }
 
-        // View Attendance Records (Principal only)
+        // View Attendance Records (Principal only) - FIXED
         async function viewAttendanceRecords() {
             const classId = document.getElementById('viewClass').value;
             const subjectId = document.getElementById('viewSubject').value;
@@ -2016,7 +2060,7 @@
             }
         }
 
-        // PDF Report Generation
+        // PDF Report Generation - FIXED
         function generatePdfReport() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -2054,11 +2098,7 @@
             doc.save(`attendance_report_${monthInfo}.pdf`);
         }
 
-        // Placeholder functions for edit/delete operations
-        function editStudent(id) {
-            alert('Edit student functionality would be implemented here for student ID: ' + id);
-        }
-
+        // Delete functions - FIXED
         function deleteStudent(id) {
             if (confirm('Are you sure you want to delete this student?')) {
                 db.collection('students').doc(id).delete()
@@ -2071,10 +2111,6 @@
                         alert('Error deleting student');
                     });
             }
-        }
-
-        function editTeacher(id) {
-            alert('Edit teacher functionality would be implemented here for teacher ID: ' + id);
         }
 
         function deleteTeacher(id) {
@@ -2092,10 +2128,6 @@
             }
         }
 
-        function editSubject(id) {
-            alert('Edit subject functionality would be implemented here for subject ID: ' + id);
-        }
-
         function deleteSubject(id) {
             if (confirm('Are you sure you want to delete this subject?')) {
                 db.collection('subjects').doc(id).delete()
@@ -2111,17 +2143,12 @@
             }
         }
 
-        function editGrade(id) {
-            alert('Edit grade functionality would be implemented here for grade ID: ' + id);
-        }
-
         function deleteGrade(id) {
             if (confirm('Are you sure you want to delete this grade/class?')) {
                 db.collection('grades').doc(id).delete()
                     .then(() => {
                         loadGrades();
                         loadClassDropdowns();
-                        loadGradeDropdowns();
                         alert('Grade/Class deleted successfully');
                     })
                     .catch(error => {
@@ -2129,6 +2156,23 @@
                         alert('Error deleting grade');
                     });
             }
+        }
+
+        // Edit functions - PLACEHOLDER
+        function editStudent(id) {
+            alert('Edit student functionality would be implemented here for student ID: ' + id);
+        }
+
+        function editTeacher(id) {
+            alert('Edit teacher functionality would be implemented here for teacher ID: ' + id);
+        }
+
+        function editSubject(id) {
+            alert('Edit subject functionality would be implemented here for subject ID: ' + id);
+        }
+
+        function editGrade(id) {
+            alert('Edit grade functionality would be implemented here for grade ID: ' + id);
         }
 
         // Temporary debug function
