@@ -324,9 +324,9 @@
                     <div class="form-group">
                         <label>Register As</label>
                         <select id="registerRole">
-                            <option value="Principal">Principal (Admin)</option>
-                            <option value="Class Teacher">Class Teacher</option>
-                            <option value="Subject Teacher">Subject Teacher</option>
+                            <option value="principal">Principal (Admin)</option>
+                            <option value="classTeacher">Class Teacher</option>
+                            <option value="subjectTeacher">Subject Teacher</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -347,9 +347,9 @@
                     <div class="form-group">
                         <label>Login As</label>
                         <select id="loginRole">
-                            <option value="Principal">Principal (Admin)</option>
-                            <option value="Class Teacher">Class Teacher</option>
-                            <option value="Subject Teacher">Subject Teacher</option>
+                            <option value="principal">Principal (Admin)</option>
+                            <option value="classTeacher">Class Teacher</option>
+                            <option value="subjectTeacher">Subject Teacher</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -597,8 +597,8 @@
                     <div class="form-group">
                         <label>Role</label>
                         <select id="teacherRole">
-                            <option value="Class Teacher">Class Teacher</option>
-                            <option value="Subject Teacher">Subject Teacher</option>
+                            <option value="classTeacher">Class Teacher</option>
+                            <option value="subjectTeacher">Subject Teacher</option>
                         </select>
                     </div>
                     <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher</button>
@@ -701,11 +701,11 @@
             editingItem: null
         };
 
-        // Role mapping for internal use
-        const roleMapping = {
-            'Principal': 'principal',
-            'Class Teacher': 'classTeacher', 
-            'Subject Teacher': 'subjectTeacher'
+        // Role display mapping
+        const roleDisplayMapping = {
+            'principal': 'Principal (Admin)',
+            'classTeacher': 'Class Teacher', 
+            'subjectTeacher': 'Subject Teacher'
         };
 
         // Initialize the application
@@ -834,6 +834,12 @@
             document.getElementById('registrationForm').style.display = 'none';
             document.getElementById('loginError').style.display = 'none';
             document.getElementById('registerError').style.display = 'none';
+            
+            // Clear form fields
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPassword').value = '';
         }
 
         function showRegistrationForm() {
@@ -841,6 +847,12 @@
             document.getElementById('registrationForm').style.display = 'block';
             document.getElementById('loginError').style.display = 'none';
             document.getElementById('registerError').style.display = 'none';
+            
+            // Clear form fields
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPassword').value = '';
         }
 
         function doLogin() {
@@ -868,7 +880,7 @@
                                 if (storedRole === selectedRole) {
                                     return storedRole;
                                 } else {
-                                    throw new Error(`Your account is registered as ${storedRole}, but you are trying to login as ${selectedRole}. Please select the correct role.`);
+                                    throw new Error(`Your account is registered as ${roleDisplayMapping[storedRole]}, but you are trying to login as ${roleDisplayMapping[selectedRole]}. Please select the correct role.`);
                                 }
                             } else {
                                 throw new Error('User account not found. Please register first.');
@@ -947,7 +959,7 @@
             document.getElementById('appContent').style.display = 'block';
             
             // Set role badge text correctly based on actual role
-            let roleText = role;
+            let roleText = roleDisplayMapping[role] || role;
             document.getElementById('roleBadge').textContent = roleText;
             
             // Update role-based visibility
@@ -965,7 +977,7 @@
             });
             
             // Show elements based on role with proper permissions
-            if (role === 'Principal') {
+            if (role === 'principal') {
                 // Principal sees everything
                 document.querySelectorAll('.principal-only').forEach(el => {
                     el.style.display = 'block';
@@ -974,7 +986,7 @@
                 document.querySelectorAll('.nav-tab').forEach(tab => {
                     tab.style.display = 'block';
                 });
-            } else if (role === 'Class Teacher') {
+            } else if (role === 'classTeacher') {
                 // Class Teacher sees class-teacher-only elements
                 document.querySelectorAll('.class-teacher-only').forEach(el => {
                     el.style.display = 'block';
@@ -985,7 +997,7 @@
                     const allowedTabs = ['attendance', 'students', 'reports', 'grades', 'subjects'];
                     tab.style.display = allowedTabs.includes(tabName) ? 'block' : 'none';
                 });
-            } else if (role === 'Subject Teacher') {
+            } else if (role === 'subjectTeacher') {
                 // Subject Teacher sees ONLY attendance and reports - NO student management
                 document.querySelectorAll('.subject-teacher-only').forEach(el => {
                     el.style.display = 'block';
@@ -1016,24 +1028,6 @@
                 document.getElementById('appContent').style.display = 'none';
                 showLoginForm();
             });
-        }
-
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            
-            document.getElementById(tabName).classList.add('active');
-            const tabButton = document.querySelector(`[data-tab="${tabName}"]`);
-            if (tabButton) {
-                tabButton.classList.add('active');
-            }
-            
-            // Refresh data when switching tabs
-            if (tabName === 'students') updateStudentsList();
-            else if (tabName === 'teachers') updateTeachersList();
-            else if (tabName === 'subjects') updateSubjectsList();
-            else if (tabName === 'grades') updateGradesList();
-            else if (tabName === 'dashboard') updateDashboard();
         }
 
         // Rest of the functions remain the same...
