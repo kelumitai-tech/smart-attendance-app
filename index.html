@@ -341,6 +341,7 @@
             border-radius: 12px;
             margin-top: 20px;
             border: 2px dashed #dee2e6;
+            display: none;
         }
         .role-description {
             background: #e7f3ff;
@@ -359,6 +360,30 @@
         }
         .role-description li {
             margin-bottom: 5px;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .badge-principal {
+            background: #d32f2f;
+            color: white;
+        }
+        .badge-class-teacher {
+            background: #ff9800;
+            color: white;
+        }
+        .badge-subject-teacher {
+            background: #4CAF50;
+            color: white;
+        }
+        .show-register-btn {
+            text-align: center;
+            margin-top: 20px;
         }
         @media (max-width: 768px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -414,8 +439,12 @@
                 <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
                 <div class="error-msg" id="loginError"></div>
                 
+                <div class="show-register-btn">
+                    <button class="btn btn-secondary" id="showRegisterBtn">📝 Register Now</button>
+                </div>
+                
                 <!-- Registration Section -->
-                <div class="registration-form">
+                <div class="registration-form" id="registrationForm">
                     <h3 style="text-align: center; margin-bottom: 20px; color: #333;">New User Registration</h3>
                     
                     <div class="role-description">
@@ -866,6 +895,25 @@
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const displayDate = today.toLocaleDateString('en-US', options);
             document.getElementById('currentDateDisplay').textContent = displayDate;
+            
+            // Set date input to only allow weekdays
+            setWeekdayOnlyDates();
+        }
+
+        function setWeekdayOnlyDates() {
+            const dateInputs = document.querySelectorAll('input[type="date"]');
+            dateInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    const selectedDate = new Date(this.value);
+                    const dayOfWeek = selectedDate.getDay();
+                    
+                    // 0 = Sunday, 6 = Saturday
+                    if (dayOfWeek === 0 || dayOfWeek === 6) {
+                        alert('Attendance can only be marked on weekdays (Monday to Friday)');
+                        this.value = '';
+                    }
+                });
+            });
         }
 
         function checkAuthState() {
@@ -905,6 +953,7 @@
             document.getElementById('loginBtn').addEventListener('click', doLogin);
             document.getElementById('registerBtn').addEventListener('click', registerNewUser);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
+            document.getElementById('showRegisterBtn').addEventListener('click', toggleRegistrationForm);
             
             // Students
             document.getElementById('addStudentBtn').addEventListener('click', addStudent);
@@ -935,6 +984,19 @@
             
             // View Attendance
             document.getElementById('viewAttendanceBtn').addEventListener('click', viewAttendanceRecords);
+        }
+
+        function toggleRegistrationForm() {
+            const registrationForm = document.getElementById('registrationForm');
+            const showRegisterBtn = document.getElementById('showRegisterBtn');
+            
+            if (registrationForm.style.display === 'none' || registrationForm.style.display === '') {
+                registrationForm.style.display = 'block';
+                showRegisterBtn.textContent = '❌ Cancel Registration';
+            } else {
+                registrationForm.style.display = 'none';
+                showRegisterBtn.textContent = '📝 Register Now';
+            }
         }
 
         function doLogin() {
@@ -1027,6 +1089,10 @@
                     document.getElementById('regPassword').value = '';
                     document.getElementById('regConfirmPassword').value = '';
                     
+                    // Hide registration form
+                    document.getElementById('registrationForm').style.display = 'none';
+                    document.getElementById('showRegisterBtn').textContent = '📝 Register Now';
+                    
                     // Hide success message after 5 seconds
                     setTimeout(() => {
                         successMsg.style.display = 'none';
@@ -1074,9 +1140,9 @@
                         }
                     });
                 
-                // Set user role with description
+                // Set user role with description and badge
                 const roleInfo = roleDescriptions[role];
-                userRole.textContent = roleInfo.name;
+                userRole.innerHTML = `${roleInfo.name} <span class="role-badge badge-${role}">${role}</span>`;
                 
                 userInfo.style.display = 'flex';
             }
@@ -1645,6 +1711,14 @@
                 return;
             }
             
+            // Check if selected date is a weekend
+            const date = new Date(selectedDate);
+            const dayOfWeek = date.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert('Attendance can only be marked on weekdays (Monday to Friday)');
+                return;
+            }
+            
             const tbody = document.getElementById('attendanceTbody');
             tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading students...</td></tr>';
             
@@ -1742,6 +1816,14 @@
             
             if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
                 alert('Please select class, subject, teacher, and date first');
+                return;
+            }
+            
+            // Check if selected date is a weekend
+            const date = new Date(selectedDate);
+            const dayOfWeek = date.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert('Attendance can only be marked on weekdays (Monday to Friday)');
                 return;
             }
             
