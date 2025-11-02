@@ -923,7 +923,7 @@
                 if (user) {
                     console.log("User logged in:", user.email);
                     getUserRole(user.uid).then(role => {
-                        console.log("User role:", role);
+                        console.log("User role retrieved:", role);
                         appData.currentUser = user;
                         appData.userRole = role;
                         appData.userEmail = user.email;
@@ -941,18 +941,29 @@
 
         async function getUserRole(uid) {
             try {
+                console.log("Getting role for UID:", uid);
                 const doc = await db.collection('users').doc(uid).get();
+                console.log("Document exists:", doc.exists);
+                
                 if (doc.exists) {
                     const userData = doc.data();
                     console.log("User data from Firestore:", userData);
-                    return userData.role;
+                    return userData.role || 'subjectTeacher'; // Default to subjectTeacher if role is missing
                 } else {
                     console.log("No user document found for UID:", uid);
-                    return null;
+                    // Create a default user document
+                    const defaultRole = 'subjectTeacher';
+                    await db.collection('users').doc(uid).set({
+                        email: auth.currentUser.email,
+                        role: defaultRole,
+                        name: auth.currentUser.email.split('@')[0],
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return defaultRole;
                 }
             } catch (error) {
                 console.error("Error getting user role:", error);
-                return null;
+                return 'subjectTeacher'; // Default fallback
             }
         }
 
@@ -1027,26 +1038,8 @@
                     return getUserRole(userCredential.user.uid);
                 })
                 .then((role) => {
-                    console.log("Retrieved role:", role);
-                    if (!role) {
-                        // If no role found, assign the selected role
-                        console.log("No role found, assigning role:", selectedRole);
-                        role = selectedRole;
-                        return db.collection('users').doc(auth.currentUser.uid).set({
-                            email: email,
-                            role: role,
-                            name: email.split('@')[0],
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true }).then(() => {
-                            console.log("Role assigned successfully:", role);
-                            return role;
-                        });
-                    }
-                    return role;
-                })
-                .then((role) => {
-                    appData.userRole = role;
                     console.log("Final role to show app:", role);
+                    appData.userRole = role;
                     showApp(role);
                     errorMsg.style.display = 'none';
                 })
@@ -1197,6 +1190,8 @@
             // Show first tab by default
             if (tabs.length > 0) {
                 showTab(tabs[0].id);
+            } else {
+                console.error("No tabs available for role:", role);
             }
         }
 
@@ -1216,6 +1211,8 @@
             const tabContent = document.getElementById(tabId);
             if (tabContent) {
                 tabContent.style.display = 'block';
+            } else {
+                console.error("Tab content not found:", tabId);
             }
             
             // Add active class to clicked tab
