@@ -10,10 +10,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     
-    <!-- jsPDF for PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -324,7 +320,7 @@
             <div class="role-badge" id="roleBadge">Teacher</div>
             
             <div class="nav-tabs" id="navTabs">
-                <button class="nav-tab active principal-only class-teacher-only" data-tab="attendance">📋 Attendance</button>
+                <button class="nav-tab active principal-only class-teacher-only subject-teacher-only" data-tab="attendance">📋 Attendance</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
                 <button class="nav-tab principal-only class-teacher-only subject-teacher-only" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
@@ -687,12 +683,17 @@
             if (auth) {
                 auth.onAuthStateChanged((user) => {
                     if (user) {
+                        console.log("User logged in:", user.email);
                         getUserRole(user.uid).then(role => {
+                            console.log("User role retrieved:", role);
                             appData.currentUser = user;
                             appData.userRole = role;
                             showApp(role);
+                        }).catch(error => {
+                            console.error("Error getting user role:", error);
                         });
                     } else {
+                        console.log("No user logged in");
                         document.getElementById('loginScreen').style.display = 'block';
                         document.getElementById('appContent').style.display = 'none';
                     }
@@ -702,8 +703,16 @@
 
         async function getUserRole(uid) {
             try {
+                console.log("Getting role for user:", uid);
                 const doc = await db.collection('users').doc(uid).get();
-                return doc.exists ? doc.data().role : 'subjectTeacher';
+                if (doc.exists) {
+                    const role = doc.data().role;
+                    console.log("Role found in Firestore:", role);
+                    return role;
+                } else {
+                    console.log("No role found in Firestore, defaulting to subjectTeacher");
+                    return 'subjectTeacher';
+                }
             } catch (error) {
                 console.error("Error getting user role:", error);
                 return 'subjectTeacher';
@@ -763,14 +772,17 @@
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
+                    console.log("Login successful for:", user.email);
                     return getUserRole(user.uid);
                 })
                 .then((role) => {
+                    console.log("Role after login:", role);
                     appData.userRole = role;
                     showApp(role);
                     errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
+                    console.error("Login error:", error);
                     errorMsg.textContent = 'Login failed: ' + error.message;
                     errorMsg.style.display = 'block';
                 });
@@ -844,6 +856,8 @@
         }
 
         function showApp(role) {
+            console.log("Showing app for role:", role);
+            
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             
@@ -855,17 +869,7 @@
             document.getElementById('roleBadge').textContent = roleText;
             
             // Show/hide elements based on role
-            document.querySelectorAll('.principal-only').forEach(el => {
-                el.style.display = role === 'principal' ? 'block' : 'none';
-            });
-            
-            document.querySelectorAll('.class-teacher-only').forEach(el => {
-                el.style.display = role === 'classTeacher' || role === 'principal' ? 'block' : 'none';
-            });
-            
-            document.querySelectorAll('.subject-teacher-only').forEach(el => {
-                el.style.display = role === 'subjectTeacher' || role === 'principal' ? 'block' : 'none';
-            });
+            updateRoleBasedVisibility(role);
             
             // Update navigation tabs visibility
             updateNavTabs(role);
@@ -873,7 +877,37 @@
             updateAll();
         }
 
+        function updateRoleBasedVisibility(role) {
+            console.log("Updating visibility for role:", role);
+            
+            // Hide all role-specific elements first
+            document.querySelectorAll('.principal-only, .class-teacher-only, .subject-teacher-only').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show elements based on role
+            if (role === 'principal') {
+                document.querySelectorAll('.principal-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+            } else if (role === 'classTeacher') {
+                document.querySelectorAll('.class-teacher-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+            } else if (role === 'subjectTeacher') {
+                document.querySelectorAll('.subject-teacher-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+            }
+            
+            // Always show common elements
+            document.querySelectorAll('.principal-only.class-teacher-only.subject-teacher-only').forEach(el => {
+                el.style.display = 'block';
+            });
+        }
+
         function updateNavTabs(role) {
+            console.log("Updating nav tabs for role:", role);
             const navTabs = document.querySelectorAll('.nav-tab');
             
             navTabs.forEach(tab => {
@@ -892,6 +926,15 @@
                 
                 tab.style.display = showTab ? 'block' : 'none';
             });
+            
+            // Ensure at least one tab is active
+            const activeTabs = document.querySelectorAll('.nav-tab.active');
+            if (activeTabs.length === 0) {
+                const firstVisibleTab = document.querySelector('.nav-tab[style="display: block;"], .nav-tab:not([style*="display: none"])');
+                if (firstVisibleTab) {
+                    firstVisibleTab.click();
+                }
+            }
         }
 
         function doLogout() {
