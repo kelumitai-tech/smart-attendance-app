@@ -92,13 +92,6 @@
             background: #004a80;
             transform: translateY(-2px);
         }
-        .btn-google {
-            background: #DB4437;
-            color: white;
-        }
-        .btn-google:hover {
-            background: #c23321;
-        }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
         .btn-warning { background: #ff9800; color: white; }
@@ -341,7 +334,6 @@
                     <input type="password" id="loginPassword" placeholder="Enter your password">
                 </div>
                 <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
-                <button class="btn btn-google btn-full" id="googleBtn">🌐 Sign in with Google</button>
                 <div class="error-msg" id="loginError"></div>
                 
                 <!-- Registration Section -->
@@ -771,7 +763,6 @@
         function setupEventListeners() {
             // Authentication
             document.getElementById('loginBtn').addEventListener('click', doLogin);
-            document.getElementById('googleBtn').addEventListener('click', googleLogin);
             document.getElementById('registerBtn').addEventListener('click', showRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
@@ -852,30 +843,6 @@
                 });
         }
 
-        function googleLogin() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            const selectedRole = document.getElementById('loginRole').value;
-            
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    const user = result.user;
-                    // Always create/update user with selected role for Google login
-                    return db.collection('users').doc(user.uid).set({
-                        email: user.email,
-                        role: selectedRole,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true }).then(() => selectedRole);
-                })
-                .then((role) => {
-                    appData.userRole = role;
-                    showApp(role);
-                })
-                .catch((error) => {
-                    document.getElementById('loginError').textContent = 'Google login failed: ' + error.message;
-                    document.getElementById('loginError').style.display = 'block';
-                });
-        }
-
         function showRegistration() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
@@ -894,9 +861,13 @@
                 return;
             }
 
+            // First try to create user in Firebase Authentication
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
+                    console.log("User created in auth:", user.email);
+                    
+                    // Then create user document in Firestore
                     return db.collection('users').doc(user.uid).set({
                         email: email,
                         role: role,
@@ -909,8 +880,16 @@
                     errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
-                    errorMsg.textContent = 'Registration failed: ' + error.message;
-                    errorMsg.style.display = 'block';
+                    console.error("Registration error:", error);
+                    if (error.code === 'auth/email-already-in-use') {
+                        // If email already exists, try to login instead
+                        errorMsg.textContent = 'Email already exists. Trying to login...';
+                        errorMsg.style.display = 'block';
+                        doLogin();
+                    } else {
+                        errorMsg.textContent = 'Registration failed: ' + error.message;
+                        errorMsg.style.display = 'block';
+                    }
                 });
         }
 
@@ -963,7 +942,7 @@
                     tab.style.display = allowedTabs.includes(tabName) ? 'block' : 'none';
                 });
             } else if (role === 'subjectTeacher') {
-                // Subject Teacher sees only attendance and reports
+                // Subject Teacher sees ONLY attendance and reports - NO student management
                 document.querySelectorAll('.subject-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
@@ -972,6 +951,11 @@
                     const tabName = tab.getAttribute('data-tab');
                     const allowedTabs = ['attendance', 'reports'];
                     tab.style.display = allowedTabs.includes(tabName) ? 'block' : 'none';
+                });
+                
+                // Hide student management features for subject teachers
+                document.querySelectorAll('#students, #grades, #subjects').forEach(el => {
+                    el.style.display = 'none';
                 });
             }
             
@@ -1012,11 +996,6 @@
             else if (tabName === 'dashboard') updateDashboard();
         }
 
-        // Rest of the functions remain the same as previous version...
-        // [All other functions for student management, teacher management, 
-        // attendance, reports, etc. remain unchanged from the previous corrected version]
-
-        // Update selectors with data from Firestore
         function updateSelectors() {
             // Classes/Grades
             db.collection('grades').orderBy('grade').get()
@@ -2191,33 +2170,48 @@
                     
                     Promise.all(studentPromises)
                         .then(() => {
+                            // Check if jsPDF is available
+                            if (typeof jspdf === 'undefined') {
+                                alert('PDF library not loaded. Please try again.');
+                                return;
+                            }
+                            
                             const { jsPDF } = window.jspdf;
                             const doc = new jsPDF();
                             
+                            // Add title
                             doc.setFontSize(16);
                             doc.text(`Attendance Report - ${selectedMonth}`, 20, 20);
                             doc.setFontSize(12);
                             doc.text(`Class: ${selectedClass}`, 20, 30);
                             doc.text(`Subject: ${selectedSubject}`, 20, 40);
+                            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 50);
                             
-                            const headers = [['Student ID', 'Name', 'Present', 'Total Days', 'Attendance %']];
-                            const data = [];
-                            
+                            // Prepare table data
+                            const tableData = [];
                             Object.keys(attendanceData).forEach(studentId => {
                                 const record = attendanceData[studentId];
                                 const percentage = record.total > 0 ? Math.round((record.present / record.total) * 100) : 0;
-                                data.push([studentId, record.name, record.present.toString(), record.total.toString(), `${percentage}%`]);
+                                tableData.push([
+                                    studentId,
+                                    record.name,
+                                    record.present.toString(),
+                                    record.total.toString(),
+                                    `${percentage}%`
+                                ]);
                             });
                             
+                            // Add table to PDF
                             doc.autoTable({
-                                startY: 50,
-                                head: headers,
-                                body: data,
+                                startY: 60,
+                                head: [['Student ID', 'Name', 'Present', 'Total Days', 'Attendance %']],
+                                body: tableData,
                                 theme: 'grid',
                                 styles: { fontSize: 10 },
                                 headStyles: { fillColor: [0, 90, 156] }
                             });
                             
+                            // Save the PDF
                             doc.save(`Attendance_Report_${selectedClass}_${selectedSubject}_${selectedMonth}.pdf`);
                         });
                 })
