@@ -201,6 +201,8 @@
         }
         .stats-card h2 { font-size: 3em; margin: 10px 0; }
         .principal-only { display: none; }
+        .class-teacher-only { display: none; }
+        .subject-teacher-only { display: none; }
         .filter-input {
             width: 100%;
             padding: 12px;
@@ -283,8 +285,9 @@
                 <div class="form-group">
                     <label>Login As</label>
                     <select id="loginRole">
-                        <option value="teacher">Teacher</option>
                         <option value="principal">Principal (Admin)</option>
+                        <option value="classTeacher">Class Teacher</option>
+                        <option value="subjectTeacher">Subject Teacher</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -321,18 +324,18 @@
             <div class="role-badge" id="roleBadge">Teacher</div>
             
             <div class="nav-tabs" id="navTabs">
-                <button class="nav-tab active" data-tab="attendance">📋 Attendance</button>
-                <button class="nav-tab" data-tab="students">👥 Students</button>
-                <button class="nav-tab" data-tab="reports">📊 Reports</button>
+                <button class="nav-tab active principal-only class-teacher-only" data-tab="attendance">📋 Attendance</button>
+                <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
+                <button class="nav-tab principal-only class-teacher-only subject-teacher-only" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
                 <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
-                <button class="nav-tab principal-only" data-tab="grades">🎓 Grades</button>
-                <button class="nav-tab principal-only" data-tab="subjects">📚 Subjects</button>
+                <button class="nav-tab principal-only class-teacher-only" data-tab="grades">🎓 Grades</button>
+                <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
                 <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
             </div>
 
             <!-- Attendance Tab -->
-            <div class="tab-content active" id="attendance">
+            <div class="tab-content active principal-only class-teacher-only subject-teacher-only" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
                     <div class="info-box">Select class, subject, teacher, and date to mark attendance (Monday to Friday only)</div>
@@ -393,7 +396,7 @@
             </div>
 
             <!-- Students Tab -->
-            <div class="tab-content" id="students">
+            <div class="tab-content principal-only class-teacher-only" id="students">
                 <div class="card">
                     <h3>Add New Student</h3>
                     <div class="grid-2">
@@ -437,7 +440,7 @@
             </div>
 
             <!-- Reports Tab -->
-            <div class="tab-content" id="reports">
+            <div class="tab-content principal-only class-teacher-only subject-teacher-only" id="reports">
                 <div class="card">
                     <h3>Generate Monthly Report</h3>
                     <div class="form-group">
@@ -529,6 +532,13 @@
                         <label>Subject</label>
                         <select id="teacherSubject"></select>
                     </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="teacherRole">
+                            <option value="classTeacher">Class Teacher</option>
+                            <option value="subjectTeacher">Subject Teacher</option>
+                        </select>
+                    </div>
                     <button class="btn btn-primary" id="addTeacherBtn">Add Teacher</button>
                     <div class="success-msg" id="teacherSuccess"></div>
                 </div>
@@ -540,7 +550,7 @@
             </div>
 
             <!-- Subjects Tab -->
-            <div class="tab-content principal-only" id="subjects">
+            <div class="tab-content principal-only class-teacher-only" id="subjects">
                 <div class="card">
                     <h3>Add New Subject</h3>
                     <div class="form-group">
@@ -558,7 +568,7 @@
             </div>
 
             <!-- Grades Tab -->
-            <div class="tab-content principal-only" id="grades">
+            <div class="tab-content principal-only class-teacher-only" id="grades">
                 <div class="card">
                     <h3>Add New Grade & Class</h3>
                     <div class="grid-2">
@@ -693,10 +703,10 @@
         async function getUserRole(uid) {
             try {
                 const doc = await db.collection('users').doc(uid).get();
-                return doc.exists ? doc.data().role : 'teacher';
+                return doc.exists ? doc.data().role : 'subjectTeacher';
             } catch (error) {
                 console.error("Error getting user role:", error);
-                return 'teacher';
+                return 'subjectTeacher';
             }
         }
 
@@ -836,13 +846,52 @@
         function showApp(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
-            document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal' : 'Teacher';
             
+            // Set role badge text
+            let roleText = '';
+            if (role === 'principal') roleText = 'Principal';
+            else if (role === 'classTeacher') roleText = 'Class Teacher';
+            else roleText = 'Subject Teacher';
+            document.getElementById('roleBadge').textContent = roleText;
+            
+            // Show/hide elements based on role
             document.querySelectorAll('.principal-only').forEach(el => {
                 el.style.display = role === 'principal' ? 'block' : 'none';
             });
             
+            document.querySelectorAll('.class-teacher-only').forEach(el => {
+                el.style.display = role === 'classTeacher' || role === 'principal' ? 'block' : 'none';
+            });
+            
+            document.querySelectorAll('.subject-teacher-only').forEach(el => {
+                el.style.display = role === 'subjectTeacher' || role === 'principal' ? 'block' : 'none';
+            });
+            
+            // Update navigation tabs visibility
+            updateNavTabs(role);
+            
             updateAll();
+        }
+
+        function updateNavTabs(role) {
+            const navTabs = document.querySelectorAll('.nav-tab');
+            
+            navTabs.forEach(tab => {
+                const tabName = tab.getAttribute('data-tab');
+                let showTab = false;
+                
+                if (role === 'principal') {
+                    showTab = true; // Principal sees all tabs
+                } else if (role === 'classTeacher') {
+                    // Class Teacher sees: Attendance, Students, Reports, Grades, Subjects
+                    showTab = ['attendance', 'students', 'reports', 'grades', 'subjects'].includes(tabName);
+                } else if (role === 'subjectTeacher') {
+                    // Subject Teacher sees: Attendance, Reports
+                    showTab = ['attendance', 'reports'].includes(tabName);
+                }
+                
+                tab.style.display = showTab ? 'block' : 'none';
+            });
         }
 
         function doLogout() {
@@ -930,7 +979,9 @@
         function updateAll() {
             updateSelectors();
             updateStudentsList();
-            updateTeachersList();
+            if (appData.userRole === 'principal') {
+                updateTeachersList();
+            }
             updateSubjectsList();
             updateGradesList();
             updateDashboard();
@@ -1020,6 +1071,7 @@
             const teacherId = document.getElementById('teacherId').value.trim();
             const teacherName = document.getElementById('teacherName').value.trim();
             const teacherSubject = document.getElementById('teacherSubject').value;
+            const teacherRole = document.getElementById('teacherRole').value;
             const successMsg = document.getElementById('teacherSuccess');
             
             if (!teacherId || !teacherName || !teacherSubject) {
@@ -1031,6 +1083,7 @@
                 id: teacherId,
                 name: teacherName,
                 subject: teacherSubject,
+                role: teacherRole,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
@@ -1063,7 +1116,7 @@
                         const data = doc.data();
                         html += `
                             <div class="student-item">
-                                <strong>${data.id}</strong> - ${data.name} (${data.subject})
+                                <strong>${data.id}</strong> - ${data.name} (${data.subject}) - ${data.role}
                             </div>
                         `;
                     });
@@ -1089,7 +1142,7 @@
             });
         }
 
-        // Subject Management (Principal only)
+        // Subject Management
         function addSubject() {
             const subjectName = document.getElementById('subjectName').value.trim();
             const successMsg = document.getElementById('subjectSuccess');
@@ -1158,7 +1211,7 @@
             });
         }
 
-        // Grade/Class Management (Principal only)
+        // Grade/Class Management
         function addClass() {
             const newGrade = document.getElementById('newGrade').value;
             const className = document.getElementById('className').value.trim();
