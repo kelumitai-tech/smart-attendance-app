@@ -15,8 +15,390 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
     <style>
-        /* CSS remains the same as in the original code */
-        /* ... (all the CSS from the original code) ... */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #005A9C 0%, #0077cc 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 5px; }
+        .header p { opacity: 0.9; font-size: 0.9em; }
+        .user-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            color: #005A9C;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .content { padding: 40px; }
+        .login-box { max-width: 400px; margin: 0 auto; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #005A9C;
+        }
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-full {
+            width: 100%;
+        }
+        .btn-primary {
+            background: #005A9C;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #004a80;
+            transform: translateY(-2px);
+        }
+        .btn-secondary { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-info { background: #2196F3; color: white; }
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .error-msg, .success-msg {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .error-msg {
+            background: #fee;
+            color: #c00;
+            display: none;
+        }
+        .success-msg {
+            background: #e7f5e7;
+            color: #2e7d32;
+            display: none;
+        }
+        .app-main { display: none; }
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .nav-tab {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-tab.active {
+            color: #005A9C;
+            border-bottom-color: #005A9C;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .card h3 {
+            color: #005A9C;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background: #005A9C;
+            color: white;
+        }
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .logout-btn:hover {
+            background: white;
+            color: #005A9C;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            color: #1565c0;
+            margin-bottom: 20px;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stats-card h2 { font-size: 3em; margin: 10px 0; }
+        .filter-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .attendance-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .student-item, .teacher-item, .subject-item, .grade-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #005A9C;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-info {
+            flex: 1;
+        }
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .attendance-summary {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #2e7d32;
+            font-weight: bold;
+            text-align: center;
+        }
+        .present { color: #4CAF50; font-weight: bold; }
+        .absent { color: #f44336; font-weight: bold; }
+        .teacher-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        .weekend-date {
+            background-color: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .pdf-btn {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        .pdf-btn:hover {
+            background: #b71c1c;
+        }
+        .edit-form {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #cce7ff;
+        }
+        .edit-form h4 {
+            color: #005A9C;
+            margin-bottom: 15px;
+        }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .report-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .report-header {
+            background: #005A9C;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .attendance-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .badge-present {
+            background: #4CAF50;
+            color: white;
+        }
+        .badge-absent {
+            background: #f44336;
+            color: white;
+        }
+        .registration-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 2px dashed #dee2e6;
+            display: none;
+        }
+        .role-description {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #005A9C;
+        }
+        .role-description h4 {
+            color: #005A9C;
+            margin-bottom: 10px;
+        }
+        .role-description ul {
+            margin-left: 20px;
+            color: #555;
+        }
+        .role-description li {
+            margin-bottom: 5px;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .badge-principal {
+            background: #d32f2f;
+            color: white;
+        }
+        .badge-classTeacher {
+            background: #ff9800;
+            color: white;
+        }
+        .badge-subjectTeacher {
+            background: #4CAF50;
+            color: white;
+        }
+        .show-register-btn {
+            text-align: center;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            table { font-size: 14px; }
+            th, td { padding: 8px; }
+            .student-item, .teacher-item, .subject-item, .grade-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .item-actions {
+                margin-top: 10px;
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
     </style>
 </head>
 <body>
@@ -283,33 +665,41 @@
             <!-- Teachers Tab - Principal Only -->
             <div class="tab-content" id="teachers">
                 <div class="card">
-                    <h3>Add New Teacher</h3>
+                    <h3>Add New Teacher with Class Assignment</h3>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Teacher ID</label>
-                            <input type="text" id="teacherId" placeholder="e.g., T001">
+                            <input type="text" id="teacherIdInput" placeholder="e.g., T001">
                         </div>
                         <div class="form-group">
                             <label>Teacher Name</label>
-                            <input type="text" id="teacherName" placeholder="Enter name">
+                            <input type="text" id="teacherNameInput" placeholder="Enter name">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <select id="teacherSubjectInput"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Assigned Class</label>
+                            <select id="teacherAssignedClass">
+                                <option value="">-- Select Class --</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Subject</label>
-                        <select id="teacherSubject"></select>
-                    </div>
-                    <div class="form-group">
                         <label>Role</label>
-                        <select id="teacherRole">
+                        <select id="teacherRoleInput">
                             <option value="classTeacher">Class Teacher</option>
                             <option value="subjectTeacher">Subject Teacher</option>
                         </select>
                     </div>
-                    <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher</button>
+                    <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher with Assignment</button>
                     <div class="success-msg" id="teacherSuccess"></div>
                 </div>
                 <div class="card">
-                    <h3>Teachers List</h3>
+                    <h3>Teachers List with Assignments</h3>
                     <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
                     <div id="teachersList" class="loading">Loading teachers...</div>
                 </div>
@@ -432,31 +822,31 @@
             userRole: null,
             userEmail: null,
             currentAttendance: {},
-            currentTeacher: null
+            currentTeacher: null,
+            assignedClass: null
         };
 
         // Tab configurations for different roles
         const roleTabs = {
             principal: [
-                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark student attendance for classes' },
-                { id: 'students', name: '👥 Manage Students', icon: '👥', description: 'Add, edit, and manage students' },
-                { id: 'reports', name: '📊 Generate Reports', icon: '📊', description: 'Generate attendance reports and PDFs' },
                 { id: 'dashboard', name: '🎯 Dashboard', icon: '🎯', description: 'View system statistics and overview' },
-                { id: 'teachers', name: '👨‍🏫 Manage Teachers', icon: '👨‍🏫', description: 'Add and manage teaching staff' },
-                { id: 'grades', name: '🎓 Manage Grades', icon: '🎓', description: 'Manage classes and grades' },
+                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark student attendance for any class' },
+                { id: 'students', name: '👥 Manage Students', icon: '👥', description: 'Add, edit, and manage all students' },
+                { id: 'teachers', name: '👨‍🏫 Manage Teachers', icon: '👨‍🏫', description: 'Add and manage teaching staff with assignments' },
                 { id: 'subjects', name: '📚 Manage Subjects', icon: '📚', description: 'Manage academic subjects' },
-                { id: 'viewAttendance', name: '👀 View Records', icon: '👀', description: 'View attendance records' }
+                { id: 'grades', name: '🎓 Manage Grades', icon: '🎓', description: 'Manage classes and grades' },
+                { id: 'reports', name: '📊 Generate Reports', icon: '📊', description: 'Generate comprehensive attendance reports' },
+                { id: 'viewAttendance', name: '👀 View Records', icon: '👀', description: 'View all attendance records' }
             ],
             classTeacher: [
-                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark student attendance for your classes' },
-                { id: 'students', name: '👥 Manage Students', icon: '👥', description: 'Manage students in your classes' },
-                { id: 'reports', name: '📊 Generate Reports', icon: '📊', description: 'Generate class reports and PDFs' },
-                { id: 'grades', name: '🎓 Manage Classes', icon: '🎓', description: 'Manage your assigned classes' },
-                { id: 'subjects', name: '📚 Manage Subjects', icon: '📚', description: 'Manage subjects you teach' }
+                { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark attendance for your assigned class' },
+                { id: 'students', name: '👥 My Students', icon: '👥', description: 'Manage students in your assigned class' },
+                { id: 'subjects', name: '📚 My Subjects', icon: '📚', description: 'View subjects for your class' },
+                { id: 'reports', name: '📊 Class Reports', icon: '📊', description: 'Generate reports for your class' }
             ],
             subjectTeacher: [
                 { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark attendance for your subject classes' },
-                { id: 'reports', name: '📊 Generate Reports', icon: '📊', description: 'Generate subject attendance reports' }
+                { id: 'reports', name: '📊 Subject Reports', icon: '📊', description: 'Generate subject-wise attendance reports' }
             ]
         };
 
@@ -608,8 +998,18 @@
             document.getElementById('generatePdfBtn').addEventListener('click', generatePdfReport);
             
             // Teachers
-            document.getElementById('addTeacherBtn').addEventListener('click', addTeacher);
+            document.getElementById('addTeacherBtn').addEventListener('click', addTeacherWithAssignment);
             document.getElementById('teacherFilter').addEventListener('keyup', filterTeachers);
+            document.getElementById('teacherRoleInput').addEventListener('change', function() {
+                const role = this.value;
+                const assignedClassLabel = document.querySelector('label[for="teacherAssignedClass"]');
+                
+                if (role === 'classTeacher') {
+                    assignedClassLabel.innerHTML = 'Assigned Class <span style="color: red;">*</span>';
+                } else {
+                    assignedClassLabel.innerHTML = 'Assigned Class (Optional)';
+                }
+            });
             
             // Subjects
             document.getElementById('addSubjectBtn').addEventListener('click', addSubject);
@@ -738,6 +1138,106 @@
                 });
         }
 
+        // Role-based access control improvements
+        function enforceRoleBasedAccess() {
+            const userRole = appData.userRole;
+            
+            // Hide/show elements based on role
+            if (userRole === 'subjectTeacher') {
+                // Subject Teachers can only mark attendance and generate reports
+                document.querySelectorAll('#students, #teachers, #grades, #subjects, #dashboard, #viewAttendance').forEach(el => {
+                    if (el.style.display === 'block') {
+                        el.style.display = 'none';
+                    }
+                });
+                
+                // Limit class selection to assigned classes only
+                limitClassSelectionForSubjectTeacher();
+            }
+            
+            if (userRole === 'classTeacher') {
+                // Class Teachers cannot manage teachers or view all attendance records
+                document.querySelectorAll('#teachers, #viewAttendance, #dashboard').forEach(el => {
+                    if (el.style.display === 'block') {
+                        el.style.display = 'none';
+                    }
+                });
+                
+                // Limit to assigned classes only
+                limitClassSelectionForClassTeacher();
+            }
+        }
+
+        // Subject Teacher: Limit to assigned subjects and classes
+        function limitClassSelectionForSubjectTeacher() {
+            // This would typically come from Firestore - assigned classes for teacher
+            const assignedClasses = ['Grade 6 - A', 'Grade 7 - B']; // Example assigned classes
+            
+            const classSelectors = ['selectClass', 'reportClass', 'viewClass'];
+            classSelectors.forEach(selectorId => {
+                const select = document.getElementById(selectorId);
+                if (select) {
+                    const options = select.options;
+                    for (let i = 0; i < options.length; i++) {
+                        if (!assignedClasses.includes(options[i].value) && options[i].value !== '') {
+                            options[i].style.display = 'none';
+                        }
+                    }
+                }
+            });
+        }
+
+        // Class Teacher: Limit to assigned class only
+        function limitClassSelectionForClassTeacher() {
+            const assignedClass = 'Grade 6 - A'; // Example assigned class
+            
+            const classSelectors = ['selectClass', 'reportClass', 'viewClass', 'studentGrade', 'filterStudentClass'];
+            classSelectors.forEach(selectorId => {
+                const select = document.getElementById(selectorId);
+                if (select) {
+                    const options = select.options;
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].value !== assignedClass && options[i].value !== '') {
+                            options[i].style.display = 'none';
+                        }
+                    }
+                    // Auto-select assigned class
+                    if (selectorId !== 'filterStudentClass') {
+                        select.value = assignedClass;
+                    }
+                }
+            });
+        }
+
+        // Enhanced user role assignment system
+        async function assignUserToClass(teacherId, className, role) {
+            try {
+                await db.collection('teacherAssignments').doc(teacherId).set({
+                    teacherId: teacherId,
+                    assignedClass: className,
+                    role: role,
+                    assignedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log(`Teacher ${teacherId} assigned to ${className} as ${role}`);
+            } catch (error) {
+                console.error('Error assigning teacher:', error);
+            }
+        }
+
+        // Get teacher's assigned classes
+        async function getAssignedClasses(teacherId) {
+            try {
+                const doc = await db.collection('teacherAssignments').doc(teacherId).get();
+                if (doc.exists) {
+                    return doc.data().assignedClass;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error getting assigned classes:', error);
+                return null;
+            }
+        }
+
         function showApp(role) {
             console.log("Showing app for role:", role);
             document.getElementById('loginScreen').style.display = 'none';
@@ -748,6 +1248,9 @@
             
             // Setup navigation tabs based on role
             setupNavigationTabs(role);
+            
+            // Enforce role-based access control
+            enforceRoleBasedAccess();
             
             // Load initial data
             updateAll();
@@ -870,7 +1373,7 @@
                         classOptions += `<option value="${data.fullClass}">${data.fullClass}</option>`;
                     });
                     
-                    const classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
+                    const classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass', 'teacherAssignedClass'];
                     classSelectors.forEach(selectorId => {
                         const select = document.getElementById(selectorId);
                         if (select) select.innerHTML = classOptions;
@@ -891,7 +1394,7 @@
                         subjectOptions += `<option value="${data.name}">${data.name}</option>`;
                     });
                     
-                    const subjectSelectors = ['selectSubject', 'reportSubject', 'viewSubject', 'teacherSubject'];
+                    const subjectSelectors = ['selectSubject', 'reportSubject', 'viewSubject', 'teacherSubjectInput'];
                     subjectSelectors.forEach(selectorId => {
                         const select = document.getElementById(selectorId);
                         if (select) select.innerHTML = subjectOptions;
@@ -1027,38 +1530,54 @@
             });
         }
 
-        // Teacher Management - For Principal Only
-        function addTeacher() {
-            const teacherId = document.getElementById('teacherId').value.trim();
-            const teacherName = document.getElementById('teacherName').value.trim();
-            const teacherSubject = document.getElementById('teacherSubject').value;
-            const teacherRole = document.getElementById('teacherRole').value;
-            const successMsg = document.getElementById('teacherSuccess');
+        // Enhanced teacher addition with automatic assignment
+        async function addTeacherWithAssignment() {
+            const teacherId = document.getElementById('teacherIdInput').value.trim();
+            const teacherName = document.getElementById('teacherNameInput').value.trim();
+            const teacherSubject = document.getElementById('teacherSubjectInput').value;
+            const teacherRole = document.getElementById('teacherRoleInput').value;
+            const assignedClass = document.getElementById('teacherAssignedClass').value;
             
             if (!teacherId || !teacherName || !teacherSubject) {
-                alert('Please fill all fields');
+                alert('Please fill all required fields');
                 return;
             }
             
-            db.collection('teachers').doc(teacherId).set({
-                id: teacherId,
-                name: teacherName,
-                subject: teacherSubject,
-                role: teacherRole,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                document.getElementById('teacherId').value = '';
-                document.getElementById('teacherName').value = '';
-                successMsg.textContent = 'Teacher added successfully!';
-                successMsg.style.display = 'block';
+            if (teacherRole === 'classTeacher' && !assignedClass) {
+                alert('Class Teachers must be assigned to a class');
+                return;
+            }
+            
+            try {
+                // Add teacher to teachers collection
+                await db.collection('teachers').doc(teacherId).set({
+                    id: teacherId,
+                    name: teacherName,
+                    subject: teacherSubject,
+                    role: teacherRole,
+                    assignedClass: assignedClass,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Create assignment record
+                if (assignedClass) {
+                    await assignUserToClass(teacherId, assignedClass, teacherRole);
+                }
+                
+                document.getElementById('teacherIdInput').value = '';
+                document.getElementById('teacherNameInput').value = '';
+                document.getElementById('teacherSuccess').textContent = 'Teacher added and assigned successfully!';
+                document.getElementById('teacherSuccess').style.display = 'block';
+                
                 updateTeachersList();
                 updateSelectors();
-                setTimeout(() => successMsg.style.display = 'none', 3000);
-            })
-            .catch((error) => {
+                
+                setTimeout(() => {
+                    document.getElementById('teacherSuccess').style.display = 'none';
+                }, 3000);
+            } catch (error) {
                 alert('Error adding teacher: ' + error.message);
-            });
+            }
         }
 
         function updateTeachersList() {
@@ -1076,13 +1595,19 @@
                     let counter = 1;
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
+                        const roleBadge = data.role === 'classTeacher' ? 
+                            '<span class="role-badge badge-classTeacher">Class Teacher</span>' : 
+                            '<span class="role-badge badge-subjectTeacher">Subject Teacher</span>';
+                        
                         html += `
                             <div class="teacher-item">
                                 <div class="item-info">
-                                    <strong>${counter}. ${data.id}</strong> - ${data.name} (${data.subject}) - ${data.role}
+                                    <strong>${counter}. ${data.id}</strong> - ${data.name}<br>
+                                    <small>Subject: ${data.subject} | Class: ${data.assignedClass || 'Not Assigned'} ${roleBadge}</small>
                                 </div>
                                 <div class="item-actions">
                                     <button class="btn btn-warning btn-small" onclick="editTeacher('${data.id}')">✏️ Edit</button>
+                                    <button class="btn btn-info btn-small" onclick="reassignTeacher('${data.id}')">🔄 Reassign</button>
                                     <button class="btn btn-danger btn-small" onclick="deleteTeacher('${data.id}')">🗑️ Delete</button>
                                 </div>
                             </div>
@@ -1099,6 +1624,23 @@
 
         function editTeacher(teacherId) {
             alert('Edit teacher: ' + teacherId);
+        }
+
+        // Teacher reassignment function
+        function reassignTeacher(teacherId) {
+            const newClass = prompt('Enter new class assignment (e.g., Grade 6 - A):');
+            if (newClass) {
+                db.collection('teachers').doc(teacherId).update({
+                    assignedClass: newClass
+                })
+                .then(() => {
+                    updateTeachersList();
+                    alert('Teacher reassigned successfully!');
+                })
+                .catch((error) => {
+                    alert('Error reassigning teacher: ' + error.message);
+                });
+            }
         }
 
         function deleteTeacher(teacherId) {
