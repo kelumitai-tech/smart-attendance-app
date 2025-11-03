@@ -397,6 +397,17 @@
             color: #c62828;
             margin-bottom: 15px;
         }
+        .role-permissions {
+            background: #f3e5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #7b1fa2;
+        }
+        .role-permissions h4 {
+            color: #7b1fa2;
+            margin-bottom: 10px;
+        }
         @media (max-width: 768px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -432,6 +443,17 @@
         <div class="content" id="loginScreen">
             <div class="login-box">
                 <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Welcome Back</h2>
+                
+                <!-- Role Selection Info -->
+                <div class="role-permissions">
+                    <h4>🎯 Select Your Role</h4>
+                    <div style="font-size: 0.9em;">
+                        <p><strong>Principal (Admin):</strong> Full system access and control</p>
+                        <p><strong>Class Teacher:</strong> Manage students, mark attendance, generate reports</p>
+                        <p><strong>Subject Teacher:</strong> Mark attendance registers and generate reports</p>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>Login As</label>
                     <select id="loginRole">
@@ -625,6 +647,10 @@
             <div class="tab-content" id="reports">
                 <div class="card">
                     <h3>Generate Monthly Report</h3>
+                    <div class="info-box">
+                        Generate comprehensive monthly attendance reports by grade, subject, and teacher.
+                        PDF reports include detailed attendance statistics and summaries.
+                    </div>
                     <div class="grid-3">
                         <div class="form-group">
                             <label>Select Class</label>
@@ -639,8 +665,32 @@
                             <input type="month" id="reportMonth">
                         </div>
                     </div>
-                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
-                    <button class="btn btn-info" id="generatePdfBtn">📄 Generate PDF Report</button>
+                    <div class="grid-3">
+                        <div class="form-group">
+                            <label>Select Teacher</label>
+                            <select id="reportTeacher"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Report Type</label>
+                            <select id="reportType">
+                                <option value="detailed">Detailed Report</option>
+                                <option value="summary">Summary Report</option>
+                                <option value="subject">Subject-wise Report</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Include Statistics</label>
+                            <select id="includeStats">
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
+                        <button class="btn btn-info" id="generatePdfBtn">📄 Generate PDF Report</button>
+                        <button class="btn btn-secondary" id="generateAllGradesBtn">🎓 All Grades Report</button>
+                    </div>
                     <div id="reportOutput" style="margin-top: 20px;"></div>
                 </div>
 
@@ -683,6 +733,16 @@
                         <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
                             <p>Total Subjects</p>
                             <h2 id="totalSubjects">0</h2>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="card" style="margin-top: 30px;">
+                        <h3>Quick Actions</h3>
+                        <div class="grid-3">
+                            <button class="btn btn-primary" onclick="showTab('students')">👥 Manage Students</button>
+                            <button class="btn btn-warning" onclick="showTab('teachers')">👨‍🏫 Manage Teachers</button>
+                            <button class="btn btn-info" onclick="showTab('reports')">📊 Generate Reports</button>
                         </div>
                     </div>
                 </div>
@@ -1051,6 +1111,7 @@
             // Reports
             document.getElementById('generateReportBtn').addEventListener('click', generateMonthlyReport);
             document.getElementById('generatePdfBtn').addEventListener('click', generatePdfReport);
+            document.getElementById('generateAllGradesBtn').addEventListener('click', generateAllGradesReport);
             
             // Teachers
             document.getElementById('addTeacherBtn').addEventListener('click', addTeacherWithAssignment);
@@ -1469,6 +1530,9 @@
                         updateDashboard();
                     }
                     break;
+                case 'reports':
+                    updateReportSelectors();
+                    break;
             }
         }
 
@@ -1520,12 +1584,17 @@
                         teacherOptions += `<option value="${data.id}">${data.name} (${data.subject})</option>`;
                     });
                     
-                    const teacherSelectors = ['selectTeacher', 'viewTeacher'];
+                    const teacherSelectors = ['selectTeacher', 'viewTeacher', 'reportTeacher'];
                     teacherSelectors.forEach(selectorId => {
                         const select = document.getElementById(selectorId);
                         if (select) select.innerHTML = teacherOptions;
                     });
                 });
+        }
+
+        // Update report selectors specifically
+        function updateReportSelectors() {
+            updateSelectors(); // Reuse the main update function
         }
 
         function updateAll() {
@@ -2234,11 +2303,13 @@
             });
         }
 
-        // Monthly Reports with PDF Generation - For ALL roles
+        // Enhanced Monthly Reports with PDF Generation
         function generateMonthlyReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
             const selectedMonth = document.getElementById('reportMonth').value;
+            const reportType = document.getElementById('reportType').value;
+            const includeStats = document.getElementById('includeStats').value;
             
             if (!selectedClass || !selectedSubject || !selectedMonth) {
                 alert('Please select class, subject, and month');
@@ -2303,7 +2374,7 @@
                     });
                     
                     Promise.all(studentPromises).then(() => {
-                        displayMonthlyReport(selectedClass, selectedSubject, selectedMonth, studentData, Array.from(dates).sort());
+                        displayMonthlyReport(selectedClass, selectedSubject, selectedMonth, studentData, Array.from(dates).sort(), reportType, includeStats);
                     });
                 })
                 .catch((error) => {
@@ -2311,7 +2382,7 @@
                 });
         }
 
-        function displayMonthlyReport(className, subject, month, studentData, dates) {
+        function displayMonthlyReport(className, subject, month, studentData, dates, reportType, includeStats) {
             const monthlyReport = document.getElementById('monthlyReport');
             const reportTitle = document.getElementById('reportTitle');
             const reportSubtitle = document.getElementById('reportSubtitle');
@@ -2321,21 +2392,49 @@
             reportTitle.textContent = `Monthly Attendance Report - ${month}`;
             reportSubtitle.textContent = `Class: ${className} | Subject: ${subject} | Total Days: ${dates.length}`;
             
-            // Generate report content
-            let html = `
-                <div class="grid-2">
-                    <div class="info-box">
-                        <strong>Report Summary</strong><br>
-                        Total Students: ${Object.keys(studentData).length}<br>
-                        Total School Days: ${dates.length}<br>
-                        Reporting Period: ${dates[0]} to ${dates[dates.length - 1]}
+            // Calculate statistics
+            const totalStudents = Object.keys(studentData).length;
+            const totalDays = dates.length;
+            let totalPresent = 0;
+            let totalAbsent = 0;
+            
+            Object.values(studentData).forEach(data => {
+                totalPresent += data.present;
+                totalAbsent += data.absent;
+            });
+            
+            const overallAttendance = totalDays > 0 ? Math.round((totalPresent / (totalStudents * totalDays)) * 100) : 0;
+            
+            // Generate report content based on type
+            let html = '';
+            
+            if (includeStats === 'yes') {
+                html += `
+                    <div class="grid-2">
+                        <div class="info-box">
+                            <strong>Report Summary</strong><br>
+                            Total Students: ${totalStudents}<br>
+                            Total School Days: ${totalDays}<br>
+                            Overall Attendance: ${overallAttendance}%<br>
+                            Reporting Period: ${dates[0]} to ${dates[dates.length - 1]}
+                        </div>
+                        <div class="info-box">
+                            <strong>Attendance Statistics</strong><br>
+                            Total Present: ${totalPresent}<br>
+                            Total Absent: ${totalAbsent}<br>
+                            Average Daily Attendance: ${Math.round(totalPresent / totalDays)}<br>
+                            Generated By: ${appData.userRole}
+                        </div>
                     </div>
-                    <div class="info-box">
-                        <strong>Legend</strong><br>
-                        <span class="attendance-badge badge-present">P</span> - Present<br>
-                        <span class="attendance-badge badge-absent">A</span> - Absent<br>
-                        <span class="attendance-badge" style="background: #666; color: white;">-</span> - No Record
-                    </div>
+                `;
+            }
+            
+            html += `
+                <div class="info-box">
+                    <strong>Legend</strong><br>
+                    <span class="attendance-badge badge-present">P</span> - Present | 
+                    <span class="attendance-badge badge-absent">A</span> - Absent | 
+                    <span class="attendance-badge" style="background: #666; color: white;">-</span> - No Record
                 </div>
                 
                 <div style="overflow-x: auto; margin-top: 20px;">
@@ -2357,7 +2456,6 @@
             let counter = 1;
             Object.keys(studentData).forEach(studentId => {
                 const data = studentData[studentId];
-                const totalDays = dates.length;
                 const percentage = totalDays > 0 ? Math.round((data.present / totalDays) * 100) : 0;
                 
                 html += `
@@ -2394,6 +2492,7 @@
             document.getElementById('reportOutput').innerHTML = '';
         }
 
+        // Generate PDF Report for specific class and subject
         function generatePdfReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -2408,11 +2507,12 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Add title
+            // Add title and header
             doc.setFontSize(16);
             doc.text(`Monthly Attendance Report - ${selectedMonth}`, 20, 20);
             doc.setFontSize(12);
             doc.text(`Class: ${selectedClass} | Subject: ${selectedSubject}`, 20, 30);
+            doc.text(`Generated By: ${appData.userRole} | Date: ${new Date().toLocaleDateString()}`, 20, 40);
             
             // Get report data for PDF
             const startDate = selectedMonth + '-01';
@@ -2500,13 +2600,18 @@
                         
                         // Add table to PDF
                         doc.autoTable({
-                            startY: 40,
+                            startY: 50,
                             head: [headers],
                             body: tableData,
                             theme: 'grid',
                             styles: { fontSize: 8 },
                             headStyles: { fillColor: [0, 90, 156] }
                         });
+                        
+                        // Add summary statistics
+                        const finalY = doc.lastAutoTable.finalY + 10;
+                        doc.setFontSize(10);
+                        doc.text(`Summary: ${Object.keys(studentData).length} students, ${sortedDates.length} days, Generated ${new Date().toLocaleString()}`, 14, finalY);
                         
                         // Save the PDF
                         doc.save(`Attendance_Report_${selectedClass}_${selectedSubject}_${selectedMonth}.pdf`);
@@ -2515,6 +2620,129 @@
                 .catch((error) => {
                     alert('Error generating PDF: ' + error.message);
                 });
+        }
+
+        // Generate report for all grades
+        function generateAllGradesReport() {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principals can generate reports for all grades.');
+                return;
+            }
+            
+            const selectedMonth = document.getElementById('reportMonth').value;
+            
+            if (!selectedMonth) {
+                alert('Please select month first');
+                return;
+            }
+            
+            const reportOutput = document.getElementById('reportOutput');
+            reportOutput.innerHTML = '<div class="loading">Generating comprehensive report for all grades...</div>';
+            
+            // Get all grades
+            db.collection('grades').get()
+                .then((gradesSnapshot) => {
+                    if (gradesSnapshot.empty) {
+                        reportOutput.innerHTML = '<div class="info-box">No grades found in the system.</div>';
+                        return;
+                    }
+                    
+                    let comprehensiveHtml = '<div class="report-card"><div class="report-header"><h3>Comprehensive Monthly Report - All Grades</h3><p>Month: ' + selectedMonth + '</p></div>';
+                    
+                    const gradePromises = [];
+                    
+                    gradesSnapshot.forEach((gradeDoc) => {
+                        const gradeData = gradeDoc.data();
+                        const gradePromise = generateGradeReport(gradeData.fullClass, selectedMonth);
+                        gradePromises.push(gradePromise);
+                    });
+                    
+                    Promise.all(gradePromises).then((gradeReports) => {
+                        gradeReports.forEach((gradeReport, index) => {
+                            if (gradeReport) {
+                                comprehensiveHtml += gradeReport;
+                            }
+                        });
+                        
+                        comprehensiveHtml += '</div>';
+                        reportOutput.innerHTML = comprehensiveHtml;
+                    });
+                })
+                .catch((error) => {
+                    reportOutput.innerHTML = '<div class="error-msg">Error generating comprehensive report: ' + error.message + '</div>';
+                });
+        }
+
+        // Generate report for a specific grade
+        function generateGradeReport(grade, month) {
+            return new Promise((resolve) => {
+                const startDate = month + '-01';
+                const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0)
+                    .toISOString().split('T')[0];
+                
+                // Get attendance for this grade
+                db.collection('attendance')
+                    .where('class', '==', grade)
+                    .where('date', '>=', startDate)
+                    .where('date', '<=', endDate)
+                    .get()
+                    .then((querySnapshot) => {
+                        if (querySnapshot.empty) {
+                            resolve(`<div class="info-box" style="margin: 10px 0;">No attendance records found for ${grade} in ${month}</div>`);
+                            return;
+                        }
+                        
+                        const subjectData = {};
+                        
+                        querySnapshot.forEach((doc) => {
+                            const data = doc.data();
+                            const subject = data.subject;
+                            
+                            if (!subjectData[subject]) {
+                                subjectData[subject] = {
+                                    totalPresent: 0,
+                                    totalAbsent: 0,
+                                    totalRecords: 0
+                                };
+                            }
+                            
+                            Object.values(data.records).forEach(status => {
+                                subjectData[subject].totalRecords++;
+                                if (status === 'present') {
+                                    subjectData[subject].totalPresent++;
+                                } else {
+                                    subjectData[subject].totalAbsent++;
+                                }
+                            });
+                        });
+                        
+                        let gradeHtml = `
+                            <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <h4 style="color: #005A9C; margin-bottom: 15px;">📊 ${grade} - Attendance Summary</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        `;
+                        
+                        Object.keys(subjectData).forEach(subject => {
+                            const data = subjectData[subject];
+                            const percentage = data.totalRecords > 0 ? Math.round((data.totalPresent / data.totalRecords) * 100) : 0;
+                            
+                            gradeHtml += `
+                                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #005A9C;">
+                                    <strong>${subject}</strong><br>
+                                    Present: ${data.totalPresent}<br>
+                                    Absent: ${data.totalAbsent}<br>
+                                    Attendance: <strong>${percentage}%</strong>
+                                </div>
+                            `;
+                        });
+                        
+                        gradeHtml += '</div></div>';
+                        resolve(gradeHtml);
+                    })
+                    .catch((error) => {
+                        resolve(`<div class="error-msg">Error generating report for ${grade}: ${error.message}</div>`);
+                    });
+            });
         }
 
         // View Attendance Records - For Principal Only
