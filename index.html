@@ -1854,6 +1854,402 @@
             alert('Edit grade functionality would be implemented here for grade ID: ' + id);
         }
 
+        // Attendance Management Functions - FIXED
+        async function loadAttendance() {
+            const selectedClass = document.getElementById('selectClass').value;
+            const selectedSubject = document.getElementById('selectSubject').value;
+            const selectedTeacher = document.getElementById('selectTeacher').value;
+            const selectedDate = document.getElementById('startDate').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
+                alert('Please select all required fields');
+                return;
+            }
+            
+            try {
+                // Get teacher information
+                const teacherDoc = await db.collection('teachers').doc(selectedTeacher).get();
+                if (!teacherDoc.exists) {
+                    alert('Selected teacher not found');
+                    return;
+                }
+                const teacherData = teacherDoc.data();
+                
+                // Display teacher information
+                document.getElementById('teacherIdDisplay').textContent = teacherData.teacherId;
+                document.getElementById('teacherNameDisplay').textContent = teacherData.name;
+                document.getElementById('teacherInfo').style.display = 'block';
+                
+                // Get students for the selected class
+                const studentsSnapshot = await db.collection('students')
+                    .where('grade', '==', selectedClass)
+                    .get();
+                
+                if (studentsSnapshot.empty) {
+                    alert('No students found for the selected class');
+                    return;
+                }
+                
+                // Get subject information
+                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
+                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
+                
+                // Clear and populate attendance table
+                const tbody = document.getElementById('attendanceTbody');
+                tbody.innerHTML = '';
+                
+                studentsSnapshot.forEach(doc => {
+                    const student = doc.data();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${student.studentId}</td>
+                        <td>${student.name}</td>
+                        <td>${subjectName}</td>
+                        <td>${teacherData.teacherId}</td>
+                        <td>${teacherData.name}</td>
+                        <td>
+                            <select class="attendance-status">
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button class="btn btn-small btn-primary" onclick="toggleAttendance(this)">Toggle</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                // Show attendance summary
+                document.getElementById('attendanceSummary').style.display = 'block';
+                updateAttendanceSummary();
+                
+            } catch (error) {
+                console.error("Error loading attendance:", error);
+                alert('Error loading attendance: ' + error.message);
+            }
+        }
+
+        function toggleAttendance(button) {
+            const row = button.closest('tr');
+            const statusSelect = row.querySelector('.attendance-status');
+            statusSelect.value = statusSelect.value === 'present' ? 'absent' : 'present';
+            updateAttendanceSummary();
+        }
+
+        function markAllPresent() {
+            document.querySelectorAll('.attendance-status').forEach(select => {
+                select.value = 'present';
+            });
+            updateAttendanceSummary();
+        }
+
+        function markAllAbsent() {
+            document.querySelectorAll('.attendance-status').forEach(select => {
+                select.value = 'absent';
+            });
+            updateAttendanceSummary();
+        }
+
+        function updateAttendanceSummary() {
+            const totalStudents = document.querySelectorAll('.attendance-status').length;
+            const presentCount = document.querySelectorAll('.attendance-status[value="present"]').length;
+            const percentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
+            
+            document.getElementById('presentCount').textContent = presentCount;
+            document.getElementById('totalCount').textContent = totalStudents;
+            document.getElementById('attendancePercentage').textContent = percentage;
+        }
+
+        async function saveAttendance() {
+            const selectedClass = document.getElementById('selectClass').value;
+            const selectedSubject = document.getElementById('selectSubject').value;
+            const selectedTeacher = document.getElementById('selectTeacher').value;
+            const selectedDate = document.getElementById('startDate').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
+                alert('Please select all required fields');
+                return;
+            }
+            
+            const rows = document.querySelectorAll('#attendanceTbody tr');
+            if (rows.length === 0) {
+                alert('No students to save attendance for');
+                return;
+            }
+            
+            try {
+                let savedCount = 0;
+                
+                for (const row of rows) {
+                    const studentId = row.cells[0].textContent;
+                    const status = row.querySelector('.attendance-status').value;
+                    
+                    // Create a unique ID for this attendance record
+                    const attendanceId = `${studentId}_${selectedDate}_${selectedSubject}`;
+                    
+                    await db.collection('attendance').doc(attendanceId).set({
+                        studentId: studentId,
+                        date: selectedDate,
+                        subject: selectedSubject,
+                        teacher: selectedTeacher,
+                        status: status,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    savedCount++;
+                }
+                
+                alert(`Successfully saved attendance for ${savedCount} students`);
+                
+            } catch (error) {
+                console.error("Error saving attendance:", error);
+                alert('Error saving attendance: ' + error.message);
+            }
+        }
+
+        // Report Generation - FIXED
+        async function generateReport() {
+            const selectedClass = document.getElementById('reportClass').value;
+            const selectedSubject = document.getElementById('reportSubject').value;
+            const selectedMonth = document.getElementById('reportMonth').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedMonth) {
+                alert('Please select all required fields');
+                return;
+            }
+            
+            try {
+                // Get start and end dates for the selected month
+                const startDate = new Date(selectedMonth + '-01');
+                const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+                
+                // Format dates for query
+                const startDateStr = startDate.toISOString().split('T')[0];
+                const endDateStr = endDate.toISOString().split('T')[0];
+                
+                // Get attendance records for the selected period
+                const attendanceSnapshot = await db.collection('attendance')
+                    .where('subject', '==', selectedSubject)
+                    .where('date', '>=', startDateStr)
+                    .where('date', '<=', endDateStr)
+                    .get();
+                
+                if (attendanceSnapshot.empty) {
+                    document.getElementById('reportOutput').innerHTML = '<div class="loading">No attendance records found for the selected period.</div>';
+                    return;
+                }
+                
+                // Get students for the selected class
+                const studentsSnapshot = await db.collection('students')
+                    .where('grade', '==', selectedClass)
+                    .get();
+                
+                const students = {};
+                studentsSnapshot.forEach(doc => {
+                    const student = doc.data();
+                    students[student.studentId] = student.name;
+                });
+                
+                // Process attendance data
+                const attendanceData = {};
+                attendanceSnapshot.forEach(doc => {
+                    const record = doc.data();
+                    if (students[record.studentId]) {
+                        if (!attendanceData[record.studentId]) {
+                            attendanceData[record.studentId] = {
+                                name: students[record.studentId],
+                                present: 0,
+                                absent: 0,
+                                total: 0
+                            };
+                        }
+                        
+                        attendanceData[record.studentId].total++;
+                        if (record.status === 'present') {
+                            attendanceData[record.studentId].present++;
+                        } else {
+                            attendanceData[record.studentId].absent++;
+                        }
+                    }
+                });
+                
+                // Generate report HTML
+                let reportHTML = '<h3>Monthly Attendance Report</h3>';
+                reportHTML += `<p>Month: ${selectedMonth}</p>`;
+                reportHTML += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
+                
+                Object.keys(attendanceData).forEach(studentId => {
+                    const data = attendanceData[studentId];
+                    const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+                    reportHTML += `
+                        <tr>
+                            <td>${studentId}</td>
+                            <td>${data.name}</td>
+                            <td class="present">${data.present}</td>
+                            <td class="absent">${data.absent}</td>
+                            <td>${data.total}</td>
+                            <td>${percentage}%</td>
+                        </tr>
+                    `;
+                });
+                
+                reportHTML += '</tbody></table>';
+                document.getElementById('reportOutput').innerHTML = reportHTML;
+                
+            } catch (error) {
+                console.error("Error generating report:", error);
+                document.getElementById('reportOutput').innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+            }
+        }
+
+        async function generatePdfReport() {
+            const reportOutput = document.getElementById('reportOutput');
+            if (!reportOutput.innerHTML) {
+                alert('Please generate a report first');
+                return;
+            }
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text('Monthly Attendance Report', 14, 15);
+                
+                // Add date
+                const selectedMonth = document.getElementById('reportMonth').value;
+                doc.setFontSize(12);
+                doc.text(`Month: ${selectedMonth}`, 14, 25);
+                
+                // Add table using autoTable
+                doc.autoTable({
+                    html: '#reportOutput table',
+                    startY: 30,
+                    styles: { fontSize: 10 },
+                    headStyles: { fillColor: [0, 90, 156] }
+                });
+                
+                // Save the PDF
+                doc.save(`attendance_report_${selectedMonth}.pdf`);
+                
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+
+        // View Attendance Records (Principal Only) - FIXED
+        async function viewAttendanceRecords() {
+            const selectedClass = document.getElementById('viewClass').value;
+            const selectedSubject = document.getElementById('viewSubject').value;
+            const selectedTeacher = document.getElementById('viewTeacher').value;
+            const selectedDate = document.getElementById('viewDate').value;
+            
+            if (!selectedDate) {
+                alert('Please select a date');
+                return;
+            }
+            
+            try {
+                let query = db.collection('attendance').where('date', '==', selectedDate);
+                
+                if (selectedClass) {
+                    // If class is selected, we need to get students from that class first
+                    const studentsSnapshot = await db.collection('students')
+                        .where('grade', '==', selectedClass)
+                        .get();
+                    
+                    const studentIds = [];
+                    studentsSnapshot.forEach(doc => {
+                        studentIds.push(doc.data().studentId);
+                    });
+                    
+                    if (studentIds.length > 0) {
+                        query = query.where('studentId', 'in', studentIds);
+                    }
+                }
+                
+                if (selectedSubject) {
+                    query = query.where('subject', '==', selectedSubject);
+                }
+                
+                if (selectedTeacher) {
+                    query = query.where('teacher', '==', selectedTeacher);
+                }
+                
+                const attendanceSnapshot = await query.get();
+                
+                if (attendanceSnapshot.empty) {
+                    document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
+                    return;
+                }
+                
+                // Get additional information for display
+                const attendanceRecords = [];
+                for (const doc of attendanceSnapshot.docs) {
+                    const record = doc.data();
+                    
+                    // Get student name
+                    const studentDoc = await db.collection('students')
+                        .where('studentId', '==', record.studentId)
+                        .get();
+                    
+                    let studentName = 'Unknown';
+                    if (!studentDoc.empty) {
+                        studentName = studentDoc.docs[0].data().name;
+                    }
+                    
+                    // Get teacher name
+                    const teacherDoc = await db.collection('teachers').doc(record.teacher).get();
+                    let teacherName = 'Unknown';
+                    if (teacherDoc.exists) {
+                        teacherName = teacherDoc.data().name;
+                    }
+                    
+                    // Get subject name
+                    const subjectDoc = await db.collection('subjects').doc(record.subject).get();
+                    let subjectName = 'Unknown';
+                    if (subjectDoc.exists) {
+                        subjectName = subjectDoc.data().name;
+                    }
+                    
+                    attendanceRecords.push({
+                        ...record,
+                        studentName: studentName,
+                        teacherName: teacherName,
+                        subjectName: subjectName
+                    });
+                }
+                
+                // Generate display HTML
+                let outputHTML = '<h3>Attendance Records</h3>';
+                outputHTML += `<p>Date: ${selectedDate}</p>`;
+                outputHTML += '<table><thead><tr><th>Student ID</th><th>Student Name</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead><tbody>';
+                
+                attendanceRecords.forEach(record => {
+                    const statusClass = record.status === 'present' ? 'present' : 'absent';
+                    outputHTML += `
+                        <tr>
+                            <td>${record.studentId}</td>
+                            <td>${record.studentName}</td>
+                            <td>${record.subjectName}</td>
+                            <td>${record.teacherName}</td>
+                            <td class="${statusClass}">${record.status.toUpperCase()}</td>
+                        </tr>
+                    `;
+                });
+                
+                outputHTML += '</tbody></table>';
+                document.getElementById('viewAttendanceOutput').innerHTML = outputHTML;
+                
+            } catch (error) {
+                console.error("Error viewing attendance records:", error);
+                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="error-msg">Error viewing attendance records: ' + error.message + '</div>';
+            }
+        }
+
         // Debug function to check data
         function debugData() {
             console.log("Current User:", appData.currentUser);
