@@ -843,24 +843,26 @@
             
             document.getElementById('roleBadge').textContent = roleText;
             
-            // Show/hide elements based on role
+            // Show/hide elements based on role - FIXED: Principal can see class-teacher content
             document.querySelectorAll('.principal-only').forEach(el => {
                 el.style.display = role === 'principal' ? 'block' : 'none';
             });
             
             document.querySelectorAll('.class-teacher-only').forEach(el => {
-                el.style.display = role === 'class-teacher' ? 'block' : 'none';
+                el.style.display = (role === 'class-teacher' || role === 'principal') ? 'block' : 'none';
             });
             
             document.querySelectorAll('.subject-teacher-only').forEach(el => {
                 el.style.display = role === 'subject-teacher' ? 'block' : 'none';
             });
             
-            // Hide nav tabs that are not applicable to the role
+            // Hide nav tabs that are not applicable to the role - FIXED: Principal can see class-teacher tabs
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 if (tab.classList.contains('principal-only') && role !== 'principal') {
                     tab.style.display = 'none';
-                } else if (tab.classList.contains('class-teacher-only') && role !== 'class-teacher') {
+                } else if (tab.classList.contains('class-teacher-only') && (role !== 'class-teacher' && role !== 'principal')) {
+                    tab.style.display = 'none';
+                } else if (tab.classList.contains('subject-teacher-only') && role !== 'subject-teacher') {
                     tab.style.display = 'none';
                 } else {
                     tab.style.display = 'block';
