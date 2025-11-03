@@ -54,6 +54,7 @@
             margin-bottom: 8px;
             color: #333;
             font-weight: 600;
+            text-align: left;
         }
         .form-group input, .form-group select {
             width: 100%;
@@ -139,10 +140,12 @@
             padding: 25px;
             border-radius: 12px;
             margin-bottom: 20px;
+            text-align: left;
         }
         .card h3 {
             color: #005A9C;
             margin-bottom: 20px;
+            text-align: left;
         }
         table {
             width: 100%;
@@ -150,6 +153,7 @@
             background: white;
             border-radius: 8px;
             overflow: hidden;
+            text-align: left;
         }
         th, td {
             padding: 12px;
@@ -159,6 +163,7 @@
         th {
             background: #005A9C;
             color: white;
+            text-align: left;
         }
         .logout-btn {
             position: absolute;
@@ -182,6 +187,7 @@
             border-radius: 8px;
             color: #1565c0;
             margin-bottom: 20px;
+            text-align: left;
         }
         .grid-2 {
             display: grid;
@@ -197,6 +203,8 @@
         }
         .stats-card h2 { font-size: 3em; margin: 10px 0; }
         .principal-only { display: none; }
+        .class-teacher-only { display: none; }
+        .subject-teacher-only { display: none; }
         .filter-input {
             width: 100%;
             padding: 12px;
@@ -210,17 +218,37 @@
             height: 20px;
             cursor: pointer;
         }
-        .student-item {
+        .student-item, .teacher-item, .subject-item, .grade-item {
             background: white;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 8px;
             border-left: 4px solid #005A9C;
+            text-align: left;
+        }
+        .item-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #005A9C;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
         }
         .loading {
             text-align: center;
             padding: 20px;
             color: #666;
+        }
+        .user-form {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
         }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
@@ -241,8 +269,9 @@
                 <div class="form-group">
                     <label>Login As</label>
                     <select id="loginRole">
-                        <option value="teacher">Teacher</option>
-                        <option value="principal">Principal (Admin)</option>
+                        <option value="principal">Principal (Full Control)</option>
+                        <option value="class-teacher">Class Teacher</option>
+                        <option value="subject-teacher">Subject Teacher</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -260,7 +289,37 @@
                 <!-- Registration Section -->
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                     <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
-                    <button class="btn btn-secondary" id="registerBtn">📝 Register New Account</button>
+                    <button class="btn btn-secondary" id="showRegisterFormBtn">📝 Create New Account</button>
+                    
+                    <div class="user-form" id="registerForm">
+                        <h4 style="text-align: center; margin-bottom: 20px; color: #333;">Create New Account</h4>
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="registerName" placeholder="Enter your full name">
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="registerEmail" placeholder="Enter your email">
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="registerPassword" placeholder="Enter your password">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm Password</label>
+                            <input type="password" id="registerConfirmPassword" placeholder="Confirm your password">
+                        </div>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="registerRole">
+                                <option value="principal">Principal (Full Control)</option>
+                                <option value="class-teacher">Class Teacher</option>
+                                <option value="subject-teacher">Subject Teacher</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="registerBtn">Create Account</button>
+                        <div class="success-msg" id="registerSuccess"></div>
+                    </div>
                 </div>
             </div>
             
@@ -276,19 +335,25 @@
         <!-- Main App -->
         <div class="content app-main" id="appContent">
             <button class="logout-btn" id="logoutBtn">Logout</button>
-            <div class="role-badge" id="roleBadge">Teacher</div>
+            <div class="role-badge" id="roleBadge">User</div>
             
             <div class="nav-tabs" id="navTabs">
-                <button class="nav-tab active" data-tab="attendance">📋 Attendance</button>
-                <button class="nav-tab" data-tab="students">👥 Students</button>
-                <button class="nav-tab" data-tab="reports">📊 Reports</button>
+                <!-- Common Tabs for All Roles -->
+                <button class="nav-tab active" data-tab="attendance">📋 Mark Attendance</button>
+                <button class="nav-tab" data-tab="reports">📊 Reports & PDF</button>
+                
+                <!-- Class Teacher Only -->
+                <button class="nav-tab class-teacher-only" data-tab="students">👥 Students</button>
+                
+                <!-- Principal Only -->
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
                 <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
                 <button class="nav-tab principal-only" data-tab="grades">🎓 Grades</button>
                 <button class="nav-tab principal-only" data-tab="subjects">📚 Subjects</button>
+                <button class="nav-tab principal-only" data-tab="users">👤 User Management</button>
             </div>
 
-            <!-- Attendance Tab -->
+            <!-- Attendance Tab (All Roles) -->
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
@@ -314,6 +379,7 @@
                         <table id="attendanceTable">
                             <thead>
                                 <tr>
+                                    <th>#</th>
                                     <th>Student ID</th>
                                     <th>Name</th>
                                     <th>Mon</th>
@@ -325,7 +391,7 @@
                                 </tr>
                             </thead>
                             <tbody id="attendanceTbody">
-                                <tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                                <tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -337,8 +403,30 @@
                 </div>
             </div>
 
-            <!-- Students Tab -->
-            <div class="tab-content" id="students">
+            <!-- Reports Tab (All Roles) -->
+            <div class="tab-content" id="reports">
+                <div class="card">
+                    <h3>Generate Monthly Report</h3>
+                    <div class="form-group">
+                        <label>Select Class</label>
+                        <select id="reportClass"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Subject</label>
+                        <select id="reportSubject"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Month</label>
+                        <input type="month" id="reportMonth">
+                    </div>
+                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
+                    <button class="btn btn-secondary" id="generatePdfBtn">📄 Generate PDF</button>
+                    <div id="reportOutput" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Students Tab (Class Teacher Only) -->
+            <div class="tab-content class-teacher-only" id="students">
                 <div class="card">
                     <h3>Add New Student</h3>
                     <div class="grid-2">
@@ -381,30 +469,9 @@
                 </div>
             </div>
 
-            <!-- Reports Tab -->
-            <div class="tab-content" id="reports">
-                <div class="card">
-                    <h3>Generate Monthly Report</h3>
-                    <div class="form-group">
-                        <label>Select Class</label>
-                        <select id="reportClass"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Select Subject</label>
-                        <select id="reportSubject"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Month</label>
-                        <input type="month" id="reportMonth">
-                    </div>
-                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
-                    <div id="reportOutput" style="margin-top: 20px;"></div>
-                </div>
-            </div>
-
-            <!-- Dashboard Tab -->
+            <!-- Dashboard Tab (Principal Only) -->
             <div class="tab-content principal-only" id="dashboard">
-                <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
+                <h2 style="color: #005A9C; margin-bottom: 30px; text-align: left;">🎯 Principal Dashboard</h2>
                 <div class="grid-2">
                     <div class="stats-card">
                         <p>Total Students</p>
@@ -425,7 +492,7 @@
                 </div>
             </div>
 
-            <!-- Teachers Tab -->
+            <!-- Teachers Tab (Principal Only) -->
             <div class="tab-content principal-only" id="teachers">
                 <div class="card">
                     <h3>Add New Teacher</h3>
@@ -443,6 +510,13 @@
                         <label>Subject</label>
                         <select id="teacherSubject"></select>
                     </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="teacherRole">
+                            <option value="class-teacher">Class Teacher</option>
+                            <option value="subject-teacher">Subject Teacher</option>
+                        </select>
+                    </div>
                     <button class="btn btn-primary" id="addTeacherBtn">Add Teacher</button>
                     <div class="success-msg" id="teacherSuccess"></div>
                 </div>
@@ -453,7 +527,7 @@
                 </div>
             </div>
 
-            <!-- Subjects Tab -->
+            <!-- Subjects Tab (Principal Only) -->
             <div class="tab-content principal-only" id="subjects">
                 <div class="card">
                     <h3>Add New Subject</h3>
@@ -471,7 +545,7 @@
                 </div>
             </div>
 
-            <!-- Grades Tab -->
+            <!-- Grades Tab (Principal Only) -->
             <div class="tab-content principal-only" id="grades">
                 <div class="card">
                     <h3>Add New Grade & Class</h3>
@@ -502,6 +576,15 @@
                     <h3>Grades & Classes List</h3>
                     <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
                     <div id="gradesList" class="loading">Loading grades...</div>
+                </div>
+            </div>
+
+            <!-- User Management Tab (Principal Only) -->
+            <div class="tab-content principal-only" id="users">
+                <div class="card">
+                    <h3>User Management</h3>
+                    <div class="info-box">Manage all system users and their roles</div>
+                    <div id="usersList" class="loading">Loading users...</div>
                 </div>
             </div>
         </div>
@@ -535,7 +618,8 @@
         // Global app data
         const appData = {
             currentUser: null,
-            userRole: null
+            userRole: null,
+            userName: null
         };
 
         // Initialize the application
@@ -556,10 +640,11 @@
             if (auth) {
                 auth.onAuthStateChanged((user) => {
                     if (user) {
-                        getUserRole(user.uid).then(role => {
+                        getUserData(user.uid).then(userData => {
                             appData.currentUser = user;
-                            appData.userRole = role;
-                            showApp(role);
+                            appData.userRole = userData.role;
+                            appData.userName = userData.name;
+                            showApp(userData.role);
                         });
                     } else {
                         document.getElementById('loginScreen').style.display = 'block';
@@ -569,13 +654,17 @@
             }
         }
 
-        async function getUserRole(uid) {
+        async function getUserData(uid) {
             try {
                 const doc = await db.collection('users').doc(uid).get();
-                return doc.exists ? doc.data().role : 'teacher';
+                if (doc.exists) {
+                    return doc.data();
+                } else {
+                    return { role: 'subject-teacher', name: 'User' };
+                }
             } catch (error) {
-                console.error("Error getting user role:", error);
-                return 'teacher';
+                console.error("Error getting user data:", error);
+                return { role: 'subject-teacher', name: 'User' };
             }
         }
 
@@ -583,6 +672,7 @@
             // Authentication
             document.getElementById('loginBtn').addEventListener('click', doLogin);
             document.getElementById('googleBtn').addEventListener('click', googleLogin);
+            document.getElementById('showRegisterFormBtn').addEventListener('click', showRegisterForm);
             document.getElementById('registerBtn').addEventListener('click', showRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
@@ -606,6 +696,7 @@
             
             // Reports
             document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+            document.getElementById('generatePdfBtn').addEventListener('click', generatePdf);
             
             // Principal-only features
             document.getElementById('addTeacherBtn').addEventListener('click', addTeacher);
@@ -614,6 +705,11 @@
             document.getElementById('teacherFilter').addEventListener('keyup', filterTeachers);
             document.getElementById('subjectFilter').addEventListener('keyup', filterSubjects);
             document.getElementById('gradeFilter').addEventListener('keyup', filterGrades);
+        }
+
+        function showRegisterForm() {
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('showRegisterFormBtn').style.display = 'none';
         }
 
         function doLogin() {
@@ -630,11 +726,12 @@
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    return getUserRole(user.uid);
+                    return getUserData(user.uid);
                 })
-                .then((role) => {
-                    appData.userRole = role;
-                    showApp(role);
+                .then((userData) => {
+                    appData.userRole = userData.role;
+                    appData.userName = userData.name;
+                    showApp(userData.role);
                     errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
@@ -648,23 +745,25 @@
             auth.signInWithPopup(provider)
                 .then((result) => {
                     const user = result.user;
-                    return getUserRole(user.uid);
+                    return getUserData(user.uid);
                 })
-                .then((role) => {
-                    if (!role) {
+                .then((userData) => {
+                    if (!userData.role) {
                         const selectedRole = document.getElementById('loginRole').value;
                         const user = auth.currentUser;
                         return db.collection('users').doc(user.uid).set({
                             email: user.email,
+                            name: user.displayName || 'User',
                             role: selectedRole,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => selectedRole);
+                        }).then(() => ({ role: selectedRole, name: user.displayName || 'User' }));
                     }
-                    return role;
+                    return userData;
                 })
-                .then((role) => {
-                    appData.userRole = role;
-                    showApp(role);
+                .then((userData) => {
+                    appData.userRole = userData.role;
+                    appData.userName = userData.name;
+                    showApp(userData.role);
                 })
                 .catch((error) => {
                     document.getElementById('loginError').textContent = 'Google login failed: ' + error.message;
@@ -673,13 +772,22 @@
         }
 
         function showRegistration() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-            const role = document.getElementById('loginRole').value;
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value.trim();
+            const confirmPassword = document.getElementById('registerConfirmPassword').value.trim();
+            const role = document.getElementById('registerRole').value;
             const errorMsg = document.getElementById('loginError');
+            const successMsg = document.getElementById('registerSuccess');
             
-            if (!email || !password) {
-                errorMsg.textContent = 'Please enter both email and password';
+            if (!name || !email || !password || !confirmPassword) {
+                errorMsg.textContent = 'Please fill all fields';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                errorMsg.textContent = 'Passwords do not match';
                 errorMsg.style.display = 'block';
                 return;
             }
@@ -695,14 +803,27 @@
                     const user = userCredential.user;
                     return db.collection('users').doc(user.uid).set({
                         email: email,
+                        name: name,
                         role: role,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 })
                 .then(() => {
-                    appData.userRole = role;
-                    showApp(role);
+                    successMsg.textContent = 'Account created successfully! You can now login.';
+                    successMsg.style.display = 'block';
                     errorMsg.style.display = 'none';
+                    
+                    // Reset form
+                    document.getElementById('registerName').value = '';
+                    document.getElementById('registerEmail').value = '';
+                    document.getElementById('registerPassword').value = '';
+                    document.getElementById('registerConfirmPassword').value = '';
+                    
+                    setTimeout(() => {
+                        successMsg.style.display = 'none';
+                        document.getElementById('registerForm').style.display = 'none';
+                        document.getElementById('showRegisterFormBtn').style.display = 'block';
+                    }, 3000);
                 })
                 .catch((error) => {
                     errorMsg.textContent = 'Registration failed: ' + error.message;
@@ -713,10 +834,37 @@
         function showApp(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
-            document.getElementById('roleBadge').textContent = role === 'principal' ? 'Principal' : 'Teacher';
             
+            // Set role badge
+            let roleText = '';
+            if (role === 'principal') roleText = 'Principal';
+            else if (role === 'class-teacher') roleText = 'Class Teacher';
+            else roleText = 'Subject Teacher';
+            
+            document.getElementById('roleBadge').textContent = roleText;
+            
+            // Show/hide elements based on role
             document.querySelectorAll('.principal-only').forEach(el => {
                 el.style.display = role === 'principal' ? 'block' : 'none';
+            });
+            
+            document.querySelectorAll('.class-teacher-only').forEach(el => {
+                el.style.display = role === 'class-teacher' ? 'block' : 'none';
+            });
+            
+            document.querySelectorAll('.subject-teacher-only').forEach(el => {
+                el.style.display = role === 'subject-teacher' ? 'block' : 'none';
+            });
+            
+            // Hide nav tabs that are not applicable to the role
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                if (tab.classList.contains('principal-only') && role !== 'principal') {
+                    tab.style.display = 'none';
+                } else if (tab.classList.contains('class-teacher-only') && role !== 'class-teacher') {
+                    tab.style.display = 'none';
+                } else {
+                    tab.style.display = 'block';
+                }
             });
             
             updateAll();
@@ -726,6 +874,7 @@
             auth.signOut().then(() => {
                 appData.currentUser = null;
                 appData.userRole = null;
+                appData.userName = null;
                 document.getElementById('loginScreen').style.display = 'block';
                 document.getElementById('appContent').style.display = 'none';
             });
@@ -738,12 +887,13 @@
             document.getElementById(tabName).classList.add('active');
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             
-            // Refresh data when switching tabs
+            // Load data for the specific tab
             if (tabName === 'students') updateStudentsList();
-            if (tabName === 'teachers') updateTeachersList();
-            if (tabName === 'subjects') updateSubjectsList();
-            if (tabName === 'grades') updateGradesList();
-            if (tabName === 'dashboard') updateDashboard();
+            else if (tabName === 'teachers') updateTeachersList();
+            else if (tabName === 'subjects') updateSubjectsList();
+            else if (tabName === 'grades') updateGradesList();
+            else if (tabName === 'dashboard') updateDashboard();
+            else if (tabName === 'users') updateUsersList();
         }
 
         // Update selectors with data from Firestore
@@ -787,16 +937,19 @@
 
         function updateAll() {
             updateSelectors();
-            updateStudentsList();
+            if (appData.userRole === 'class-teacher' || appData.userRole === 'principal') {
+                updateStudentsList();
+            }
             if (appData.userRole === 'principal') {
                 updateTeachersList();
                 updateSubjectsList();
                 updateGradesList();
                 updateDashboard();
+                updateUsersList();
             }
         }
 
-        // Student Management
+        // Student Management (Class Teacher and Principal)
         function addStudent() {
             const id = document.getElementById('studentId').value.trim();
             const name = document.getElementById('studentName').value.trim();
@@ -841,14 +994,17 @@
                     }
                     
                     let html = '';
+                    let count = 1;
                     querySnapshot.forEach((doc) => {
                         const student = doc.data();
                         html += `
                             <div class="student-item">
+                                <span class="item-number">${count}</span>
                                 <strong>${student.id} - ${student.name}</strong>
                                 <br><small>Class: ${student.grade} | Gender: ${student.gender}</small>
                             </div>
                         `;
+                        count++;
                     });
                     
                     container.innerHTML = html;
@@ -871,7 +1027,7 @@
             });
         }
 
-        // Attendance Management
+        // Attendance Management (All Roles)
         function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
@@ -883,7 +1039,7 @@
             }
             
             const tbody = document.getElementById('attendanceTbody');
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
             
             db.collection('students')
                 .where('grade', '==', selectedClass)
@@ -891,12 +1047,13 @@
                 .get()
                 .then((querySnapshot) => {
                     if (querySnapshot.empty) {
-                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">No students in this class</td></tr>';
                         return;
                     }
                     
                     let html = '';
                     const studentPromises = [];
+                    let count = 1;
                     
                     querySnapshot.forEach((doc) => {
                         const student = doc.data();
@@ -910,6 +1067,7 @@
                                     
                                     html += `
                                         <tr>
+                                            <td>${count}</td>
                                             <td>${student.id}</td>
                                             <td>${student.name}</td>
                                             <td><input type="checkbox" class="attendance-checkbox" data-student="${student.id}" data-day="0" ${attendance[0] ? 'checked' : ''}></td>
@@ -920,6 +1078,7 @@
                                             <td><strong>${total}/5</strong></td>
                                         </tr>
                                     `;
+                                    count++;
                                 })
                         );
                     });
@@ -929,7 +1088,7 @@
                     });
                 })
                 .catch((error) => {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #c00;">Error loading students</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #c00;">Error loading students</td></tr>';
                 });
         }
 
@@ -959,7 +1118,7 @@
             const savePromises = [];
             
             rows.forEach(row => {
-                const studentId = row.querySelector('td').textContent;
+                const studentId = row.cells[1].textContent;
                 const checkboxes = row.querySelectorAll('.attendance-checkbox');
                 const attendance = Array.from(checkboxes).map(cb => cb.checked);
                 
@@ -986,7 +1145,7 @@
                 });
         }
 
-        // Reports
+        // Reports (All Roles)
         function generateReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -1010,10 +1169,11 @@
                         return;
                     }
                     
-                    let html = `<h3>Monthly Report: ${selectedClass} - ${selectedSubject} (${month})</h3>`;
-                    html += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Present</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
+                    let html = `<h3 style="text-align: left;">Monthly Report: ${selectedClass} - ${selectedSubject} (${month})</h3>`;
+                    html += '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Present</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
                     
                     const reportPromises = [];
+                    let count = 1;
                     
                     querySnapshot.forEach((doc) => {
                         const student = doc.data();
@@ -1038,6 +1198,7 @@
                                 
                                 html += `
                                     <tr>
+                                        <td>${count}</td>
                                         <td>${student.id}</td>
                                         <td>${student.name}</td>
                                         <td>${presentDays}</td>
@@ -1045,6 +1206,7 @@
                                         <td><strong>${percentage}%</strong></td>
                                     </tr>
                                 `;
+                                count++;
                             });
                             
                         reportPromises.push(promise);
@@ -1060,11 +1222,18 @@
                 });
         }
 
+        function generatePdf() {
+            alert('PDF generation would be implemented here. This would create a downloadable PDF report.');
+            // In a real implementation, you would use a library like jsPDF
+            // to generate a PDF from the report data
+        }
+
         // Principal-only functions
         function addTeacher() {
             const id = document.getElementById('teacherId').value.trim();
             const name = document.getElementById('teacherName').value.trim();
             const subject = document.getElementById('teacherSubject').value;
+            const role = document.getElementById('teacherRole').value;
             const successMsg = document.getElementById('teacherSuccess');
             
             if (!id || !name || !subject) {
@@ -1076,6 +1245,7 @@
                 id: id,
                 name: name,
                 subject: subject,
+                role: role,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
@@ -1160,14 +1330,17 @@
                     }
                     
                     let html = '';
+                    let count = 1;
                     querySnapshot.forEach((doc) => {
                         const teacher = doc.data();
                         html += `
-                            <div class="student-item">
+                            <div class="teacher-item">
+                                <span class="item-number">${count}</span>
                                 <strong>${teacher.id} - ${teacher.name}</strong>
-                                <br><small>Subject: ${teacher.subject}</small>
+                                <br><small>Subject: ${teacher.subject} | Role: ${teacher.role === 'class-teacher' ? 'Class Teacher' : 'Subject Teacher'}</small>
                             </div>
                         `;
+                        count++;
                     });
                     
                     container.innerHTML = html;
@@ -1189,13 +1362,16 @@
                     }
                     
                     let html = '';
+                    let count = 1;
                     querySnapshot.forEach((doc) => {
                         const subject = doc.data();
                         html += `
-                            <div class="student-item">
+                            <div class="subject-item">
+                                <span class="item-number">${count}</span>
                                 <strong>${subject.name}</strong>
                             </div>
                         `;
+                        count++;
                     });
                     
                     container.innerHTML = html;
@@ -1217,19 +1393,60 @@
                     }
                     
                     let html = '';
+                    let count = 1;
                     querySnapshot.forEach((doc) => {
                         const grade = doc.data();
                         html += `
-                            <div class="student-item">
+                            <div class="grade-item">
+                                <span class="item-number">${count}</span>
                                 <strong>${grade.fullClass}</strong>
                             </div>
                         `;
+                        count++;
                     });
                     
                     container.innerHTML = html;
                 })
                 .catch((error) => {
                     container.innerHTML = '<div class="error-msg">Error loading grades</div>';
+                });
+        }
+
+        function updateUsersList() {
+            const container = document.getElementById('usersList');
+            container.innerHTML = '<div class="loading">Loading users...</div>';
+            
+            db.collection('users').get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        container.innerHTML = '<div class="info-box">No users found</div>';
+                        return;
+                    }
+                    
+                    let html = '<table><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead><tbody>';
+                    let count = 1;
+                    querySnapshot.forEach((doc) => {
+                        const user = doc.data();
+                        html += `
+                            <tr>
+                                <td>${count}</td>
+                                <td>${user.name}</td>
+                                <td>${user.email}</td>
+                                <td>${user.role === 'principal' ? 'Principal' : user.role === 'class-teacher' ? 'Class Teacher' : 'Subject Teacher'}</td>
+                                <td>
+                                    <button class="btn btn-primary" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="editUser('${doc.id}')">Edit</button>
+                                    <button class="btn btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px;" onclick="deleteUser('${doc.id}')">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                        count++;
+                    });
+                    
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                })
+                .catch((error) => {
+                    container.innerHTML = '<div class="error-msg">Error loading users</div>';
                 });
         }
 
@@ -1253,7 +1470,7 @@
 
         function filterTeachers() {
             const filter = document.getElementById('teacherFilter').value.toLowerCase();
-            const items = document.querySelectorAll('#teachersList .student-item');
+            const items = document.querySelectorAll('#teachersList .teacher-item');
             items.forEach(item => {
                 item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
             });
@@ -1261,7 +1478,7 @@
 
         function filterSubjects() {
             const filter = document.getElementById('subjectFilter').value.toLowerCase();
-            const items = document.querySelectorAll('#subjectsList .student-item');
+            const items = document.querySelectorAll('#subjectsList .subject-item');
             items.forEach(item => {
                 item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
             });
@@ -1269,10 +1486,25 @@
 
         function filterGrades() {
             const filter = document.getElementById('gradeFilter').value.toLowerCase();
-            const items = document.querySelectorAll('#gradesList .student-item');
+            const items = document.querySelectorAll('#gradesList .grade-item');
             items.forEach(item => {
                 item.style.display = item.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
             });
+        }
+
+        // Placeholder functions for user management
+        function editUser(userId) {
+            alert('Edit user functionality would be implemented here for user: ' + userId);
+        }
+
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                alert('Delete user functionality would be implemented here for user: ' + userId);
+                // In a real implementation, you would delete the user from Firestore
+                // db.collection('users').doc(userId).delete().then(() => {
+                //     updateUsersList();
+                // });
+            }
         }
     </script>
 </body>
