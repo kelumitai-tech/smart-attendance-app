@@ -385,6 +385,18 @@
             text-align: center;
             margin-top: 20px;
         }
+        .access-denied {
+            background: #ffebee;
+            color: #c62828;
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .access-denied h3 {
+            color: #c62828;
+            margin-bottom: 15px;
+        }
         @media (max-width: 768px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -560,45 +572,52 @@
 
             <!-- Students Tab - Principal & Class Teacher Only -->
             <div class="tab-content" id="students">
-                <div class="card">
-                    <h3>Add New Student</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Student ID</label>
-                            <input type="text" id="studentId" placeholder="e.g., S001">
+                <div class="access-denied" id="studentsAccessDenied" style="display: none;">
+                    <h3>🚫 Access Denied</h3>
+                    <p>You don't have permission to access student management features.</p>
+                    <p>Only Principals and Class Teachers can manage students.</p>
+                </div>
+                <div id="studentsContent">
+                    <div class="card">
+                        <h3>Add New Student</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Student ID</label>
+                                <input type="text" id="studentId" placeholder="e.g., S001">
+                            </div>
+                            <div class="form-group">
+                                <label>Student Name</label>
+                                <input type="text" id="studentName" placeholder="Enter name">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Student Name</label>
-                            <input type="text" id="studentName" placeholder="Enter name">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Grade</label>
+                                <select id="studentGrade"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Gender</label>
+                                <select id="studentGender">
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
                         </div>
+                        <button class="btn btn-primary btn-full" id="addStudentBtn">Add Student</button>
+                        <div class="success-msg" id="studentSuccess"></div>
                     </div>
-                    <div class="grid-2">
+
+                    <div class="card">
+                        <h3>Student List</h3>
                         <div class="form-group">
-                            <label>Grade</label>
-                            <select id="studentGrade"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Gender</label>
-                            <select id="studentGender">
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
+                            <label>Filter by Class</label>
+                            <select id="filterStudentClass">
+                                <option value="">All Classes</option>
                             </select>
                         </div>
+                        <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
+                        <div id="studentList" class="loading">Loading students...</div>
                     </div>
-                    <button class="btn btn-primary btn-full" id="addStudentBtn">Add Student</button>
-                    <div class="success-msg" id="studentSuccess"></div>
-                </div>
-
-                <div class="card">
-                    <h3>Student List</h3>
-                    <div class="form-group">
-                        <label>Filter by Class</label>
-                        <select id="filterStudentClass">
-                            <option value="">All Classes</option>
-                        </select>
-                    </div>
-                    <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
-                    <div id="studentList" class="loading">Loading students...</div>
                 </div>
             </div>
 
@@ -641,149 +660,184 @@
 
             <!-- Dashboard Tab - Principal Only -->
             <div class="tab-content" id="dashboard">
-                <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
-                <div class="grid-2">
-                    <div class="stats-card">
-                        <p>Total Students</p>
-                        <h2 id="totalStudents">0</h2>
-                    </div>
-                    <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                        <p>Total Teachers</p>
-                        <h2 id="totalTeachers">0</h2>
-                    </div>
-                    <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                        <p>Total Classes</p>
-                        <h2 id="totalGrades">0</h2>
-                    </div>
-                    <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                        <p>Total Subjects</p>
-                        <h2 id="totalSubjects">0</h2>
+                <div class="access-denied" id="dashboardAccessDenied" style="display: none;">
+                    <h3>🚫 Access Denied</h3>
+                    <p>You don't have permission to access the dashboard.</p>
+                    <p>Only Principals can view the system dashboard.</p>
+                </div>
+                <div id="dashboardContent">
+                    <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
+                    <div class="grid-2">
+                        <div class="stats-card">
+                            <p>Total Students</p>
+                            <h2 id="totalStudents">0</h2>
+                        </div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <p>Total Teachers</p>
+                            <h2 id="totalTeachers">0</h2>
+                        </div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <p>Total Classes</p>
+                            <h2 id="totalGrades">0</h2>
+                        </div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <p>Total Subjects</p>
+                            <h2 id="totalSubjects">0</h2>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Teachers Tab - Principal Only -->
             <div class="tab-content" id="teachers">
-                <div class="card">
-                    <h3>Add New Teacher with Class Assignment</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Teacher ID</label>
-                            <input type="text" id="teacherIdInput" placeholder="e.g., T001">
+                <div class="access-denied" id="teachersAccessDenied" style="display: none;">
+                    <h3>🚫 Access Denied</h3>
+                    <p>You don't have permission to access teacher management features.</p>
+                    <p>Only Principals can manage teachers.</p>
+                </div>
+                <div id="teachersContent">
+                    <div class="card">
+                        <h3>Add New Teacher with Class Assignment</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Teacher ID</label>
+                                <input type="text" id="teacherIdInput" placeholder="e.g., T001">
+                            </div>
+                            <div class="form-group">
+                                <label>Teacher Name</label>
+                                <input type="text" id="teacherNameInput" placeholder="Enter name">
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Subject</label>
+                                <select id="teacherSubjectInput"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Assigned Class</label>
+                                <select id="teacherAssignedClass">
+                                    <option value="">-- Select Class --</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label>Teacher Name</label>
-                            <input type="text" id="teacherNameInput" placeholder="Enter name">
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Subject</label>
-                            <select id="teacherSubjectInput"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Assigned Class</label>
-                            <select id="teacherAssignedClass">
-                                <option value="">-- Select Class --</option>
+                            <label>Role</label>
+                            <select id="teacherRoleInput">
+                                <option value="classTeacher">Class Teacher</option>
+                                <option value="subjectTeacher">Subject Teacher</option>
                             </select>
                         </div>
+                        <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher with Assignment</button>
+                        <div class="success-msg" id="teacherSuccess"></div>
                     </div>
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select id="teacherRoleInput">
-                            <option value="classTeacher">Class Teacher</option>
-                            <option value="subjectTeacher">Subject Teacher</option>
-                        </select>
+                    <div class="card">
+                        <h3>Teachers List with Assignments</h3>
+                        <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
+                        <div id="teachersList" class="loading">Loading teachers...</div>
                     </div>
-                    <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher with Assignment</button>
-                    <div class="success-msg" id="teacherSuccess"></div>
-                </div>
-                <div class="card">
-                    <h3>Teachers List with Assignments</h3>
-                    <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
-                    <div id="teachersList" class="loading">Loading teachers...</div>
                 </div>
             </div>
 
             <!-- Subjects Tab - Principal & Class Teacher Only -->
             <div class="tab-content" id="subjects">
-                <div class="card">
-                    <h3>Add New Subject</h3>
-                    <div class="form-group">
-                        <label>Subject Name</label>
-                        <input type="text" id="subjectName" placeholder="e.g., Mathematics">
-                    </div>
-                    <button class="btn btn-primary btn-full" id="addSubjectBtn">Add Subject</button>
-                    <div class="success-msg" id="subjectSuccess"></div>
+                <div class="access-denied" id="subjectsAccessDenied" style="display: none;">
+                    <h3>🚫 Access Denied</h3>
+                    <p>You don't have permission to access subject management features.</p>
+                    <p>Only Principals and Class Teachers can manage subjects.</p>
                 </div>
-                <div class="card">
-                    <h3>Subjects List</h3>
-                    <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects...">
-                    <div id="subjectsList" class="loading">Loading subjects...</div>
+                <div id="subjectsContent">
+                    <div class="card">
+                        <h3>Add New Subject</h3>
+                        <div class="form-group">
+                            <label>Subject Name</label>
+                            <input type="text" id="subjectName" placeholder="e.g., Mathematics">
+                        </div>
+                        <button class="btn btn-primary btn-full" id="addSubjectBtn">Add Subject</button>
+                        <div class="success-msg" id="subjectSuccess"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Subjects List</h3>
+                        <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects...">
+                        <div id="subjectsList" class="loading">Loading subjects...</div>
+                    </div>
                 </div>
             </div>
 
             <!-- Grades Tab - Principal & Class Teacher Only -->
             <div class="tab-content" id="grades">
-                <div class="card">
-                    <h3>Add New Grade & Class</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Grade</label>
-                            <select id="newGrade">
-                                <option value="">-- Select Grade --</option>
-                                <option value="Grade 6">Grade 6</option>
-                                <option value="Grade 7">Grade 7</option>
-                                <option value="Grade 8">Grade 8</option>
-                                <option value="Grade 9">Grade 9</option>
-                                <option value="Grade 10">Grade 10</option>
-                                <option value="Grade 11">Grade 11</option>
-                                <option value="Grade 12">Grade 12</option>
-                                <option value="Grade 13">Grade 13</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Class Name</label>
-                            <input type="text" id="className" placeholder="e.g., A, B, C">
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-full" id="addClassBtn">Add Grade & Class</button>
-                    <div class="success-msg" id="classSuccess"></div>
+                <div class="access-denied" id="gradesAccessDenied" style="display: none;">
+                    <h3>🚫 Access Denied</h3>
+                    <p>You don't have permission to access grade management features.</p>
+                    <p>Only Principals and Class Teachers can manage grades and classes.</p>
                 </div>
-                <div class="card">
-                    <h3>Grades & Classes List</h3>
-                    <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
-                    <div id="gradesList" class="loading">Loading grades...</div>
+                <div id="gradesContent">
+                    <div class="card">
+                        <h3>Add New Grade & Class</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Grade</label>
+                                <select id="newGrade">
+                                    <option value="">-- Select Grade --</option>
+                                    <option value="Grade 6">Grade 6</option>
+                                    <option value="Grade 7">Grade 7</option>
+                                    <option value="Grade 8">Grade 8</option>
+                                    <option value="Grade 9">Grade 9</option>
+                                    <option value="Grade 10">Grade 10</option>
+                                    <option value="Grade 11">Grade 11</option>
+                                    <option value="Grade 12">Grade 12</option>
+                                    <option value="Grade 13">Grade 13</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Class Name</label>
+                                <input type="text" id="className" placeholder="e.g., A, B, C">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-full" id="addClassBtn">Add Grade & Class</button>
+                        <div class="success-msg" id="classSuccess"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Grades & Classes List</h3>
+                        <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
+                        <div id="gradesList" class="loading">Loading grades...</div>
+                    </div>
                 </div>
             </div>
 
             <!-- View Attendance Tab - Principal Only -->
             <div class="tab-content" id="viewAttendance">
-                <div class="card">
-                    <h3>View Attendance Records</h3>
-                    <div class="info-box">View attendance records by grade, teacher, subject, and date</div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Class</label>
-                            <select id="viewClass"></select>
+                <div class="access-denied" id="viewAttendanceAccessDenied" style="display: none;">
+                    <h3>🚫 Access Denied</h3>
+                    <p>You don't have permission to view all attendance records.</p>
+                    <p>Only Principals can view all attendance records.</p>
+                </div>
+                <div id="viewAttendanceContent">
+                    <div class="card">
+                        <h3>View Attendance Records</h3>
+                        <div class="info-box">View attendance records by grade, teacher, subject, and date</div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Select Class</label>
+                                <select id="viewClass"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Select Subject</label>
+                                <select id="viewSubject"></select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Select Subject</label>
-                            <select id="viewSubject"></select>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Select Teacher</label>
+                                <select id="viewTeacher"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="viewDate">
+                            </div>
                         </div>
+                        <button class="btn btn-primary btn-full" id="viewAttendanceBtn">View Attendance</button>
+                        <div id="viewAttendanceOutput" style="margin-top: 20px;"></div>
                     </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Teacher</label>
-                            <select id="viewTeacher"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Date</label>
-                            <input type="date" id="viewDate">
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-full" id="viewAttendanceBtn">View Attendance</button>
-                    <div id="viewAttendanceOutput" style="margin-top: 20px;"></div>
                 </div>
             </div>
         </div>
@@ -842,6 +896,7 @@
                 { id: 'attendance', name: '📋 Mark Attendance', icon: '📋', description: 'Mark attendance for your assigned class' },
                 { id: 'students', name: '👥 My Students', icon: '👥', description: 'Manage students in your assigned class' },
                 { id: 'subjects', name: '📚 My Subjects', icon: '📚', description: 'View subjects for your class' },
+                { id: 'grades', name: '🎓 My Classes', icon: '🎓', description: 'Manage your assigned classes' },
                 { id: 'reports', name: '📊 Class Reports', icon: '📊', description: 'Generate reports for your class' }
             ],
             subjectTeacher: [
@@ -1138,34 +1193,58 @@
                 });
         }
 
-        // Role-based access control improvements
+        // Enhanced Role-Based Access Control
         function enforceRoleBasedAccess() {
             const userRole = appData.userRole;
+            console.log("Enforcing role-based access for:", userRole);
             
-            // Hide/show elements based on role
+            // Hide all access denied messages first
+            document.querySelectorAll('.access-denied').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show all content areas first
+            document.querySelectorAll('#studentsContent, #teachersContent, #subjectsContent, #gradesContent, #dashboardContent, #viewAttendanceContent').forEach(el => {
+                el.style.display = 'block';
+            });
+            
+            // Apply restrictions based on role
             if (userRole === 'subjectTeacher') {
-                // Subject Teachers can only mark attendance and generate reports
-                document.querySelectorAll('#students, #teachers, #grades, #subjects, #dashboard, #viewAttendance').forEach(el => {
-                    if (el.style.display === 'block') {
-                        el.style.display = 'none';
-                    }
-                });
+                // Subject Teachers can only access attendance and reports
+                document.getElementById('studentsAccessDenied').style.display = 'block';
+                document.getElementById('teachersAccessDenied').style.display = 'block';
+                document.getElementById('subjectsAccessDenied').style.display = 'block';
+                document.getElementById('gradesAccessDenied').style.display = 'block';
+                document.getElementById('dashboardAccessDenied').style.display = 'block';
+                document.getElementById('viewAttendanceAccessDenied').style.display = 'block';
                 
-                // Limit class selection to assigned classes only
+                document.getElementById('studentsContent').style.display = 'none';
+                document.getElementById('teachersContent').style.display = 'none';
+                document.getElementById('subjectsContent').style.display = 'none';
+                document.getElementById('gradesContent').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'none';
+                document.getElementById('viewAttendanceContent').style.display = 'none';
+                
+                // Limit class selection
                 limitClassSelectionForSubjectTeacher();
             }
             
             if (userRole === 'classTeacher') {
-                // Class Teachers cannot manage teachers or view all attendance records
-                document.querySelectorAll('#teachers, #viewAttendance, #dashboard').forEach(el => {
-                    if (el.style.display === 'block') {
-                        el.style.display = 'none';
-                    }
-                });
+                // Class Teachers cannot access teachers dashboard and view all attendance
+                document.getElementById('teachersAccessDenied').style.display = 'block';
+                document.getElementById('dashboardAccessDenied').style.display = 'block';
+                document.getElementById('viewAttendanceAccessDenied').style.display = 'block';
+                
+                document.getElementById('teachersContent').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'none';
+                document.getElementById('viewAttendanceContent').style.display = 'none';
                 
                 // Limit to assigned classes only
                 limitClassSelectionForClassTeacher();
             }
+            
+            // Disable form elements for unauthorized users
+            disableUnauthorizedForms(userRole);
         }
 
         // Subject Teacher: Limit to assigned subjects and classes
@@ -1177,11 +1256,14 @@
             classSelectors.forEach(selectorId => {
                 const select = document.getElementById(selectorId);
                 if (select) {
-                    const options = select.options;
-                    for (let i = 0; i < options.length; i++) {
-                        if (!assignedClasses.includes(options[i].value) && options[i].value !== '') {
-                            options[i].style.display = 'none';
+                    Array.from(select.options).forEach(option => {
+                        if (option.value && !assignedClasses.includes(option.value)) {
+                            option.disabled = true;
                         }
+                    });
+                    // Auto-select first available class if none selected
+                    if (!select.value && assignedClasses.length > 0) {
+                        select.value = assignedClasses[0];
                     }
                 }
             });
@@ -1195,18 +1277,36 @@
             classSelectors.forEach(selectorId => {
                 const select = document.getElementById(selectorId);
                 if (select) {
-                    const options = select.options;
-                    for (let i = 0; i < options.length; i++) {
-                        if (options[i].value !== assignedClass && options[i].value !== '') {
-                            options[i].style.display = 'none';
+                    Array.from(select.options).forEach(option => {
+                        if (option.value && option.value !== assignedClass) {
+                            option.disabled = true;
                         }
-                    }
+                    });
                     // Auto-select assigned class
-                    if (selectorId !== 'filterStudentClass') {
+                    if (selectorId !== 'filterStudentClass' && assignedClass) {
                         select.value = assignedClass;
                     }
                 }
             });
+        }
+
+        // Disable form elements for unauthorized users
+        function disableUnauthorizedForms(userRole) {
+            if (userRole === 'subjectTeacher') {
+                // Disable all management forms for subject teachers
+                document.querySelectorAll('#studentsContent input, #studentsContent select, #studentsContent button, #teachersContent input, #teachersContent select, #teachersContent button, #subjectsContent input, #subjectsContent select, #subjectsContent button, #gradesContent input, #gradesContent select, #gradesContent button').forEach(element => {
+                    if (element.id !== 'studentFilter' && element.id !== 'teacherFilter' && element.id !== 'subjectFilter' && element.id !== 'gradeFilter') {
+                        element.disabled = true;
+                    }
+                });
+            }
+            
+            if (userRole === 'classTeacher') {
+                // Disable teacher management forms for class teachers
+                document.querySelectorAll('#teachersContent input, #teachersContent select, #teachersContent button').forEach(element => {
+                    element.disabled = true;
+                });
+            }
         }
 
         // Enhanced user role assignment system
@@ -1345,19 +1445,29 @@
             // Refresh data when switching to specific tabs
             switch(tabId) {
                 case 'students':
-                    updateStudentsList();
+                    if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') {
+                        updateStudentsList();
+                    }
                     break;
                 case 'teachers':
-                    updateTeachersList();
+                    if (appData.userRole === 'principal') {
+                        updateTeachersList();
+                    }
                     break;
                 case 'subjects':
-                    updateSubjectsList();
+                    if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') {
+                        updateSubjectsList();
+                    }
                     break;
                 case 'grades':
-                    updateGradesList();
+                    if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') {
+                        updateGradesList();
+                    }
                     break;
                 case 'dashboard':
-                    updateDashboard();
+                    if (appData.userRole === 'principal') {
+                        updateDashboard();
+                    }
                     break;
             }
         }
@@ -1420,15 +1530,26 @@
 
         function updateAll() {
             updateSelectors();
-            updateStudentsList();
-            updateTeachersList();
-            updateSubjectsList();
-            updateGradesList();
-            updateDashboard();
+            if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') {
+                updateStudentsList();
+            }
+            if (appData.userRole === 'principal') {
+                updateTeachersList();
+                updateDashboard();
+            }
+            if (appData.userRole === 'principal' || appData.userRole === 'classTeacher') {
+                updateSubjectsList();
+                updateGradesList();
+            }
         }
 
         // Student Management - For Principal & Class Teacher
         function addStudent() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can add students.');
+                return;
+            }
+            
             const studentId = document.getElementById('studentId').value.trim();
             const studentName = document.getElementById('studentName').value.trim();
             const studentGrade = document.getElementById('studentGrade').value;
@@ -1461,6 +1582,10 @@
         }
 
         function updateStudentsList() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                return;
+            }
+            
             const studentList = document.getElementById('studentList');
             studentList.innerHTML = '<div class="loading">Loading students...</div>';
             
@@ -1497,10 +1622,19 @@
         }
 
         function editStudent(studentId) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can edit students.');
+                return;
+            }
             alert('Edit student: ' + studentId);
         }
 
         function deleteStudent(studentId) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can delete students.');
+                return;
+            }
+            
             if (confirm(`Delete student ${studentId}?`)) {
                 db.collection('students').doc(studentId).delete()
                     .then(() => {
@@ -1532,6 +1666,11 @@
 
         // Enhanced teacher addition with automatic assignment
         async function addTeacherWithAssignment() {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principals can add teachers.');
+                return;
+            }
+            
             const teacherId = document.getElementById('teacherIdInput').value.trim();
             const teacherName = document.getElementById('teacherNameInput').value.trim();
             const teacherSubject = document.getElementById('teacherSubjectInput').value;
@@ -1581,6 +1720,10 @@
         }
 
         function updateTeachersList() {
+            if (appData.userRole !== 'principal') {
+                return;
+            }
+            
             const teachersList = document.getElementById('teachersList');
             teachersList.innerHTML = '<div class="loading">Loading teachers...</div>';
             
@@ -1623,11 +1766,20 @@
         }
 
         function editTeacher(teacherId) {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principals can edit teachers.');
+                return;
+            }
             alert('Edit teacher: ' + teacherId);
         }
 
         // Teacher reassignment function
         function reassignTeacher(teacherId) {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principals can reassign teachers.');
+                return;
+            }
+            
             const newClass = prompt('Enter new class assignment (e.g., Grade 6 - A):');
             if (newClass) {
                 db.collection('teachers').doc(teacherId).update({
@@ -1644,6 +1796,11 @@
         }
 
         function deleteTeacher(teacherId) {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principals can delete teachers.');
+                return;
+            }
+            
             if (confirm(`Delete teacher ${teacherId}?`)) {
                 db.collection('teachers').doc(teacherId).delete()
                     .then(() => {
@@ -1672,6 +1829,11 @@
 
         // Subject Management - For Principal & Class Teacher
         function addSubject() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can add subjects.');
+                return;
+            }
+            
             const subjectName = document.getElementById('subjectName').value.trim();
             const successMsg = document.getElementById('subjectSuccess');
             
@@ -1698,6 +1860,10 @@
         }
 
         function updateSubjectsList() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                return;
+            }
+            
             const subjectsList = document.getElementById('subjectsList');
             subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
             
@@ -1734,10 +1900,19 @@
         }
 
         function editSubject(subjectName) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can edit subjects.');
+                return;
+            }
             alert('Edit subject: ' + subjectName);
         }
 
         function deleteSubject(subjectName) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can delete subjects.');
+                return;
+            }
+            
             if (confirm(`Delete subject "${subjectName}"?`)) {
                 db.collection('subjects').doc(subjectName).delete()
                     .then(() => {
@@ -1766,6 +1941,11 @@
 
         // Grade/Class Management - For Principal & Class Teacher
         function addGradeClass() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can add grades and classes.');
+                return;
+            }
+            
             const grade = document.getElementById('newGrade').value;
             const className = document.getElementById('className').value.trim().toUpperCase();
             const successMsg = document.getElementById('classSuccess');
@@ -1798,6 +1978,10 @@
         }
 
         function updateGradesList() {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                return;
+            }
+            
             const gradesList = document.getElementById('gradesList');
             gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
             
@@ -1834,10 +2018,19 @@
         }
 
         function editGradeClass(gradeId) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can edit grades.');
+                return;
+            }
             alert('Edit grade: ' + gradeId);
         }
 
         function deleteGradeClass(gradeId) {
+            if (appData.userRole !== 'principal' && appData.userRole !== 'classTeacher') {
+                alert('Access denied. Only Principals and Class Teachers can delete grades.');
+                return;
+            }
+            
             if (confirm('Delete this grade?')) {
                 db.collection('grades').doc(gradeId).delete()
                     .then(() => {
@@ -1866,6 +2059,10 @@
 
         // Dashboard - For Principal Only
         function updateDashboard() {
+            if (appData.userRole !== 'principal') {
+                return;
+            }
+            
             db.collection('students').get().then(snapshot => {
                 document.getElementById('totalStudents').textContent = snapshot.size;
             });
@@ -2322,6 +2519,11 @@
 
         // View Attendance Records - For Principal Only
         function viewAttendanceRecords() {
+            if (appData.userRole !== 'principal') {
+                alert('Access denied. Only Principals can view all attendance records.');
+                return;
+            }
+            
             const selectedClass = document.getElementById('viewClass').value;
             const selectedSubject = document.getElementById('viewSubject').value;
             const selectedTeacher = document.getElementById('viewTeacher').value;
