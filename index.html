@@ -1136,7 +1136,7 @@
             }
         }
 
-        // Data management functions - COMPLETELY FIXED
+        // Data management functions - FIXED VERSION
         async function loadClassDropdowns() {
             try {
                 const snapshot = await db.collection('grades').get();
@@ -1163,15 +1163,15 @@
                 
                 snapshot.forEach(doc => {
                     const gradeData = doc.data();
-                    // FIX: Check if className exists, if not use a default value
-                    const className = gradeData.className || 'Class A';
-                    const optionText = `${gradeData.grade} - ${className}`;
+                    // FIX: Ensure className exists and use proper format
+                    const className = gradeData.className || 'A';
+                    const displayText = `${gradeData.grade} - ${className}`;
                     const optionValue = doc.id;
                     
                     // Create option for main dropdowns
                     const option = document.createElement('option');
                     option.value = optionValue;
-                    option.textContent = optionText;
+                    option.textContent = displayText;
                     
                     dropdowns.forEach(select => {
                         select.appendChild(option.cloneNode(true));
@@ -1180,7 +1180,7 @@
                     // Create option for filter dropdown
                     const filterOption = document.createElement('option');
                     filterOption.value = optionValue;
-                    filterOption.textContent = optionText;
+                    filterOption.textContent = displayText;
                     filterStudentClass.appendChild(filterOption);
                 });
                 
@@ -1285,7 +1285,7 @@
                 const gradesSnapshot = await db.collection('grades').get();
                 if (gradesSnapshot.empty) {
                     console.log("Adding sample grades...");
-                    // Add sample grades with proper class names
+                    // Add sample grades with proper class names - FIXED
                     const sampleGrades = [
                         { grade: 'Grade 6', className: 'A', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
                         { grade: 'Grade 7', className: 'B', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
@@ -1353,6 +1353,33 @@
                     console.log("Teachers already exist:", teachersSnapshot.size);
                 }
 
+                // Check if students collection is empty and add sample students
+                const studentsSnapshot = await db.collection('students').get();
+                if (studentsSnapshot.empty && !gradesSnapshot.empty) {
+                    console.log("Adding sample students...");
+                    // Get first grade for sample student
+                    const firstGrade = gradesSnapshot.docs[0];
+                    const gradeData = firstGrade.data();
+                    const className = gradeData.className || 'A';
+                    const gradeDisplay = `${gradeData.grade} - ${className}`;
+                    
+                    // Add sample student
+                    await db.collection('students').add({
+                        studentId: 'S001',
+                        name: 'Sample Student',
+                        grade: firstGrade.id,
+                        gradeDisplay: gradeDisplay,
+                        gender: 'Male',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log("Sample student added successfully");
+                    
+                    // Reload student list
+                    setTimeout(loadStudents, 1000);
+                } else {
+                    console.log("Students already exist:", studentsSnapshot.size);
+                }
+
             } catch (error) {
                 console.error("Error initializing sample data:", error);
             }
@@ -1379,20 +1406,21 @@
                     return;
                 }
                 
-                // Get grade data for display
+                // Get grade data for display - FIXED
                 const gradeDoc = await db.collection('grades').doc(studentGrade).get();
                 if (!gradeDoc.exists) {
                     alert('Selected grade not found');
                     return;
                 }
                 const gradeData = gradeDoc.data();
-                const className = gradeData.className || 'Class A';
+                const className = gradeData.className || 'A';
+                const gradeDisplay = `${gradeData.grade} - ${className}`;
                 
                 await db.collection('students').add({
                     studentId: studentId,
                     name: studentName,
                     grade: studentGrade,
-                    gradeDisplay: `${gradeData.grade} - ${className}`,
+                    gradeDisplay: gradeDisplay, // FIX: Store proper display format
                     gender: studentGender,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -1438,7 +1466,7 @@
                     studentItem.innerHTML = `
                         <div class="item-info">
                             <strong>${student.studentId}</strong> - ${student.name}
-                            <br><small>${student.gradeDisplay} • ${student.gender}</small>
+                            <br><small>${student.gradeDisplay || 'Grade not set'} • ${student.gender}</small>
                         </div>
                         <div class="item-actions">
                             <button class="btn btn-warning btn-small" onclick="editStudent('${doc.id}')">Edit</button>
@@ -1727,12 +1755,13 @@
                 
                 snapshot.forEach(doc => {
                     const grade = doc.data();
-                    const className = grade.className || 'Class A';
+                    const className = grade.className || 'A'; // FIX: Default to 'A' if not set
+                    const displayText = `${grade.grade} - ${className}`;
                     const gradeItem = document.createElement('div');
                     gradeItem.className = 'grade-item';
                     gradeItem.innerHTML = `
                         <div class="item-info">
-                            <strong>${grade.grade} - ${className}</strong>
+                            <strong>${displayText}</strong>
                         </div>
                         <div class="item-actions">
                             <button class="btn btn-warning btn-small" onclick="editGrade('${doc.id}')">Edit</button>
