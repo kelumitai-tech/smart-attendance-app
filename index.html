@@ -730,14 +730,14 @@
         };
 
         // Initialize the application
-        window.onload = function() {
+        document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             setTodayDate();
             checkAuthState();
             
             // Initialize sample data after a short delay
             setTimeout(initializeSampleData, 2000);
-        };
+        });
 
         function setTodayDate() {
             const today = new Date();
@@ -908,24 +908,25 @@
                                     if (storedRole === selectedRole) {
                                         return storedRole;
                                     } else {
-                                        throw new Error(`Account role mismatch. Your account is registered as ${roleDisplayMapping[storedRole]}`);
+                                        throw new Error(`Your account is registered as ${roleDisplayMapping[storedRole]}, but you are trying to login as ${roleDisplayMapping[selectedRole]}. Please select the correct role.`);
                                     }
                                 } else {
-                                    throw new Error('No role found for this user');
+                                    throw new Error('User role not found in database. Please contact administrator.');
                                 }
                             } else {
-                                throw new Error('User profile not found');
+                                throw new Error('User account not found. Please register first.');
                             }
                         });
                 })
                 .then((role) => {
-                    appData.currentUser = auth.currentUser;
+                    console.log("Role after login:", role);
                     appData.userRole = role;
                     showApp(role);
+                    errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
                     console.error("Login error:", error);
-                    errorMsg.textContent = error.message;
+                    errorMsg.textContent = 'Login failed: ' + error.message;
                     errorMsg.style.display = 'block';
                 });
         }
@@ -943,405 +944,486 @@
             }
             
             if (password.length < 6) {
-                errorMsg.textContent = 'Password must be at least 6 characters long';
+                errorMsg.textContent = 'Password should be at least 6 characters';
                 errorMsg.style.display = 'block';
                 return;
             }
-            
+
+            // First try to create user in Firebase Authentication
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    console.log("Registration successful for:", user.email);
+                    console.log("User created in auth:", user.email);
                     
-                    // Store user role in Firestore
+                    // Then create user document in Firestore with selected role
                     return db.collection('users').doc(user.uid).set({
                         email: email,
                         role: role,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        console.log("User document created with role:", role);
+                        return user;
                     });
                 })
-                .then(() => {
-                    alert('Registration successful! You can now login with your credentials.');
-                    showLoginForm();
+                .then((user) => {
+                    // Login the user after successful registration
+                    return auth.signInWithEmailAndPassword(email, password);
+                })
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    appData.userRole = role;
+                    showApp(role);
+                    errorMsg.style.display = 'none';
                 })
                 .catch((error) => {
                     console.error("Registration error:", error);
-                    errorMsg.textContent = error.message;
+                    if (error.code === 'auth/email-already-in-use') {
+                        errorMsg.textContent = 'Email already exists. Please use a different email or try to login.';
+                    } else {
+                        errorMsg.textContent = 'Registration failed: ' + error.message;
+                    }
                     errorMsg.style.display = 'block';
                 });
         }
 
-        function doLogout() {
-            auth.signOut()
-                .then(() => {
-                    console.log("User logged out");
-                    appData.currentUser = null;
-                    appData.userRole = null;
-                    document.getElementById('loginScreen').style.display = 'block';
-                    document.getElementById('appContent').style.display = 'none';
-                    showLoginForm();
-                })
-                .catch((error) => {
-                    console.error("Logout error:", error);
-                });
-        }
-
         function showApp(role) {
+            console.log("Showing app for role:", role);
+            
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             
-            // Update role badge
-            document.getElementById('roleBadge').textContent = roleDisplayMapping[role] || role;
+            // Set role badge text correctly based on actual role
+            let roleText = roleDisplayMapping[role] || role;
+            document.getElementById('roleBadge').textContent = roleText;
             
-            // Show/hide elements based on role
-            document.querySelectorAll('.principal-only').forEach(el => {
-                el.style.display = role === 'principal' ? 'block' : 'none';
+            // Update role-based visibility
+            updateRoleBasedVisibility(role);
+            
+            updateAll();
+        }
+
+        function updateRoleBasedVisibility(role) {
+            console.log("Updating visibility for role:", role);
+            
+            // Hide all role-specific elements first
+            document.querySelectorAll('.principal-only, .class-teacher-only, .subject-teacher-only').forEach(el => {
+                el.style.display = 'none';
             });
             
-            document.querySelectorAll('.class-teacher-only').forEach(el => {
-                el.style.display = (role === 'principal' || role === 'classTeacher') ? 'block' : 'none';
-            });
-            
-            document.querySelectorAll('.subject-teacher-only').forEach(el => {
-                el.style.display = (role === 'principal' || role === 'subjectTeacher') ? 'block' : 'none';
-            });
-            
-            // Load initial data
-            loadGrades();
-            loadSubjects();
-            loadTeachers();
-            
+            // Show elements based on role with proper permissions
             if (role === 'principal') {
-                loadDashboardStats();
+                // Principal sees everything
+                document.querySelectorAll('.principal-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+                // Show all tabs for principal
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.style.display = 'block';
+                });
+            } else if (role === 'classTeacher') {
+                // Class Teacher sees class-teacher-only elements
+                document.querySelectorAll('.class-teacher-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+                // Show only allowed tabs for class teacher
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    const tabName = tab.getAttribute('data-tab');
+                    const allowedTabs = ['attendance', 'students', 'reports', 'grades', 'subjects'];
+                    if (allowedTabs.includes(tabName)) {
+                        tab.style.display = 'block';
+                    } else {
+                        tab.style.display = 'none';
+                    }
+                });
+            } else if (role === 'subjectTeacher') {
+                // Subject Teacher sees ONLY attendance and reports - NO student management
+                document.querySelectorAll('.subject-teacher-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+                // Show only allowed tabs for subject teacher
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    const tabName = tab.getAttribute('data-tab');
+                    const allowedTabs = ['attendance', 'reports'];
+                    if (allowedTabs.includes(tabName)) {
+                        tab.style.display = 'block';
+                    } else {
+                        tab.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Ensure at least one tab is active
+            const activeTabs = document.querySelectorAll('.nav-tab.active');
+            if (activeTabs.length === 0) {
+                const firstVisibleTab = document.querySelector('.nav-tab[style="display: block"]');
+                if (firstVisibleTab) {
+                    showTab(firstVisibleTab.getAttribute('data-tab'));
+                } else {
+                    // If no visible tabs, show attendance tab
+                    showTab('attendance');
+                }
             }
         }
 
-        function showTab(tabId) {
-            // Hide all tabs
+        function doLogout() {
+            auth.signOut().then(() => {
+                appData.currentUser = null;
+                appData.userRole = null;
+                document.getElementById('loginScreen').style.display = 'block';
+                document.getElementById('appContent').style.display = 'none';
+                showLoginForm();
+            });
+        }
+
+        function showTab(tabName) {
+            // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.nav-tab').forEach(btn => {
-                btn.classList.remove('active');
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
             });
             
-            // Show selected tab
-            document.getElementById(tabId).classList.add('active');
+            // Show selected tab content
+            const tabContent = document.getElementById(tabName);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
             
-            // Activate clicked tab button
-            document.querySelector(`.nav-tab[data-tab="${tabId}"]`).classList.add('active');
+            // Add active class to clicked tab
+            const navTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+            if (navTab) {
+                navTab.classList.add('active');
+            }
             
-            // Load tab-specific data
-            switch(tabId) {
-                case 'students':
-                    loadStudents();
-                    break;
-                case 'teachers':
-                    loadTeachers();
-                    break;
-                case 'subjects':
-                    loadSubjects();
-                    break;
-                case 'grades':
-                    loadGrades();
-                    break;
-                case 'dashboard':
-                    loadDashboardStats();
-                    break;
+            // Load data for the tab if needed
+            if (tabName === 'students') {
+                loadStudents();
+            } else if (tabName === 'teachers') {
+                loadTeachers();
+            } else if (tabName === 'subjects') {
+                loadSubjects();
+            } else if (tabName === 'grades') {
+                loadGrades();
+            } else if (tabName === 'dashboard') {
+                loadDashboard();
             }
         }
 
-        // Initialize sample data function
+        function updateAll() {
+            // Load dropdowns and initial data
+            loadClassDropdowns();
+            loadSubjectDropdowns();
+            loadTeacherDropdowns();
+            
+            // Load initial data based on current tab
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab) {
+                const tabName = activeTab.id;
+                if (tabName === 'students') {
+                    loadStudents();
+                } else if (tabName === 'teachers') {
+                    loadTeachers();
+                } else if (tabName === 'subjects') {
+                    loadSubjects();
+                } else if (tabName === 'grades') {
+                    loadGrades();
+                } else if (tabName === 'dashboard') {
+                    loadDashboard();
+                }
+            }
+        }
+
+        // Data management functions - FIXED VERSION
+        async function loadClassDropdowns() {
+            try {
+                const snapshot = await db.collection('grades').get();
+                const classSelect = document.getElementById('selectClass');
+                const reportClassSelect = document.getElementById('reportClass');
+                const viewClassSelect = document.getElementById('viewClass');
+                const filterStudentClass = document.getElementById('filterStudentClass');
+                const studentGrade = document.getElementById('studentGrade');
+                
+                // Clear existing options
+                const dropdowns = [classSelect, reportClassSelect, viewClassSelect, studentGrade];
+                dropdowns.forEach(select => {
+                    if (select) select.innerHTML = '<option value="">Select Class</option>';
+                });
+                
+                if (filterStudentClass) filterStudentClass.innerHTML = '<option value="">All Classes</option>';
+                
+                if (snapshot.empty) {
+                    dropdowns.forEach(select => {
+                        if (select) select.innerHTML += '<option value="" disabled>No classes available. Please add classes first.</option>';
+                    });
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const gradeData = doc.data();
+                    // FIX: Ensure className exists and use proper format
+                    const className = gradeData.className || 'A';
+                    const displayText = `${gradeData.grade} - ${className}`;
+                    const optionValue = doc.id;
+                    
+                    // Create option for main dropdowns
+                    const option = document.createElement('option');
+                    option.value = optionValue;
+                    option.textContent = displayText;
+                    
+                    dropdowns.forEach(select => {
+                        if (select) select.appendChild(option.cloneNode(true));
+                    });
+                    
+                    // Create option for filter dropdown
+                    if (filterStudentClass) {
+                        const filterOption = document.createElement('option');
+                        filterOption.value = optionValue;
+                        filterOption.textContent = displayText;
+                        filterStudentClass.appendChild(filterOption);
+                    }
+                });
+                
+                console.log("Classes loaded successfully. Total:", snapshot.size);
+            } catch (error) {
+                console.error("Error loading classes:", error);
+                const errorOption = '<option value="" disabled>Error loading classes</option>';
+                document.querySelectorAll('#selectClass, #reportClass, #viewClass, #studentGrade, #filterStudentClass').forEach(select => {
+                    if (select) select.innerHTML = errorOption;
+                });
+            }
+        }
+
+        async function loadSubjectDropdowns() {
+            try {
+                const snapshot = await db.collection('subjects').get();
+                const selectSubject = document.getElementById('selectSubject');
+                const reportSubject = document.getElementById('reportSubject');
+                const viewSubject = document.getElementById('viewSubject');
+                const teacherSubject = document.getElementById('teacherSubject');
+                
+                // Clear existing options
+                const dropdowns = [selectSubject, reportSubject, viewSubject, teacherSubject];
+                dropdowns.forEach(select => {
+                    if (select) select.innerHTML = '<option value="">Select Subject</option>';
+                });
+                
+                if (snapshot.empty) {
+                    dropdowns.forEach(select => {
+                        if (select) select.innerHTML += '<option value="" disabled>No subjects available. Please add subjects first.</option>';
+                    });
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const subjectData = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = subjectData.name;
+                    
+                    dropdowns.forEach(select => {
+                        if (select) select.appendChild(option.cloneNode(true));
+                    });
+                });
+                
+                console.log("Subjects loaded successfully. Total:", snapshot.size);
+            } catch (error) {
+                console.error("Error loading subjects:", error);
+                const errorOption = '<option value="" disabled>Error loading subjects</option>';
+                document.querySelectorAll('#selectSubject, #reportSubject, #viewSubject, #teacherSubject').forEach(select => {
+                    if (select) select.innerHTML = errorOption;
+                });
+            }
+        }
+
+        async function loadTeacherDropdowns() {
+            try {
+                const snapshot = await db.collection('teachers').get();
+                const selectTeacher = document.getElementById('selectTeacher');
+                const viewTeacher = document.getElementById('viewTeacher');
+                
+                // Clear existing options
+                const dropdowns = [selectTeacher, viewTeacher];
+                dropdowns.forEach(select => {
+                    if (select) select.innerHTML = '<option value="">Select Teacher</option>';
+                });
+                
+                if (snapshot.empty) {
+                    dropdowns.forEach(select => {
+                        if (select) select.innerHTML += '<option value="" disabled>No teachers available. Please add teachers first.</option>';
+                    });
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const teacherData = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = `${teacherData.name} (${teacherData.teacherId}) - ${teacherData.subjectName}`;
+                    
+                    dropdowns.forEach(select => {
+                        if (select) select.appendChild(option.cloneNode(true));
+                    });
+                });
+                
+                console.log("Teachers loaded successfully. Total:", snapshot.size);
+            } catch (error) {
+                console.error("Error loading teachers:", error);
+                const errorOption = '<option value="" disabled>Error loading teachers</option>';
+                document.querySelectorAll('#selectTeacher, #viewTeacher').forEach(select => {
+                    if (select) select.innerHTML = errorOption;
+                });
+            }
+        }
+
+        // Initialize sample data if collections are empty
         async function initializeSampleData() {
             try {
-                // Check if sample data already exists
-                const gradesSnapshot = await db.collection('grades').get();
-                const subjectsSnapshot = await db.collection('subjects').get();
+                console.log("Initializing sample data...");
                 
+                // Check if grades collection is empty
+                const gradesSnapshot = await db.collection('grades').get();
                 if (gradesSnapshot.empty) {
-                    console.log("Initializing sample grades...");
+                    console.log("Adding sample grades...");
+                    // Add sample grades with proper class names - FIXED
                     const sampleGrades = [
-                        { grade: 'Grade 6', className: 'A' },
-                        { grade: 'Grade 6', className: 'B' },
-                        { grade: 'Grade 7', className: 'A' },
-                        { grade: 'Grade 7', className: 'B' }
+                        { grade: 'Grade 6', className: 'A', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { grade: 'Grade 7', className: 'B', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { grade: 'Grade 8', className: 'C', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { grade: 'Grade 9', className: 'A', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { grade: 'Grade 10', className: 'B', createdAt: firebase.firestore.FieldValue.serverTimestamp() }
                     ];
                     
                     for (const grade of sampleGrades) {
                         await db.collection('grades').add(grade);
                     }
+                    console.log("Sample grades added successfully");
+                    
+                    // Reload dropdowns after adding sample data
+                    setTimeout(loadClassDropdowns, 1000);
+                } else {
+                    console.log("Grades already exist:", gradesSnapshot.size);
                 }
-                
+
+                // Check if subjects collection is empty
+                const subjectsSnapshot = await db.collection('subjects').get();
                 if (subjectsSnapshot.empty) {
-                    console.log("Initializing sample subjects...");
+                    console.log("Adding sample subjects...");
+                    // Add sample subjects
                     const sampleSubjects = [
-                        'Mathematics',
-                        'Science', 
-                        'English',
-                        'History',
-                        'Geography'
+                        { name: 'Mathematics', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { name: 'Science', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { name: 'English', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { name: 'History', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+                        { name: 'Sinhala', createdAt: firebase.firestore.FieldValue.serverTimestamp() }
                     ];
                     
                     for (const subject of sampleSubjects) {
-                        await db.collection('subjects').add({ name: subject });
+                        await db.collection('subjects').add(subject);
                     }
+                    console.log("Sample subjects added successfully");
+                    
+                    // Reload dropdowns after adding sample data
+                    setTimeout(loadSubjectDropdowns, 1000);
+                } else {
+                    console.log("Subjects already exist:", subjectsSnapshot.size);
                 }
-                
-                console.log("✅ Sample data initialization complete");
-            } catch (error) {
-                console.error("❌ Error initializing sample data:", error);
-            }
-        }
 
-        // Data Management Functions
-        async function loadGrades() {
-            try {
-                const snapshot = await db.collection('grades').get();
-                const grades = [];
-                snapshot.forEach(doc => {
-                    grades.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Populate grade dropdowns
-                const gradeDropdowns = [
-                    'selectClass', 'studentGrade', 'reportClass', 'viewClass', 'filterStudentClass'
-                ];
-                
-                gradeDropdowns.forEach(dropdownId => {
-                    const dropdown = document.getElementById(dropdownId);
-                    if (dropdown) {
-                        dropdown.innerHTML = '<option value="">Select Class</option>';
-                        grades.forEach(grade => {
-                            const option = document.createElement('option');
-                            option.value = grade.id;
-                            option.textContent = `${grade.grade} - ${grade.className}`;
-                            dropdown.appendChild(option);
-                        });
-                    }
-                });
-                
-                // Update grades list
-                if (document.getElementById('gradesList')) {
-                    const gradesList = document.getElementById('gradesList');
-                    if (grades.length === 0) {
-                        gradesList.innerHTML = '<div class="loading">No grades found. Add some grades to get started.</div>';
-                    } else {
-                        gradesList.innerHTML = '';
-                        grades.forEach(grade => {
-                            const gradeItem = document.createElement('div');
-                            gradeItem.className = 'grade-item';
-                            gradeItem.innerHTML = `
-                                <div class="item-info">
-                                    <strong>${grade.grade} - ${grade.className}</strong>
-                                </div>
-                                <div class="item-actions">
-                                    <button class="btn btn-danger btn-small" onclick="deleteGrade('${grade.id}')">Delete</button>
-                                </div>
-                            `;
-                            gradesList.appendChild(gradeItem);
-                        });
-                    }
-                }
-                
-                return grades;
-            } catch (error) {
-                console.error("Error loading grades:", error);
-                return [];
-            }
-        }
-
-        async function loadSubjects() {
-            try {
-                const snapshot = await db.collection('subjects').get();
-                const subjects = [];
-                snapshot.forEach(doc => {
-                    subjects.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Populate subject dropdowns
-                const subjectDropdowns = [
-                    'selectSubject', 'reportSubject', 'viewSubject', 'teacherSubject'
-                ];
-                
-                subjectDropdowns.forEach(dropdownId => {
-                    const dropdown = document.getElementById(dropdownId);
-                    if (dropdown) {
-                        dropdown.innerHTML = '<option value="">Select Subject</option>';
-                        subjects.forEach(subject => {
-                            const option = document.createElement('option');
-                            option.value = subject.id;
-                            option.textContent = subject.name;
-                            dropdown.appendChild(option);
-                        });
-                    }
-                });
-                
-                // Update subjects list
-                if (document.getElementById('subjectsList')) {
-                    const subjectsList = document.getElementById('subjectsList');
-                    if (subjects.length === 0) {
-                        subjectsList.innerHTML = '<div class="loading">No subjects found. Add some subjects to get started.</div>';
-                    } else {
-                        subjectsList.innerHTML = '';
-                        subjects.forEach(subject => {
-                            const subjectItem = document.createElement('div');
-                            subjectItem.className = 'subject-item';
-                            subjectItem.innerHTML = `
-                                <div class="item-info">
-                                    <strong>${subject.name}</strong>
-                                </div>
-                                <div class="item-actions">
-                                    <button class="btn btn-danger btn-small" onclick="deleteSubject('${subject.id}')">Delete</button>
-                                </div>
-                            `;
-                            subjectsList.appendChild(subjectItem);
-                        });
-                    }
-                }
-                
-                return subjects;
-            } catch (error) {
-                console.error("Error loading subjects:", error);
-                return [];
-            }
-        }
-
-        async function loadTeachers() {
-            try {
-                const snapshot = await db.collection('teachers').get();
-                const teachers = [];
-                snapshot.forEach(doc => {
-                    teachers.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Populate teacher dropdowns
-                const teacherDropdowns = ['selectTeacher', 'viewTeacher'];
-                
-                teacherDropdowns.forEach(dropdownId => {
-                    const dropdown = document.getElementById(dropdownId);
-                    if (dropdown) {
-                        dropdown.innerHTML = '<option value="">Select Teacher</option>';
-                        teachers.forEach(teacher => {
-                            const option = document.createElement('option');
-                            option.value = teacher.id;
-                            option.textContent = `${teacher.name} (${teacher.id})`;
-                            dropdown.appendChild(option);
-                        });
-                    }
-                });
-                
-                // Update teachers list
-                if (document.getElementById('teachersList')) {
-                    const teachersList = document.getElementById('teachersList');
-                    if (teachers.length === 0) {
-                        teachersList.innerHTML = '<div class="loading">No teachers found. Add some teachers to get started.</div>';
-                    } else {
-                        teachersList.innerHTML = '';
-                        teachers.forEach(teacher => {
-                            const teacherItem = document.createElement('div');
-                            teacherItem.className = 'teacher-item';
-                            teacherItem.innerHTML = `
-                                <div class="item-info">
-                                    <strong>${teacher.name}</strong> (${teacher.id})<br>
-                                    <small>Role: ${roleDisplayMapping[teacher.role] || teacher.role} | Subject: ${teacher.subjectName || 'N/A'}</small>
-                                </div>
-                                <div class="item-actions">
-                                    <button class="btn btn-danger btn-small" onclick="deleteTeacher('${teacher.id}')">Delete</button>
-                                </div>
-                            `;
-                            teachersList.appendChild(teacherItem);
-                        });
-                    }
-                }
-                
-                return teachers;
-            } catch (error) {
-                console.error("Error loading teachers:", error);
-                return [];
-            }
-        }
-
-        async function loadStudents() {
-            try {
-                const snapshot = await db.collection('students').get();
-                const students = [];
-                snapshot.forEach(doc => {
-                    students.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Update students list
-                if (document.getElementById('studentList')) {
-                    const studentList = document.getElementById('studentList');
-                    if (students.length === 0) {
-                        studentList.innerHTML = '<div class="loading">No students found. Add some students to get started.</div>';
-                    } else {
-                        studentList.innerHTML = '';
-                        students.forEach(student => {
-                            const studentItem = document.createElement('div');
-                            studentItem.className = 'student-item';
-                            studentItem.innerHTML = `
-                                <div class="item-info">
-                                    <strong>${student.name}</strong> (${student.id})<br>
-                                    <small>Grade: ${student.gradeName || 'N/A'} | Gender: ${student.gender}</small>
-                                </div>
-                                <div class="item-actions">
-                                    <button class="btn btn-danger btn-small" onclick="deleteStudent('${student.id}')">Delete</button>
-                                </div>
-                            `;
-                            studentList.appendChild(studentItem);
-                        });
-                    }
-                }
-                
-                return students;
-            } catch (error) {
-                console.error("Error loading students:", error);
-                return [];
-            }
-        }
-
-        async function loadDashboardStats() {
-            try {
-                const studentsSnapshot = await db.collection('students').get();
+                // Check if teachers collection is empty
                 const teachersSnapshot = await db.collection('teachers').get();
-                const gradesSnapshot = await db.collection('grades').get();
-                const subjectsSnapshot = await db.collection('subjects').get();
-                
-                document.getElementById('totalStudents').textContent = studentsSnapshot.size;
-                document.getElementById('totalTeachers').textContent = teachersSnapshot.size;
-                document.getElementById('totalGrades').textContent = gradesSnapshot.size;
-                document.getElementById('totalSubjects').textContent = subjectsSnapshot.size;
+                if (teachersSnapshot.empty && !subjectsSnapshot.empty) {
+                    console.log("Adding sample teachers...");
+                    // Get first subject for sample teacher
+                    const firstSubject = subjectsSnapshot.docs[0];
+                    
+                    // Add sample teacher
+                    await db.collection('teachers').add({
+                        teacherId: 'T001',
+                        name: 'Sample Teacher',
+                        subject: firstSubject.id,
+                        subjectName: firstSubject.data().name,
+                        role: 'classTeacher',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log("Sample teacher added successfully");
+                    
+                    // Reload dropdowns after adding sample data
+                    setTimeout(loadTeacherDropdowns, 1000);
+                } else {
+                    console.log("Teachers already exist:", teachersSnapshot.size);
+                }
+
+                // Check if students collection is empty and add sample students
+                const studentsSnapshot = await db.collection('students').get();
+                if (studentsSnapshot.empty && !gradesSnapshot.empty) {
+                    console.log("Adding sample students...");
+                    // Get first grade for sample student
+                    const firstGrade = gradesSnapshot.docs[0];
+                    const gradeData = firstGrade.data();
+                    const className = gradeData.className || 'A';
+                    const gradeDisplay = `${gradeData.grade} - ${className}`;
+                    
+                    // Add sample student
+                    await db.collection('students').add({
+                        studentId: 'S001',
+                        name: 'Sample Student',
+                        grade: firstGrade.id,
+                        gradeDisplay: gradeDisplay,
+                        gender: 'Male',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log("Sample student added successfully");
+                    
+                    // Reload student list
+                    setTimeout(loadStudents, 1000);
+                } else {
+                    console.log("Students already exist:", studentsSnapshot.size);
+                }
+
             } catch (error) {
-                console.error("Error loading dashboard stats:", error);
+                console.error("Error initializing sample data:", error);
             }
         }
 
-        // Add new items functions
+        // Student Management - FIXED
         async function addStudent() {
-            const id = document.getElementById('studentId').value.trim();
-            const name = document.getElementById('studentName').value.trim();
-            const gradeId = document.getElementById('studentGrade').value;
-            const gender = document.getElementById('studentGender').value;
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            const studentGrade = document.getElementById('studentGrade').value;
+            const studentGender = document.getElementById('studentGender').value;
             const successMsg = document.getElementById('studentSuccess');
             
-            if (!id || !name || !gradeId) {
-                alert('Please fill in all required fields');
+            if (!studentId || !studentName || !studentGrade) {
+                alert('Please fill in all fields');
                 return;
             }
             
             try {
-                // Get grade name for display
-                const gradeDoc = await db.collection('grades').doc(gradeId).get();
-                const gradeName = gradeDoc.exists ? `${gradeDoc.data().grade} - ${gradeDoc.data().className}` : 'Unknown';
+                // Check if student ID already exists
+                const existingStudent = await db.collection('students').where('studentId', '==', studentId).get();
+                if (!existingStudent.empty) {
+                    alert('Student ID already exists');
+                    return;
+                }
+                
+                // Get grade data for display - FIXED
+                const gradeDoc = await db.collection('grades').doc(studentGrade).get();
+                if (!gradeDoc.exists) {
+                    alert('Selected grade not found');
+                    return;
+                }
+                const gradeData = gradeDoc.data();
+                const className = gradeData.className || 'A';
+                const gradeDisplay = `${gradeData.grade} - ${className}`;
                 
                 await db.collection('students').add({
-                    id: id,
-                    name: name,
-                    gradeId: gradeId,
-                    gradeName: gradeName,
-                    gender: gender,
+                    studentId: studentId,
+                    name: studentName,
+                    grade: studentGrade,
+                    gradeDisplay: gradeDisplay, // FIX: Store proper display format
+                    gender: studentGender,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
@@ -1352,41 +1434,107 @@
                 document.getElementById('studentId').value = '';
                 document.getElementById('studentName').value = '';
                 
-                // Reload students list
+                // Reload student list
                 loadStudents();
                 
+                // Hide success message after 3 seconds
                 setTimeout(() => {
                     successMsg.style.display = 'none';
                 }, 3000);
+                
             } catch (error) {
                 console.error("Error adding student:", error);
                 alert('Error adding student: ' + error.message);
             }
         }
 
+        async function loadStudents() {
+            const studentList = document.getElementById('studentList');
+            if (!studentList) return;
+            
+            studentList.innerHTML = '<div class="loading">Loading students...</div>';
+            
+            try {
+                const snapshot = await db.collection('students').get();
+                studentList.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    studentList.innerHTML = '<div class="loading">No students found. Add some students to get started.</div>';
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const student = doc.data();
+                    const studentItem = document.createElement('div');
+                    studentItem.className = 'student-item';
+                    studentItem.innerHTML = `
+                        <div class="item-info">
+                            <strong>${student.studentId}</strong> - ${student.name}
+                            <br><small>${student.gradeDisplay || 'Grade not set'} • ${student.gender}</small>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="editStudent('${doc.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteStudent('${doc.id}')">Delete</button>
+                        </div>
+                    `;
+                    studentList.appendChild(studentItem);
+                });
+            } catch (error) {
+                console.error("Error loading students:", error);
+                studentList.innerHTML = '<div class="loading">Error loading students</div>';
+            }
+        }
+
+        function filterStudents() {
+            const filter = document.getElementById('studentFilter').value.toLowerCase();
+            const classFilter = document.getElementById('filterStudentClass').value;
+            const studentItems = document.querySelectorAll('.student-item');
+            
+            studentItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const grade = item.querySelector('small').textContent;
+                const classMatch = !classFilter || grade.includes(classFilter);
+                const filterMatch = text.includes(filter);
+                
+                item.style.display = (classMatch && filterMatch) ? 'flex' : 'none';
+            });
+        }
+
+        // Teacher Management (Principal only) - FIXED
         async function addTeacher() {
-            const id = document.getElementById('teacherIdInput').value.trim();
-            const name = document.getElementById('teacherNameInput').value.trim();
-            const subjectId = document.getElementById('teacherSubject').value;
-            const role = document.getElementById('teacherRole').value;
+            const teacherId = document.getElementById('teacherIdInput').value.trim();
+            const teacherName = document.getElementById('teacherNameInput').value.trim();
+            const teacherSubject = document.getElementById('teacherSubject').value;
+            const teacherRole = document.getElementById('teacherRole').value;
             const successMsg = document.getElementById('teacherSuccess');
             
-            if (!id || !name || !subjectId) {
-                alert('Please fill in all required fields');
+            if (!teacherId || !teacherName || !teacherSubject) {
+                alert('Please fill in all fields');
                 return;
             }
             
             try {
+                // Check if teacher ID already exists
+                const existingTeacher = await db.collection('teachers').where('teacherId', '==', teacherId).get();
+                if (!existingTeacher.empty) {
+                    alert('Teacher ID already exists');
+                    return;
+                }
+                
                 // Get subject name for display
-                const subjectDoc = await db.collection('subjects').doc(subjectId).get();
-                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown';
+                const subjectDoc = await db.collection('subjects').doc(teacherSubject).get();
+                if (!subjectDoc.exists) {
+                    alert('Selected subject not found');
+                    return;
+                }
+                const subjectData = subjectDoc.data();
                 
                 await db.collection('teachers').add({
-                    id: id,
-                    name: name,
-                    subjectId: subjectId,
-                    subjectName: subjectName,
-                    role: role,
+                    teacherId: teacherId,
+                    name: teacherName,
+                    subject: teacherSubject,
+                    subjectName: subjectData.name,
+                    role: teacherRole,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
@@ -1397,148 +1545,56 @@
                 document.getElementById('teacherIdInput').value = '';
                 document.getElementById('teacherNameInput').value = '';
                 
-                // Reload teachers list
+                // Reload teacher list and dropdowns
                 loadTeachers();
+                loadTeacherDropdowns();
                 
+                // Hide success message after 3 seconds
                 setTimeout(() => {
                     successMsg.style.display = 'none';
                 }, 3000);
+                
             } catch (error) {
                 console.error("Error adding teacher:", error);
                 alert('Error adding teacher: ' + error.message);
             }
         }
 
-        async function addSubject() {
-            const name = document.getElementById('subjectName').value.trim();
-            const successMsg = document.getElementById('subjectSuccess');
+        async function loadTeachers() {
+            const teachersList = document.getElementById('teachersList');
+            if (!teachersList) return;
             
-            if (!name) {
-                alert('Please enter a subject name');
-                return;
-            }
+            teachersList.innerHTML = '<div class="loading">Loading teachers...</div>';
             
             try {
-                await db.collection('subjects').add({
-                    name: name,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                const snapshot = await db.collection('teachers').get();
+                teachersList.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    teachersList.innerHTML = '<div class="loading">No teachers found. Add some teachers to get started.</div>';
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const teacher = doc.data();
+                    const teacherItem = document.createElement('div');
+                    teacherItem.className = 'teacher-item';
+                    teacherItem.innerHTML = `
+                        <div class="item-info">
+                            <strong>${teacher.teacherId}</strong> - ${teacher.name}
+                            <br><small>${teacher.subjectName} • ${roleDisplayMapping[teacher.role]}</small>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="editTeacher('${doc.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteTeacher('${doc.id}')">Delete</button>
+                        </div>
+                    `;
+                    teachersList.appendChild(teacherItem);
                 });
-                
-                successMsg.textContent = 'Subject added successfully!';
-                successMsg.style.display = 'block';
-                
-                // Clear form
-                document.getElementById('subjectName').value = '';
-                
-                // Reload subjects list
-                loadSubjects();
-                
-                setTimeout(() => {
-                    successMsg.style.display = 'none';
-                }, 3000);
             } catch (error) {
-                console.error("Error adding subject:", error);
-                alert('Error adding subject: ' + error.message);
+                console.error("Error loading teachers:", error);
+                teachersList.innerHTML = '<div class="loading">Error loading teachers</div>';
             }
-        }
-
-        async function addClass() {
-            const grade = document.getElementById('newGrade').value;
-            const className = document.getElementById('className').value.trim();
-            const successMsg = document.getElementById('classSuccess');
-            
-            if (!grade || !className) {
-                alert('Please fill in both grade and class name');
-                return;
-            }
-            
-            try {
-                await db.collection('grades').add({
-                    grade: grade,
-                    className: className,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                successMsg.textContent = 'Grade & Class added successfully!';
-                successMsg.style.display = 'block';
-                
-                // Clear form
-                document.getElementById('newGrade').value = '';
-                document.getElementById('className').value = '';
-                
-                // Reload grades list
-                loadGrades();
-                
-                setTimeout(() => {
-                    successMsg.style.display = 'none';
-                }, 3000);
-            } catch (error) {
-                console.error("Error adding grade:", error);
-                alert('Error adding grade: ' + error.message);
-            }
-        }
-
-        // Delete functions
-        async function deleteStudent(id) {
-            if (confirm('Are you sure you want to delete this student?')) {
-                try {
-                    await db.collection('students').doc(id).delete();
-                    loadStudents();
-                } catch (error) {
-                    console.error("Error deleting student:", error);
-                    alert('Error deleting student: ' + error.message);
-                }
-            }
-        }
-
-        async function deleteTeacher(id) {
-            if (confirm('Are you sure you want to delete this teacher?')) {
-                try {
-                    await db.collection('teachers').doc(id).delete();
-                    loadTeachers();
-                } catch (error) {
-                    console.error("Error deleting teacher:", error);
-                    alert('Error deleting teacher: ' + error.message);
-                }
-            }
-        }
-
-        async function deleteSubject(id) {
-            if (confirm('Are you sure you want to delete this subject?')) {
-                try {
-                    await db.collection('subjects').doc(id).delete();
-                    loadSubjects();
-                } catch (error) {
-                    console.error("Error deleting subject:", error);
-                    alert('Error deleting subject: ' + error.message);
-                }
-            }
-        }
-
-        async function deleteGrade(id) {
-            if (confirm('Are you sure you want to delete this grade?')) {
-                try {
-                    await db.collection('grades').doc(id).delete();
-                    loadGrades();
-                } catch (error) {
-                    console.error("Error deleting grade:", error);
-                    alert('Error deleting grade: ' + error.message);
-                }
-            }
-        }
-
-        // Filter functions
-        function filterStudents() {
-            const filter = document.getElementById('studentFilter').value.toLowerCase();
-            const classFilter = document.getElementById('filterStudentClass').value;
-            const studentItems = document.querySelectorAll('.student-item');
-            
-            studentItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                const shouldShow = text.includes(filter) && 
-                    (classFilter === '' || item.textContent.includes(classFilter));
-                item.style.display = shouldShow ? 'flex' : 'none';
-            });
         }
 
         function filterTeachers() {
@@ -1551,6 +1607,86 @@
             });
         }
 
+        // Subject Management (Principal only) - FIXED
+        async function addSubject() {
+            const subjectName = document.getElementById('subjectName').value.trim();
+            const successMsg = document.getElementById('subjectSuccess');
+            
+            if (!subjectName) {
+                alert('Please enter subject name');
+                return;
+            }
+            
+            try {
+                // Check if subject already exists
+                const existingSubject = await db.collection('subjects').where('name', '==', subjectName).get();
+                if (!existingSubject.empty) {
+                    alert('Subject already exists');
+                    return;
+                }
+                
+                await db.collection('subjects').add({
+                    name: subjectName,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                successMsg.textContent = 'Subject added successfully!';
+                successMsg.style.display = 'block';
+                
+                // Clear form
+                document.getElementById('subjectName').value = '';
+                
+                // Reload subject list and dropdowns
+                loadSubjects();
+                loadSubjectDropdowns();
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 3000);
+                
+            } catch (error) {
+                console.error("Error adding subject:", error);
+                alert('Error adding subject: ' + error.message);
+            }
+        }
+
+        async function loadSubjects() {
+            const subjectsList = document.getElementById('subjectsList');
+            if (!subjectsList) return;
+            
+            subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
+            
+            try {
+                const snapshot = await db.collection('subjects').get();
+                subjectsList.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    subjectsList.innerHTML = '<div class="loading">No subjects found. Add some subjects to get started.</div>';
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const subject = doc.data();
+                    const subjectItem = document.createElement('div');
+                    subjectItem.className = 'subject-item';
+                    subjectItem.innerHTML = `
+                        <div class="item-info">
+                            <strong>${subject.name}</strong>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="editSubject('${doc.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteSubject('${doc.id}')">Delete</button>
+                        </div>
+                    `;
+                    subjectsList.appendChild(subjectItem);
+                });
+            } catch (error) {
+                console.error("Error loading subjects:", error);
+                subjectsList.innerHTML = '<div class="loading">Error loading subjects</div>';
+            }
+        }
+
         function filterSubjects() {
             const filter = document.getElementById('subjectFilter').value.toLowerCase();
             const subjectItems = document.querySelectorAll('.subject-item');
@@ -1559,6 +1695,95 @@
                 const text = item.textContent.toLowerCase();
                 item.style.display = text.includes(filter) ? 'flex' : 'none';
             });
+        }
+
+        // Grade/Class Management (Principal and Class Teachers) - FIXED
+        async function addClass() {
+            const newGrade = document.getElementById('newGrade').value;
+            const className = document.getElementById('className').value.trim();
+            const successMsg = document.getElementById('classSuccess');
+            
+            if (!newGrade || !className) {
+                alert('Please fill in both grade and class name');
+                return;
+            }
+            
+            try {
+                // Check if class already exists
+                const existingClass = await db.collection('grades')
+                    .where('grade', '==', newGrade)
+                    .where('className', '==', className)
+                    .get();
+                    
+                if (!existingClass.empty) {
+                    alert('This grade and class combination already exists');
+                    return;
+                }
+                
+                await db.collection('grades').add({
+                    grade: newGrade,
+                    className: className,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                successMsg.textContent = 'Grade and class added successfully!';
+                successMsg.style.display = 'block';
+                
+                // Clear form
+                document.getElementById('newGrade').value = '';
+                document.getElementById('className').value = '';
+                
+                // Reload grade list and dropdowns
+                loadGrades();
+                loadClassDropdowns();
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 3000);
+                
+            } catch (error) {
+                console.error("Error adding class:", error);
+                alert('Error adding class: ' + error.message);
+            }
+        }
+
+        async function loadGrades() {
+            const gradesList = document.getElementById('gradesList');
+            if (!gradesList) return;
+            
+            gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
+            
+            try {
+                const snapshot = await db.collection('grades').orderBy('grade').get();
+                gradesList.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    gradesList.innerHTML = '<div class="loading">No grades found. Add some grades to get started.</div>';
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const grade = doc.data();
+                    const className = grade.className || 'A'; // FIX: Default to 'A' if not set
+                    const displayText = `${grade.grade} - ${className}`;
+                    const gradeItem = document.createElement('div');
+                    gradeItem.className = 'grade-item';
+                    gradeItem.innerHTML = `
+                        <div class="item-info">
+                            <strong>${displayText}</strong>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="editGrade('${doc.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteGrade('${doc.id}')">Delete</button>
+                        </div>
+                    `;
+                    gradesList.appendChild(gradeItem);
+                });
+            } catch (error) {
+                console.error("Error loading grades:", error);
+                gradesList.innerHTML = '<div class="loading">Error loading grades</div>';
+            }
         }
 
         function filterGrades() {
@@ -1571,22 +1796,128 @@
             });
         }
 
-        // Attendance functions
+        // Dashboard functions - FIXED
+        async function loadDashboard() {
+            try {
+                // Get counts from all collections
+                const studentsCount = await db.collection('students').get().then(snap => snap.size);
+                const teachersCount = await db.collection('teachers').get().then(snap => snap.size);
+                const gradesCount = await db.collection('grades').get().then(snap => snap.size);
+                const subjectsCount = await db.collection('subjects').get().then(snap => snap.size);
+                
+                document.getElementById('totalStudents').textContent = studentsCount;
+                document.getElementById('totalTeachers').textContent = teachersCount;
+                document.getElementById('totalGrades').textContent = gradesCount;
+                document.getElementById('totalSubjects').textContent = subjectsCount;
+                
+                console.log("Dashboard loaded:", { studentsCount, teachersCount, gradesCount, subjectsCount });
+            } catch (error) {
+                console.error("Error loading dashboard:", error);
+            }
+        }
+
+        // Delete functions - FIXED
+        async function deleteStudent(id) {
+            if (confirm('Are you sure you want to delete this student?')) {
+                try {
+                    await db.collection('students').doc(id).delete();
+                    loadStudents();
+                    alert('Student deleted successfully');
+                } catch (error) {
+                    console.error("Error deleting student:", error);
+                    alert('Error deleting student');
+                }
+            }
+        }
+
+        async function deleteTeacher(id) {
+            if (confirm('Are you sure you want to delete this teacher?')) {
+                try {
+                    await db.collection('teachers').doc(id).delete();
+                    loadTeachers();
+                    loadTeacherDropdowns();
+                    alert('Teacher deleted successfully');
+                } catch (error) {
+                    console.error("Error deleting teacher:", error);
+                    alert('Error deleting teacher');
+                }
+            }
+        }
+
+        async function deleteSubject(id) {
+            if (confirm('Are you sure you want to delete this subject?')) {
+                try {
+                    await db.collection('subjects').doc(id).delete();
+                    loadSubjects();
+                    loadSubjectDropdowns();
+                    alert('Subject deleted successfully');
+                } catch (error) {
+                    console.error("Error deleting subject:", error);
+                    alert('Error deleting subject');
+                }
+            }
+        }
+
+        async function deleteGrade(id) {
+            if (confirm('Are you sure you want to delete this grade/class?')) {
+                try {
+                    await db.collection('grades').doc(id).delete();
+                    loadGrades();
+                    loadClassDropdowns();
+                    alert('Grade/Class deleted successfully');
+                } catch (error) {
+                    console.error("Error deleting grade:", error);
+                    alert('Error deleting grade');
+                }
+            }
+        }
+
+        // Edit functions - PLACEHOLDER
+        function editStudent(id) {
+            alert('Edit student functionality would be implemented here for student ID: ' + id);
+        }
+
+        function editTeacher(id) {
+            alert('Edit teacher functionality would be implemented here for teacher ID: ' + id);
+        }
+
+        function editSubject(id) {
+            alert('Edit subject functionality would be implemented here for subject ID: ' + id);
+        }
+
+        function editGrade(id) {
+            alert('Edit grade functionality would be implemented here for grade ID: ' + id);
+        }
+
+        // Attendance Management Functions - FIXED
         async function loadAttendance() {
-            const classId = document.getElementById('selectClass').value;
-            const subjectId = document.getElementById('selectSubject').value;
-            const teacherId = document.getElementById('selectTeacher').value;
-            const date = document.getElementById('startDate').value;
+            const selectedClass = document.getElementById('selectClass').value;
+            const selectedSubject = document.getElementById('selectSubject').value;
+            const selectedTeacher = document.getElementById('selectTeacher').value;
+            const selectedDate = document.getElementById('startDate').value;
             
-            if (!classId || !subjectId || !teacherId || !date) {
-                alert('Please select class, subject, teacher, and date');
+            if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
+                alert('Please select all required fields');
                 return;
             }
             
             try {
+                // Get teacher information
+                const teacherDoc = await db.collection('teachers').doc(selectedTeacher).get();
+                if (!teacherDoc.exists) {
+                    alert('Selected teacher not found');
+                    return;
+                }
+                const teacherData = teacherDoc.data();
+                
+                // Display teacher information
+                document.getElementById('teacherIdDisplay').textContent = teacherData.teacherId;
+                document.getElementById('teacherNameDisplay').textContent = teacherData.name;
+                document.getElementById('teacherInfo').style.display = 'block';
+                
                 // Get students for the selected class
                 const studentsSnapshot = await db.collection('students')
-                    .where('gradeId', '==', classId)
+                    .where('grade', '==', selectedClass)
                     .get();
                 
                 if (studentsSnapshot.empty) {
@@ -1594,26 +1925,11 @@
                     return;
                 }
                 
-                // Get teacher info
-                const teacherDoc = await db.collection('teachers').doc(teacherId).get();
-                if (!teacherDoc.exists) {
-                    alert('Selected teacher not found');
-                    return;
-                }
+                // Get subject information
+                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
+                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
                 
-                const teacher = teacherDoc.data();
-                appData.currentTeacher = teacher;
-                
-                // Get subject info
-                const subjectDoc = await db.collection('subjects').doc(subjectId).get();
-                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown';
-                
-                // Display teacher info
-                document.getElementById('teacherIdDisplay').textContent = teacher.id;
-                document.getElementById('teacherNameDisplay').textContent = teacher.name;
-                document.getElementById('teacherInfo').style.display = 'block';
-                
-                // Build attendance table
+                // Clear and populate attendance table
                 const tbody = document.getElementById('attendanceTbody');
                 tbody.innerHTML = '';
                 
@@ -1621,28 +1937,26 @@
                     const student = doc.data();
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${student.id}</td>
+                        <td>${student.studentId}</td>
                         <td>${student.name}</td>
                         <td>${subjectName}</td>
-                        <td>${teacher.id}</td>
-                        <td>${teacher.name}</td>
+                        <td>${teacherData.teacherId}</td>
+                        <td>${teacherData.name}</td>
                         <td>
-                            <select class="attendance-status" data-student-id="${student.id}">
+                            <select class="attendance-status">
                                 <option value="present">Present</option>
                                 <option value="absent">Absent</option>
                             </select>
                         </td>
                         <td>
-                            <button class="btn btn-small btn-primary" onclick="toggleAttendance(this)">Mark Present</button>
+                            <button class="btn btn-small btn-primary" onclick="toggleAttendance(this)">Toggle</button>
                         </td>
                     `;
                     tbody.appendChild(row);
                 });
                 
-                // Load existing attendance if any
-                await loadExistingAttendance(classId, subjectId, teacherId, date);
-                
-                // Update summary
+                // Show attendance summary
+                document.getElementById('attendanceSummary').style.display = 'block';
                 updateAttendanceSummary();
                 
             } catch (error) {
@@ -1651,36 +1965,10 @@
             }
         }
 
-        async function loadExistingAttendance(classId, subjectId, teacherId, date) {
-            try {
-                const snapshot = await db.collection('attendance')
-                    .where('classId', '==', classId)
-                    .where('subjectId', '==', subjectId)
-                    .where('teacherId', '==', teacherId)
-                    .where('date', '==', date)
-                    .get();
-                
-                if (!snapshot.empty) {
-                    snapshot.forEach(doc => {
-                        const attendance = doc.data();
-                        appData.currentAttendance[attendance.studentId] = attendance.status;
-                        
-                        // Update UI
-                        const select = document.querySelector(`.attendance-status[data-student-id="${attendance.studentId}"]`);
-                        if (select) {
-                            select.value = attendance.status;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error("Error loading existing attendance:", error);
-            }
-        }
-
         function toggleAttendance(button) {
             const row = button.closest('tr');
-            const select = row.querySelector('.attendance-status');
-            select.value = select.value === 'present' ? 'absent' : 'present';
+            const statusSelect = row.querySelector('.attendance-status');
+            statusSelect.value = statusSelect.value === 'present' ? 'absent' : 'present';
             updateAttendanceSummary();
         }
 
@@ -1699,77 +1987,55 @@
         }
 
         function updateAttendanceSummary() {
-            const statuses = document.querySelectorAll('.attendance-status');
-            let presentCount = 0;
-            
-            statuses.forEach(select => {
-                if (select.value === 'present') presentCount++;
-            });
-            
-            const totalCount = statuses.length;
-            const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+            const totalStudents = document.querySelectorAll('.attendance-status').length;
+            const presentCount = document.querySelectorAll('.attendance-status[value="present"]').length;
+            const percentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
             
             document.getElementById('presentCount').textContent = presentCount;
-            document.getElementById('totalCount').textContent = totalCount;
+            document.getElementById('totalCount').textContent = totalStudents;
             document.getElementById('attendancePercentage').textContent = percentage;
-            document.getElementById('attendanceSummary').style.display = 'block';
         }
 
         async function saveAttendance() {
-            const classId = document.getElementById('selectClass').value;
-            const subjectId = document.getElementById('selectSubject').value;
-            const teacherId = document.getElementById('selectTeacher').value;
-            const date = document.getElementById('startDate').value;
+            const selectedClass = document.getElementById('selectClass').value;
+            const selectedSubject = document.getElementById('selectSubject').value;
+            const selectedTeacher = document.getElementById('selectTeacher').value;
+            const selectedDate = document.getElementById('startDate').value;
             
-            if (!classId || !subjectId || !teacherId || !date) {
-                alert('Please select class, subject, teacher, and date first');
+            if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
+                alert('Please select all required fields');
                 return;
             }
             
-            const statuses = document.querySelectorAll('.attendance-status');
-            if (statuses.length === 0) {
+            const rows = document.querySelectorAll('#attendanceTbody tr');
+            if (rows.length === 0) {
                 alert('No students to save attendance for');
                 return;
             }
             
             try {
-                // Get class, subject, and teacher info for the record
-                const classDoc = await db.collection('grades').doc(classId).get();
-                const subjectDoc = await db.collection('subjects').doc(subjectId).get();
-                const teacherDoc = await db.collection('teachers').doc(teacherId).get();
+                let savedCount = 0;
                 
-                const className = classDoc.exists ? `${classDoc.data().grade} - ${classDoc.data().className}` : 'Unknown';
-                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown';
-                const teacherName = teacherDoc.exists ? teacherDoc.data().name : 'Unknown';
-                
-                // Save each student's attendance
-                const batch = db.batch();
-                
-                statuses.forEach(select => {
-                    const studentId = select.getAttribute('data-student-id');
-                    const status = select.value;
+                for (const row of rows) {
+                    const studentId = row.cells[0].textContent;
+                    const status = row.querySelector('.attendance-status').value;
                     
                     // Create a unique ID for this attendance record
-                    const attendanceId = `${classId}_${subjectId}_${teacherId}_${studentId}_${date}`;
-                    const attendanceRef = db.collection('attendance').doc(attendanceId);
+                    const attendanceId = `${studentId}_${selectedDate}_${selectedSubject}`;
                     
-                    batch.set(attendanceRef, {
-                        classId: classId,
-                        className: className,
-                        subjectId: subjectId,
-                        subjectName: subjectName,
-                        teacherId: teacherId,
-                        teacherName: teacherName,
+                    await db.collection('attendance').doc(attendanceId).set({
                         studentId: studentId,
-                        date: date,
+                        date: selectedDate,
+                        subject: selectedSubject,
+                        teacher: selectedTeacher,
                         status: status,
-                        markedBy: appData.currentUser.uid,
-                        markedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                });
+                    
+                    savedCount++;
+                }
                 
-                await batch.commit();
-                alert('Attendance saved successfully!');
+                alert(`Successfully saved attendance for ${savedCount} students`);
                 
             } catch (error) {
                 console.error("Error saving attendance:", error);
@@ -1777,104 +2043,88 @@
             }
         }
 
-        // Report functions
+        // Report Generation - FIXED
         async function generateReport() {
-            const classId = document.getElementById('reportClass').value;
-            const subjectId = document.getElementById('reportSubject').value;
-            const month = document.getElementById('reportMonth').value;
+            const selectedClass = document.getElementById('reportClass').value;
+            const selectedSubject = document.getElementById('reportSubject').value;
+            const selectedMonth = document.getElementById('reportMonth').value;
             
-            if (!classId || !subjectId || !month) {
-                alert('Please select class, subject, and month');
+            if (!selectedClass || !selectedSubject || !selectedMonth) {
+                alert('Please select all required fields');
                 return;
             }
             
             try {
-                // Get class and subject info
-                const classDoc = await db.collection('grades').doc(classId).get();
-                const subjectDoc = await db.collection('subjects').doc(subjectId).get();
+                // Get start and end dates for the selected month
+                const startDate = new Date(selectedMonth + '-01');
+                const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
                 
-                const className = classDoc.exists ? `${classDoc.data().grade} - ${classDoc.data().className}` : 'Unknown';
-                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown';
+                // Format dates for query
+                const startDateStr = startDate.toISOString().split('T')[0];
+                const endDateStr = endDate.toISOString().split('T')[0];
                 
-                // Calculate date range for the month
-                const startDate = `${month}-01`;
-                const endDate = `${month}-31`; // This will be adjusted for shorter months
-                
-                // Get all students in the class
-                const studentsSnapshot = await db.collection('students')
-                    .where('gradeId', '==', classId)
+                // Get attendance records for the selected period
+                const attendanceSnapshot = await db.collection('attendance')
+                    .where('subject', '==', selectedSubject)
+                    .where('date', '>=', startDateStr)
+                    .where('date', '<=', endDateStr)
                     .get();
                 
-                if (studentsSnapshot.empty) {
-                    alert('No students found for the selected class');
+                if (attendanceSnapshot.empty) {
+                    document.getElementById('reportOutput').innerHTML = '<div class="loading">No attendance records found for the selected period.</div>';
                     return;
                 }
                 
-                // Get attendance records for the month
-                const attendanceSnapshot = await db.collection('attendance')
-                    .where('classId', '==', classId)
-                    .where('subjectId', '==', subjectId)
-                    .where('date', '>=', startDate)
-                    .where('date', '<=', endDate)
+                // Get students for the selected class
+                const studentsSnapshot = await db.collection('students')
+                    .where('grade', '==', selectedClass)
                     .get();
                 
-                // Process attendance data
-                const attendanceByStudent = {};
-                
+                const students = {};
                 studentsSnapshot.forEach(doc => {
                     const student = doc.data();
-                    attendanceByStudent[student.id] = {
-                        name: student.name,
-                        present: 0,
-                        absent: 0,
-                        total: 0
-                    };
+                    students[student.studentId] = student.name;
                 });
                 
+                // Process attendance data
+                const attendanceData = {};
                 attendanceSnapshot.forEach(doc => {
                     const record = doc.data();
-                    if (attendanceByStudent[record.studentId]) {
-                        attendanceByStudent[record.studentId].total++;
+                    if (students[record.studentId]) {
+                        if (!attendanceData[record.studentId]) {
+                            attendanceData[record.studentId] = {
+                                name: students[record.studentId],
+                                present: 0,
+                                absent: 0,
+                                total: 0
+                            };
+                        }
+                        
+                        attendanceData[record.studentId].total++;
                         if (record.status === 'present') {
-                            attendanceByStudent[record.studentId].present++;
+                            attendanceData[record.studentId].present++;
                         } else {
-                            attendanceByStudent[record.studentId].absent++;
+                            attendanceData[record.studentId].absent++;
                         }
                     }
                 });
                 
                 // Generate report HTML
-                let reportHTML = `
-                    <h3>Attendance Report for ${month}</h3>
-                    <p><strong>Class:</strong> ${className}</p>
-                    <p><strong>Subject:</strong> ${subjectName}</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Student ID</th>
-                                <th>Name</th>
-                                <th>Present</th>
-                                <th>Absent</th>
-                                <th>Total</th>
-                                <th>Attendance %</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
+                let reportHTML = '<h3>Monthly Attendance Report</h3>';
+                reportHTML += `<p>Month: ${selectedMonth}</p>`;
+                reportHTML += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
                 
-                Object.keys(attendanceByStudent).forEach(studentId => {
-                    const data = attendanceByStudent[studentId];
+                Object.keys(attendanceData).forEach(studentId => {
+                    const data = attendanceData[studentId];
                     const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
-                    const statusClass = percentage >= 75 ? 'present' : 'absent';
-                    
                     reportHTML += `
                         <tr>
                             <td>${studentId}</td>
                             <td>${data.name}</td>
-                            <td>${data.present}</td>
-                            <td>${data.absent}</td>
+                            <td class="present">${data.present}</td>
+                            <td class="absent">${data.absent}</td>
                             <td>${data.total}</td>
-                            <td class="${statusClass}">${percentage}%</td>
+                            <td>${percentage}%</td>
                         </tr>
                     `;
                 });
@@ -1884,81 +2134,144 @@
                 
             } catch (error) {
                 console.error("Error generating report:", error);
-                alert('Error generating report: ' + error.message);
+                document.getElementById('reportOutput').innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
             }
         }
 
-        function generatePdfReport() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const reportContent = document.getElementById('reportOutput');
-            if (!reportContent.innerHTML) {
+        async function generatePdfReport() {
+            const reportOutput = document.getElementById('reportOutput');
+            if (!reportOutput || !reportOutput.innerHTML) {
                 alert('Please generate a report first');
                 return;
             }
             
-            // Simple PDF generation - in a real app, you'd use jsPDF-autotable for better formatting
-            doc.text('Attendance Report', 20, 20);
-            doc.save('attendance-report.pdf');
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text('Monthly Attendance Report', 14, 15);
+                
+                // Add date
+                const selectedMonth = document.getElementById('reportMonth').value;
+                doc.setFontSize(12);
+                doc.text(`Month: ${selectedMonth}`, 14, 25);
+                
+                // Add table using autoTable
+                doc.autoTable({
+                    html: '#reportOutput table',
+                    startY: 30,
+                    styles: { fontSize: 10 },
+                    headStyles: { fillColor: [0, 90, 156] }
+                });
+                
+                // Save the PDF
+                doc.save(`attendance_report_${selectedMonth}.pdf`);
+                
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert('Error generating PDF: ' + error.message);
+            }
         }
 
-        // View attendance records (Principal only)
+        // View Attendance Records (Principal Only) - FIXED
         async function viewAttendanceRecords() {
-            const classId = document.getElementById('viewClass').value;
-            const subjectId = document.getElementById('viewSubject').value;
-            const teacherId = document.getElementById('viewTeacher').value;
-            const date = document.getElementById('viewDate').value;
+            const selectedClass = document.getElementById('viewClass').value;
+            const selectedSubject = document.getElementById('viewSubject').value;
+            const selectedTeacher = document.getElementById('viewTeacher').value;
+            const selectedDate = document.getElementById('viewDate').value;
             
-            if (!classId && !subjectId && !teacherId && !date) {
-                alert('Please select at least one filter criteria');
+            if (!selectedDate) {
+                alert('Please select a date');
                 return;
             }
             
             try {
-                let query = db.collection('attendance');
+                let query = db.collection('attendance').where('date', '==', selectedDate);
                 
-                // Build query based on selected filters
-                if (classId) query = query.where('classId', '==', classId);
-                if (subjectId) query = query.where('subjectId', '==', subjectId);
-                if (teacherId) query = query.where('teacherId', '==', teacherId);
-                if (date) query = query.where('date', '==', date);
+                if (selectedClass) {
+                    // If class is selected, we need to get students from that class first
+                    const studentsSnapshot = await db.collection('students')
+                        .where('grade', '==', selectedClass)
+                        .get();
+                    
+                    const studentIds = [];
+                    studentsSnapshot.forEach(doc => {
+                        studentIds.push(doc.data().studentId);
+                    });
+                    
+                    if (studentIds.length > 0) {
+                        query = query.where('studentId', 'in', studentIds);
+                    }
+                }
                 
-                const snapshot = await query.get();
+                if (selectedSubject) {
+                    query = query.where('subject', '==', selectedSubject);
+                }
                 
-                if (snapshot.empty) {
-                    document.getElementById('viewAttendanceOutput').innerHTML = 
-                        '<div class="loading">No attendance records found for the selected criteria.</div>';
+                if (selectedTeacher) {
+                    query = query.where('teacher', '==', selectedTeacher);
+                }
+                
+                const attendanceSnapshot = await query.get();
+                
+                if (attendanceSnapshot.empty) {
+                    document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
                     return;
                 }
                 
-                let outputHTML = `
-                    <h3>Attendance Records</h3>
-                    <p>Found ${snapshot.size} record(s)</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Class</th>
-                                <th>Subject</th>
-                                <th>Teacher</th>
-                                <th>Student ID</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-                
-                snapshot.forEach(doc => {
+                // Get additional information for display
+                const attendanceRecords = [];
+                for (const doc of attendanceSnapshot.docs) {
                     const record = doc.data();
+                    
+                    // Get student name
+                    const studentDoc = await db.collection('students')
+                        .where('studentId', '==', record.studentId)
+                        .get();
+                    
+                    let studentName = 'Unknown';
+                    if (!studentDoc.empty) {
+                        studentName = studentDoc.docs[0].data().name;
+                    }
+                    
+                    // Get teacher name
+                    const teacherDoc = await db.collection('teachers').doc(record.teacher).get();
+                    let teacherName = 'Unknown';
+                    if (teacherDoc.exists) {
+                        teacherName = teacherDoc.data().name;
+                    }
+                    
+                    // Get subject name
+                    const subjectDoc = await db.collection('subjects').doc(record.subject).get();
+                    let subjectName = 'Unknown';
+                    if (subjectDoc.exists) {
+                        subjectName = subjectDoc.data().name;
+                    }
+                    
+                    attendanceRecords.push({
+                        ...record,
+                        studentName: studentName,
+                        teacherName: teacherName,
+                        subjectName: subjectName
+                    });
+                }
+                
+                // Generate display HTML
+                let outputHTML = '<h3>Attendance Records</h3>';
+                outputHTML += `<p>Date: ${selectedDate}</p>`;
+                outputHTML += '<table><thead><tr><th>Student ID</th><th>Student Name</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead><tbody>';
+                
+                attendanceRecords.forEach(record => {
+                    const statusClass = record.status === 'present' ? 'present' : 'absent';
                     outputHTML += `
                         <tr>
-                            <td>${record.date}</td>
-                            <td>${record.className}</td>
+                            <td>${record.studentId}</td>
+                            <td>${record.studentName}</td>
                             <td>${record.subjectName}</td>
                             <td>${record.teacherName}</td>
-                            <td>${record.studentId}</td>
-                            <td class="${record.status}">${record.status.toUpperCase()}</td>
+                            <td class="${statusClass}">${record.status.toUpperCase()}</td>
                         </tr>
                     `;
                 });
@@ -1968,7 +2281,7 @@
                 
             } catch (error) {
                 console.error("Error viewing attendance records:", error);
-                alert('Error viewing attendance records: ' + error.message);
+                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="error-msg">Error viewing attendance records: ' + error.message + '</div>';
             }
         }
     </script>
