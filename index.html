@@ -1025,7 +1025,7 @@
                 document.querySelectorAll('.class-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
-                // Show only allowed tabs for class teacher
+                // Show only allowed tabs for class teacher - FIXED: Added 'students' tab
                 document.querySelectorAll('.nav-tab').forEach(tab => {
                     const tabName = tab.getAttribute('data-tab');
                     const allowedTabs = ['attendance', 'students', 'reports', 'grades', 'subjects'];
@@ -1139,7 +1139,7 @@
         // Data management functions - FIXED VERSION
         async function loadClassDropdowns() {
             try {
-                const snapshot = await db.collection('grades').get();
+                const snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
                 const classSelect = document.getElementById('selectClass');
                 const reportClassSelect = document.getElementById('reportClass');
                 const viewClassSelect = document.getElementById('viewClass');
@@ -1196,7 +1196,7 @@
 
         async function loadSubjectDropdowns() {
             try {
-                const snapshot = await db.collection('subjects').get();
+                const snapshot = await db.collection('subjects').orderBy('name').get();
                 const selectSubject = document.getElementById('selectSubject');
                 const reportSubject = document.getElementById('reportSubject');
                 const viewSubject = document.getElementById('viewSubject');
@@ -1238,7 +1238,7 @@
 
         async function loadTeacherDropdowns() {
             try {
-                const snapshot = await db.collection('teachers').get();
+                const snapshot = await db.collection('teachers').orderBy('teacherId').get();
                 const selectTeacher = document.getElementById('selectTeacher');
                 const viewTeacher = document.getElementById('viewTeacher');
                 
@@ -1451,7 +1451,8 @@
             studentList.innerHTML = '<div class="loading">Loading students...</div>';
             
             try {
-                const snapshot = await db.collection('students').get();
+                // FIXED: Order students by studentId in ascending order
+                const snapshot = await db.collection('students').orderBy('studentId').get();
                 studentList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1561,7 +1562,8 @@
             teachersList.innerHTML = '<div class="loading">Loading teachers...</div>';
             
             try {
-                const snapshot = await db.collection('teachers').get();
+                // FIXED: Order teachers by teacherId in ascending order
+                const snapshot = await db.collection('teachers').orderBy('teacherId').get();
                 teachersList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1650,7 +1652,8 @@
             subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
             
             try {
-                const snapshot = await db.collection('subjects').get();
+                // FIXED: Order subjects by name in ascending order
+                const snapshot = await db.collection('subjects').orderBy('name').get();
                 subjectsList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1745,7 +1748,8 @@
             gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
             
             try {
-                const snapshot = await db.collection('grades').orderBy('grade').get();
+                // FIXED: Order grades by grade and className in ascending order
+                const snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
                 gradesList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1909,9 +1913,10 @@
                 document.getElementById('teacherNameDisplay').textContent = teacherData.name;
                 document.getElementById('teacherInfo').style.display = 'block';
                 
-                // Get students for the selected class
+                // Get students for the selected class - FIXED: Order by studentId
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
+                    .orderBy('studentId')
                     .get();
                 
                 if (studentsSnapshot.empty) {
@@ -2069,9 +2074,10 @@
                     return;
                 }
                 
-                // Get students for the selected class
+                // Get students for the selected class - FIXED: Order by studentId
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
+                    .orderBy('studentId')
                     .get();
                 
                 const students = {};
@@ -2188,6 +2194,7 @@
                     // If class is selected, we need to get students from that class first
                     const studentsSnapshot = await db.collection('students')
                         .where('grade', '==', selectedClass)
+                        .orderBy('studentId')
                         .get();
                     
                     const studentIds = [];
