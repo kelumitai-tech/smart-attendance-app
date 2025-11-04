@@ -2052,13 +2052,24 @@
         }
 
         function updateAttendanceSummary() {
-            const totalStudents = document.querySelectorAll('.attendance-status').length;
-            const presentCount = document.querySelectorAll('.attendance-status[value="present"]').length;
+            const statusSelects = document.querySelectorAll('.attendance-status');
+            const totalStudents = statusSelects.length;
+            let presentCount = 0;
+            
+            // Count present students - FIXED: Properly count selected values
+            statusSelects.forEach(select => {
+                if (select.value === 'present') {
+                    presentCount++;
+                }
+            });
+            
             const percentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
             
             document.getElementById('presentCount').textContent = presentCount;
             document.getElementById('totalCount').textContent = totalStudents;
             document.getElementById('attendancePercentage').textContent = percentage;
+            
+            console.log(`Attendance Summary: ${presentCount}/${totalStudents} (${percentage}%)`);
         }
 
         async function saveAttendance() {
