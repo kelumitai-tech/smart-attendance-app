@@ -996,7 +996,7 @@
             let roleText = roleDisplayMapping[role] || role;
             document.getElementById('roleBadge').textContent = roleText;
             
-            // Update role-based visibility
+            // Update role-based visibility - FIXED: Properly handle Class Teacher permissions
             updateRoleBasedVisibility(role);
             
             updateAll();
@@ -1010,7 +1010,7 @@
                 el.style.display = 'none';
             });
             
-            // Show elements based on role with proper permissions
+            // Show elements based on role with proper permissions - FIXED: Class Teacher permissions
             if (role === 'principal') {
                 // Principal sees everything
                 document.querySelectorAll('.principal-only').forEach(el => {
@@ -1021,7 +1021,7 @@
                     tab.style.display = 'block';
                 });
             } else if (role === 'classTeacher') {
-                // Class Teacher sees class-teacher-only elements
+                // Class Teacher sees class-teacher-only elements - FIXED: Students tab now visible
                 document.querySelectorAll('.class-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
@@ -1139,7 +1139,7 @@
         // Data management functions - FIXED VERSION
         async function loadClassDropdowns() {
             try {
-                const snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
+                const snapshot = await db.collection('grades').get();
                 const classSelect = document.getElementById('selectClass');
                 const reportClassSelect = document.getElementById('reportClass');
                 const viewClassSelect = document.getElementById('viewClass');
@@ -1161,12 +1161,23 @@
                     return;
                 }
                 
+                // Convert to array and sort manually - FIXED: No complex Firestore ordering
+                const gradesArray = [];
                 snapshot.forEach(doc => {
-                    const gradeData = doc.data();
-                    // FIX: Ensure className exists and use proper format
+                    gradesArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by grade and class name
+                gradesArray.sort((a, b) => {
+                    const gradeCompare = a.grade.localeCompare(b.grade);
+                    if (gradeCompare !== 0) return gradeCompare;
+                    return (a.className || 'A').localeCompare(b.className || 'A');
+                });
+                
+                gradesArray.forEach(gradeData => {
                     const className = gradeData.className || 'A';
                     const displayText = `${gradeData.grade} - ${className}`;
-                    const optionValue = doc.id;
+                    const optionValue = gradeData.id;
                     
                     // Create option for main dropdowns
                     const option = document.createElement('option');
@@ -1196,7 +1207,7 @@
 
         async function loadSubjectDropdowns() {
             try {
-                const snapshot = await db.collection('subjects').orderBy('name').get();
+                const snapshot = await db.collection('subjects').get();
                 const selectSubject = document.getElementById('selectSubject');
                 const reportSubject = document.getElementById('reportSubject');
                 const viewSubject = document.getElementById('viewSubject');
@@ -1215,10 +1226,18 @@
                     return;
                 }
                 
+                // Convert to array and sort manually
+                const subjectsArray = [];
                 snapshot.forEach(doc => {
-                    const subjectData = doc.data();
+                    subjectsArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by name
+                subjectsArray.sort((a, b) => a.name.localeCompare(b.name));
+                
+                subjectsArray.forEach(subjectData => {
                     const option = document.createElement('option');
-                    option.value = doc.id;
+                    option.value = subjectData.id;
                     option.textContent = subjectData.name;
                     
                     dropdowns.forEach(select => {
@@ -1238,7 +1257,7 @@
 
         async function loadTeacherDropdowns() {
             try {
-                const snapshot = await db.collection('teachers').orderBy('teacherId').get();
+                const snapshot = await db.collection('teachers').get();
                 const selectTeacher = document.getElementById('selectTeacher');
                 const viewTeacher = document.getElementById('viewTeacher');
                 
@@ -1255,10 +1274,18 @@
                     return;
                 }
                 
+                // Convert to array and sort manually
+                const teachersArray = [];
                 snapshot.forEach(doc => {
-                    const teacherData = doc.data();
+                    teachersArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by teacher ID
+                teachersArray.sort((a, b) => a.teacherId.localeCompare(b.teacherId));
+                
+                teachersArray.forEach(teacherData => {
                     const option = document.createElement('option');
-                    option.value = doc.id;
+                    option.value = teacherData.id;
                     option.textContent = `${teacherData.name} (${teacherData.teacherId}) - ${teacherData.subjectName}`;
                     
                     dropdowns.forEach(select => {
@@ -1451,8 +1478,7 @@
             studentList.innerHTML = '<div class="loading">Loading students...</div>';
             
             try {
-                // FIXED: Order students by studentId in ascending order
-                const snapshot = await db.collection('students').orderBy('studentId').get();
+                const snapshot = await db.collection('students').get();
                 studentList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1460,8 +1486,16 @@
                     return;
                 }
                 
+                // Convert to array and sort manually - FIXED: No complex Firestore ordering
+                const studentsArray = [];
                 snapshot.forEach(doc => {
-                    const student = doc.data();
+                    studentsArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by student ID
+                studentsArray.sort((a, b) => a.studentId.localeCompare(b.studentId));
+                
+                studentsArray.forEach(student => {
                     const studentItem = document.createElement('div');
                     studentItem.className = 'student-item';
                     studentItem.innerHTML = `
@@ -1470,8 +1504,8 @@
                             <br><small>${student.gradeDisplay || 'Grade not set'} • ${student.gender}</small>
                         </div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editStudent('${doc.id}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteStudent('${doc.id}')">Delete</button>
+                            <button class="btn btn-warning btn-small" onclick="editStudent('${student.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteStudent('${student.id}')">Delete</button>
                         </div>
                     `;
                     studentList.appendChild(studentItem);
@@ -1562,8 +1596,7 @@
             teachersList.innerHTML = '<div class="loading">Loading teachers...</div>';
             
             try {
-                // FIXED: Order teachers by teacherId in ascending order
-                const snapshot = await db.collection('teachers').orderBy('teacherId').get();
+                const snapshot = await db.collection('teachers').get();
                 teachersList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1571,8 +1604,16 @@
                     return;
                 }
                 
+                // Convert to array and sort manually - FIXED: No complex Firestore ordering
+                const teachersArray = [];
                 snapshot.forEach(doc => {
-                    const teacher = doc.data();
+                    teachersArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by teacher ID
+                teachersArray.sort((a, b) => a.teacherId.localeCompare(b.teacherId));
+                
+                teachersArray.forEach(teacher => {
                     const teacherItem = document.createElement('div');
                     teacherItem.className = 'teacher-item';
                     teacherItem.innerHTML = `
@@ -1581,8 +1622,8 @@
                             <br><small>${teacher.subjectName} • ${roleDisplayMapping[teacher.role]}</small>
                         </div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editTeacher('${doc.id}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteTeacher('${doc.id}')">Delete</button>
+                            <button class="btn btn-warning btn-small" onclick="editTeacher('${teacher.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteTeacher('${teacher.id}')">Delete</button>
                         </div>
                     `;
                     teachersList.appendChild(teacherItem);
@@ -1652,8 +1693,7 @@
             subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
             
             try {
-                // FIXED: Order subjects by name in ascending order
-                const snapshot = await db.collection('subjects').orderBy('name').get();
+                const snapshot = await db.collection('subjects').get();
                 subjectsList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1661,8 +1701,16 @@
                     return;
                 }
                 
+                // Convert to array and sort manually - FIXED: No complex Firestore ordering
+                const subjectsArray = [];
                 snapshot.forEach(doc => {
-                    const subject = doc.data();
+                    subjectsArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by name
+                subjectsArray.sort((a, b) => a.name.localeCompare(b.name));
+                
+                subjectsArray.forEach(subject => {
                     const subjectItem = document.createElement('div');
                     subjectItem.className = 'subject-item';
                     subjectItem.innerHTML = `
@@ -1670,8 +1718,8 @@
                             <strong>${subject.name}</strong>
                         </div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editSubject('${doc.id}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteSubject('${doc.id}')">Delete</button>
+                            <button class="btn btn-warning btn-small" onclick="editSubject('${subject.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteSubject('${subject.id}')">Delete</button>
                         </div>
                     `;
                     subjectsList.appendChild(subjectItem);
@@ -1748,8 +1796,7 @@
             gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
             
             try {
-                // FIXED: Order grades by grade and className in ascending order
-                const snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
+                const snapshot = await db.collection('grades').get();
                 gradesList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1757,9 +1804,21 @@
                     return;
                 }
                 
+                // Convert to array and sort manually - FIXED: No complex Firestore ordering
+                const gradesArray = [];
                 snapshot.forEach(doc => {
-                    const grade = doc.data();
-                    const className = grade.className || 'A'; // FIX: Default to 'A' if not set
+                    gradesArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by grade and class name
+                gradesArray.sort((a, b) => {
+                    const gradeCompare = a.grade.localeCompare(b.grade);
+                    if (gradeCompare !== 0) return gradeCompare;
+                    return (a.className || 'A').localeCompare(b.className || 'A');
+                });
+                
+                gradesArray.forEach(grade => {
+                    const className = grade.className || 'A';
                     const displayText = `${grade.grade} - ${className}`;
                     const gradeItem = document.createElement('div');
                     gradeItem.className = 'grade-item';
@@ -1768,8 +1827,8 @@
                             <strong>${displayText}</strong>
                         </div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editGrade('${doc.id}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteGrade('${doc.id}')">Delete</button>
+                            <button class="btn btn-warning btn-small" onclick="editGrade('${grade.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteGrade('${grade.id}')">Delete</button>
                         </div>
                     `;
                     gradesList.appendChild(gradeItem);
@@ -1913,10 +1972,9 @@
                 document.getElementById('teacherNameDisplay').textContent = teacherData.name;
                 document.getElementById('teacherInfo').style.display = 'block';
                 
-                // Get students for the selected class - FIXED: Order by studentId
+                // Get students for the selected class
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
-                    .orderBy('studentId')
                     .get();
                 
                 if (studentsSnapshot.empty) {
@@ -1932,8 +1990,16 @@
                 const tbody = document.getElementById('attendanceTbody');
                 tbody.innerHTML = '';
                 
+                // Convert to array and sort manually
+                const studentsArray = [];
                 studentsSnapshot.forEach(doc => {
-                    const student = doc.data();
+                    studentsArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by student ID
+                studentsArray.sort((a, b) => a.studentId.localeCompare(b.studentId));
+                
+                studentsArray.forEach(student => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${student.studentId}</td>
@@ -2074,10 +2140,9 @@
                     return;
                 }
                 
-                // Get students for the selected class - FIXED: Order by studentId
+                // Get students for the selected class
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
-                    .orderBy('studentId')
                     .get();
                 
                 const students = {};
@@ -2194,7 +2259,6 @@
                     // If class is selected, we need to get students from that class first
                     const studentsSnapshot = await db.collection('students')
                         .where('grade', '==', selectedClass)
-                        .orderBy('studentId')
                         .get();
                     
                     const studentIds = [];
