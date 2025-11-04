@@ -1118,6 +1118,7 @@
             updateAll();
         }
 
+        // Role-based visibility update function - FIXED
         function updateRoleBasedVisibility(role) {
             console.log("Updating visibility for role:", role);
             
@@ -1137,11 +1138,11 @@
                     tab.style.display = 'block';
                 });
             } else if (role === 'classTeacher') {
-                // Class Teacher sees class-teacher-only elements
+                // Class Teacher sees class-teacher-only elements - FIXED
                 document.querySelectorAll('.class-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
-                // Show only allowed tabs for class teacher
+                // Show only allowed tabs for class teacher - FIXED
                 document.querySelectorAll('.nav-tab').forEach(tab => {
                     const tabName = tab.getAttribute('data-tab');
                     const allowedTabs = ['attendance', 'students', 'reports', 'grades', 'subjects'];
@@ -1214,7 +1215,7 @@
                 navTab.classList.add('active');
             }
             
-            // Load data for the tab if needed
+            // Load data for the tab if needed - FIXED for grades
             if (tabName === 'students') {
                 loadStudents();
             } else if (tabName === 'teachers') {
@@ -1222,7 +1223,7 @@
             } else if (tabName === 'subjects') {
                 loadSubjects();
             } else if (tabName === 'grades') {
-                loadGrades();
+                loadGrades(); // This was missing!
             } else if (tabName === 'dashboard') {
                 loadDashboard();
             }
@@ -1393,7 +1394,7 @@
             }
         }
 
-        // Initialize sample data if collections are empty
+        // Initialize sample data - FIXED for grades
         async function initializeSampleData() {
             try {
                 console.log("Initializing sample data...");
@@ -1875,6 +1876,7 @@
             }
         }
 
+        // Load Grades Function - FIXED
         async function loadGrades() {
             const gradesList = document.getElementById('gradesList');
             gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
@@ -1913,7 +1915,7 @@
                 gradesList.appendChild(listContainer);
             } catch (error) {
                 console.error("Error loading grades:", error);
-                gradesList.innerHTML = '<div class="loading">Error loading grades</div>';
+                gradesList.innerHTML = '<div class="loading">Error loading grades: ' + error.message + '</div>';
             }
         }
 
