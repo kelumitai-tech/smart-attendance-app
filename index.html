@@ -2308,7 +2308,7 @@
             }
         }
 
-        // FIXED: Update report generation to use real-time data without delays
+        // FIXED: Enhanced Report Generation with Complete Information
         async function generateReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -2321,7 +2321,7 @@
             
             try {
                 const reportOutput = document.getElementById('reportOutput');
-                reportOutput.innerHTML = '<div class="loading">Generating report...</div>';
+                reportOutput.innerHTML = '<div class="loading">Generating comprehensive report...</div>';
                 
                 // Get start and end dates for the selected month
                 const startDate = new Date(selectedMonth + '-01');
@@ -2331,7 +2331,7 @@
                 const startDateStr = startDate.toISOString().split('T')[0];
                 const endDateStr = endDate.toISOString().split('T')[0];
                 
-                // Get all students for the selected class FIRST
+                // Get all students for the selected class
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
                     .get();
@@ -2341,6 +2341,25 @@
                     return;
                 }
                 
+                // Get class information
+                const classDoc = await db.collection('grades').doc(selectedClass).get();
+                const classData = classDoc.exists ? classDoc.data() : { grade: 'Unknown', className: 'Unknown' };
+                
+                // Get subject information
+                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
+                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
+                
+                // Get teacher information for this subject and class
+                const teachersSnapshot = await db.collection('teachers')
+                    .where('subject', '==', selectedSubject)
+                    .get();
+                
+                let teacherInfo = 'Not Assigned';
+                if (!teachersSnapshot.empty) {
+                    const teacherData = teachersSnapshot.docs[0].data();
+                    teacherInfo = `${teacherData.name} (${teacherData.teacherId})`;
+                }
+                
                 // Get attendance records for the selected period
                 const attendanceSnapshot = await db.collection('attendance')
                     .where('subject', '==', selectedSubject)
@@ -2348,21 +2367,24 @@
                     .where('date', '<=', endDateStr)
                     .get();
                 
-                // Process attendance data more efficiently
+                // Process attendance data
                 const attendanceData = {};
+                const dailyAttendance = {};
                 
                 // Initialize all students with zero counts
                 studentsSnapshot.forEach(doc => {
                     const student = doc.data();
                     attendanceData[student.studentId] = {
                         name: student.name,
+                        gender: student.gender,
                         present: 0,
                         absent: 0,
-                        total: 0
+                        total: 0,
+                        dailyRecords: {}
                     };
                 });
                 
-                // Count attendance from records
+                // Count attendance from records and track daily attendance
                 attendanceSnapshot.forEach(doc => {
                     const record = doc.data();
                     if (attendanceData[record.studentId]) {
@@ -2372,65 +2394,151 @@
                         } else {
                             attendanceData[record.studentId].absent++;
                         }
+                        
+                        // Track daily attendance
+                        if (!attendanceData[record.studentId].dailyRecords[record.date]) {
+                            attendanceData[record.studentId].dailyRecords[record.date] = record.status;
+                        }
+                        
+                        // Track overall daily attendance
+                        if (!dailyAttendance[record.date]) {
+                            dailyAttendance[record.date] = { present: 0, absent: 0 };
+                        }
+                        if (record.status === 'present') {
+                            dailyAttendance[record.date].present++;
+                        } else {
+                            dailyAttendance[record.date].absent++;
+                        }
                     }
                 });
                 
                 // Sort by student ID
                 const sortedStudentIds = Object.keys(attendanceData).sort();
                 
-                // Generate report HTML
-                let reportHTML = '<h3>Monthly Attendance Report</h3>';
-                reportHTML += `<p>Month: ${selectedMonth}</p>`;
+                // Generate comprehensive report HTML
+                let reportHTML = '<div class="card">';
+                reportHTML += '<h3>📊 Comprehensive Monthly Attendance Report</h3>';
+                reportHTML += `<div class="info-box">`;
+                reportHTML += `<p><strong>Month:</strong> ${selectedMonth}</p>`;
+                reportHTML += `<p><strong>Class:</strong> ${classData.grade} - ${classData.className}</p>`;
+                reportHTML += `<p><strong>Subject:</strong> ${subjectName}</p>`;
+                reportHTML += `<p><strong>Teacher:</strong> ${teacherInfo}</p>`;
+                reportHTML += `<p><strong>Report Period:</strong> ${startDateStr} to ${endDateStr}</p>`;
+                reportHTML += `</div>`;
                 
-                // Get additional information for the report header
-                const classDoc = await db.collection('grades').doc(selectedClass).get();
-                const classData = classDoc.exists ? classDoc.data() : { grade: 'Unknown', className: 'Unknown' };
-                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
-                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
-                
-                reportHTML += `<p><strong>Class:</strong> ${classData.grade} - ${classData.className} | <strong>Subject:</strong> ${subjectName}</p>`;
-                
-                reportHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
-                
-                let serialNumber = 1;
+                // Overall Summary
                 let totalPresent = 0;
                 let totalAbsent = 0;
                 let totalRecords = 0;
                 
                 sortedStudentIds.forEach(studentId => {
                     const data = attendanceData[studentId];
-                    const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
-                    const percentageClass = percentage >= 80 ? 'percentage-good' : percentage >= 60 ? 'percentage-average' : 'percentage-poor';
-                    
                     totalPresent += data.present;
                     totalAbsent += data.absent;
                     totalRecords += data.total;
+                });
+                
+                const overallPercentage = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
+                
+                reportHTML += `<div class="attendance-summary">`;
+                reportHTML += `<h4>📈 Overall Summary</h4>`;
+                reportHTML += `<p>Total Students: ${sortedStudentIds.length} | Total Present: ${totalPresent} | Total Absent: ${totalAbsent} | Total Records: ${totalRecords}</p>`;
+                reportHTML += `<p>Overall Attendance Rate: <strong>${overallPercentage}%</strong></p>`;
+                reportHTML += `</div>`;
+                
+                // Student-wise Detailed Report
+                reportHTML += '<h4>👥 Student-wise Attendance Details</h4>';
+                reportHTML += '<div style="overflow-x: auto;">';
+                reportHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Gender</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th><th>Status</th></tr></thead><tbody>';
+                
+                let serialNumber = 1;
+                sortedStudentIds.forEach(studentId => {
+                    const data = attendanceData[studentId];
+                    const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+                    const percentageClass = percentage >= 80 ? 'percentage-good' : percentage >= 60 ? 'percentage-average' : 'percentage-poor';
+                    const status = percentage >= 75 ? 'Good' : percentage >= 50 ? 'Average' : 'Poor';
                     
                     reportHTML += `
                         <tr>
                             <td>${serialNumber}</td>
                             <td>${studentId}</td>
                             <td>${data.name}</td>
+                            <td>${data.gender}</td>
                             <td class="present">${data.present}</td>
                             <td class="absent">${data.absent}</td>
                             <td>${data.total}</td>
                             <td class="${percentageClass}"><strong>${percentage}%</strong></td>
+                            <td><strong>${status}</strong></td>
                         </tr>
                     `;
                     serialNumber++;
                 });
                 
-                reportHTML += '</tbody></table>';
+                reportHTML += '</tbody></table></div>';
                 
-                // Add overall summary
-                const overallPercentage = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
+                // Daily Attendance Summary
+                reportHTML += '<h4>📅 Daily Attendance Summary</h4>';
+                reportHTML += '<div style="overflow-x: auto;">';
+                reportHTML += '<table><thead><tr><th>Date</th><th>Present</th><th>Absent</th><th>Total</th><th>Attendance %</th></tr></thead><tbody>';
+                
+                const sortedDates = Object.keys(dailyAttendance).sort();
+                sortedDates.forEach(date => {
+                    const dailyData = dailyAttendance[date];
+                    const dailyTotal = dailyData.present + dailyData.absent;
+                    const dailyPercentage = dailyTotal > 0 ? Math.round((dailyData.present / dailyTotal) * 100) : 0;
+                    
+                    reportHTML += `
+                        <tr>
+                            <td>${date}</td>
+                            <td class="present">${dailyData.present}</td>
+                            <td class="absent">${dailyData.absent}</td>
+                            <td>${dailyTotal}</td>
+                            <td><strong>${dailyPercentage}%</strong></td>
+                        </tr>
+                    `;
+                });
+                
+                reportHTML += '</tbody></table></div>';
+                
+                // Analysis Section
+                reportHTML += '<h4>📋 Performance Analysis</h4>';
+                reportHTML += '<div class="grid-2">';
+                
+                // Attendance Distribution
+                let goodCount = 0, averageCount = 0, poorCount = 0;
+                sortedStudentIds.forEach(studentId => {
+                    const data = attendanceData[studentId];
+                    const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+                    if (percentage >= 75) goodCount++;
+                    else if (percentage >= 50) averageCount++;
+                    else poorCount++;
+                });
+                
                 reportHTML += `
-                    <div class="attendance-summary" style="margin-top: 20px;">
-                        <h4>Overall Summary</h4>
-                        <p>Total Present: ${totalPresent} | Total Absent: ${totalAbsent} | Total Records: ${totalRecords}</p>
-                        <p>Overall Attendance Rate: <strong>${overallPercentage}%</strong></p>
+                    <div class="card">
+                        <h5>Attendance Distribution</h5>
+                        <p>Good (≥75%): <span class="percentage-good">${goodCount} students</span></p>
+                        <p>Average (50-74%): <span class="percentage-average">${averageCount} students</span></p>
+                        <p>Poor (<50%): <span class="percentage-poor">${poorCount} students</span></p>
                     </div>
                 `;
+                
+                // Monthly Statistics
+                const workingDays = sortedDates.length;
+                const avgDailyAttendance = workingDays > 0 ? Math.round(totalRecords / workingDays) : 0;
+                
+                reportHTML += `
+                    <div class="card">
+                        <h5>Monthly Statistics</h5>
+                        <p>Working Days: ${workingDays}</p>
+                        <p>Average Daily Attendance: ${avgDailyAttendance} students</p>
+                        <p>Best Attendance Day: ${getBestAttendanceDay(dailyAttendance)}</p>
+                        <p>Worst Attendance Day: ${getWorstAttendanceDay(dailyAttendance)}</p>
+                    </div>
+                `;
+                
+                reportHTML += '</div>'; // Close grid-2
+                reportHTML += '</div>'; // Close card
                 
                 reportOutput.innerHTML = reportHTML;
                 
@@ -2440,7 +2548,44 @@
             }
         }
 
-        // FIXED: PDF generation with all required information
+        // Helper functions for report analysis
+        function getBestAttendanceDay(dailyAttendance) {
+            let bestDate = 'N/A';
+            let bestPercentage = 0;
+            
+            Object.keys(dailyAttendance).forEach(date => {
+                const dailyData = dailyAttendance[date];
+                const dailyTotal = dailyData.present + dailyData.absent;
+                const dailyPercentage = dailyTotal > 0 ? Math.round((dailyData.present / dailyTotal) * 100) : 0;
+                
+                if (dailyPercentage > bestPercentage) {
+                    bestPercentage = dailyPercentage;
+                    bestDate = `${date} (${dailyPercentage}%)`;
+                }
+            });
+            
+            return bestDate;
+        }
+
+        function getWorstAttendanceDay(dailyAttendance) {
+            let worstDate = 'N/A';
+            let worstPercentage = 100;
+            
+            Object.keys(dailyAttendance).forEach(date => {
+                const dailyData = dailyAttendance[date];
+                const dailyTotal = dailyData.present + dailyData.absent;
+                const dailyPercentage = dailyTotal > 0 ? Math.round((dailyData.present / dailyTotal) * 100) : 0;
+                
+                if (dailyPercentage < worstPercentage) {
+                    worstPercentage = dailyPercentage;
+                    worstDate = `${date} (${dailyPercentage}%)`;
+                }
+            });
+            
+            return worstDate;
+        }
+
+        // FIXED: Enhanced PDF Generation with Complete Information
         async function generatePdfReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -2454,29 +2599,53 @@
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
+                let yPosition = 10;
                 
-                // Add title
+                // Add title and header information
                 doc.setFontSize(16);
-                doc.text('Monthly Attendance Report', 14, 15);
+                doc.setTextColor(0, 90, 156);
+                doc.text('COMPREHENSIVE ATTENDANCE REPORT', 105, yPosition, { align: 'center' });
+                yPosition += 10;
                 
-                // Add date and details
-                doc.setFontSize(12);
-                
-                // Get additional information for the report
-                const classDoc = await db.collection('grades').doc(selectedClass).get();
-                const classData = classDoc.exists ? classDoc.data() : { grade: 'Unknown', className: 'Unknown' };
-                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
-                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
-                
-                doc.text(`Month: ${selectedMonth}`, 14, 25);
-                doc.text(`Class: ${classData.grade} - ${classData.className}`, 14, 35);
-                doc.text(`Subject: ${subjectName}`, 14, 45);
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
                 
                 // Get report data
                 const startDate = new Date(selectedMonth + '-01');
                 const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
                 const startDateStr = startDate.toISOString().split('T')[0];
                 const endDateStr = endDate.toISOString().split('T')[0];
+                
+                // Get class information
+                const classDoc = await db.collection('grades').doc(selectedClass).get();
+                const classData = classDoc.exists ? classDoc.data() : { grade: 'Unknown', className: 'Unknown' };
+                
+                // Get subject information
+                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
+                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
+                
+                // Get teacher information
+                const teachersSnapshot = await db.collection('teachers')
+                    .where('subject', '==', selectedSubject)
+                    .get();
+                
+                let teacherInfo = 'Not Assigned';
+                if (!teachersSnapshot.empty) {
+                    const teacherData = teachersSnapshot.docs[0].data();
+                    teacherInfo = `${teacherData.name} (${teacherData.teacherId})`;
+                }
+                
+                // Add report details
+                doc.text(`Month: ${selectedMonth}`, 14, yPosition);
+                yPosition += 5;
+                doc.text(`Class: ${classData.grade} - ${classData.className}`, 14, yPosition);
+                yPosition += 5;
+                doc.text(`Subject: ${subjectName}`, 14, yPosition);
+                yPosition += 5;
+                doc.text(`Teacher: ${teacherInfo}`, 14, yPosition);
+                yPosition += 5;
+                doc.text(`Period: ${startDateStr} to ${endDateStr}`, 14, yPosition);
+                yPosition += 10;
                 
                 // Get all students for the selected class
                 const studentsSnapshot = await db.collection('students')
@@ -2496,6 +2665,7 @@
                     const student = doc.data();
                     attendanceData[student.studentId] = {
                         name: student.name,
+                        gender: student.gender,
                         present: 0,
                         absent: 0,
                         total: 0
@@ -2527,6 +2697,7 @@
                     tableData.push([
                         studentId,
                         data.name,
+                        data.gender,
                         data.present.toString(),
                         data.absent.toString(),
                         data.total.toString(),
@@ -2538,29 +2709,51 @@
                     totalRecords += data.total;
                 });
                 
-                // Add table using autoTable
+                // Add student attendance table
                 doc.autoTable({
-                    head: [['Student ID', 'Name', 'Present', 'Absent', 'Total', 'Percentage']],
+                    head: [['Student ID', 'Name', 'Gender', 'Present', 'Absent', 'Total', 'Percentage']],
                     body: tableData,
-                    startY: 55,
-                    styles: { fontSize: 10 },
-                    headStyles: { fillColor: [0, 90, 156] }
+                    startY: yPosition,
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [0, 90, 156] },
+                    columnStyles: {
+                        0: { cellWidth: 25 },
+                        1: { cellWidth: 40 },
+                        2: { cellWidth: 20 },
+                        3: { cellWidth: 20 },
+                        4: { cellWidth: 20 },
+                        5: { cellWidth: 20 },
+                        6: { cellWidth: 25 }
+                    }
                 });
                 
-                // Add summary
-                const overallPercentage = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
+                // Add summary section
                 const finalY = doc.lastAutoTable.finalY + 10;
+                const overallPercentage = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
                 
                 doc.setFontSize(12);
-                doc.text(`Summary: ${totalPresent} Present, ${totalAbsent} Absent, ${totalRecords} Total Records`, 14, finalY);
-                doc.text(`Overall Attendance Rate: ${overallPercentage}%`, 14, finalY + 10);
+                doc.setTextColor(0, 90, 156);
+                doc.text('SUMMARY', 14, finalY);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Total Students: ${Object.keys(attendanceData).length}`, 14, finalY + 8);
+                doc.text(`Total Present: ${totalPresent}`, 14, finalY + 16);
+                doc.text(`Total Absent: ${totalAbsent}`, 14, finalY + 24);
+                doc.text(`Total Records: ${totalRecords}`, 14, finalY + 32);
+                doc.text(`Overall Attendance Rate: ${overallPercentage}%`, 14, finalY + 40);
                 
                 // Add generated date
                 const generatedDate = new Date().toLocaleDateString();
-                doc.text(`Generated on: ${generatedDate}`, 14, finalY + 20);
+                doc.text(`Generated on: ${generatedDate}`, 14, finalY + 50);
+                
+                // Add footer
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Smart Attendance Tracker - Comprehensive Report System', 105, 290, { align: 'center' });
                 
                 // Save the PDF
-                const fileName = `attendance_report_${classData.grade}_${classData.className}_${subjectName}_${selectedMonth}.pdf`;
+                const fileName = `Attendance_Report_${classData.grade}_${classData.className}_${subjectName}_${selectedMonth}.pdf`;
                 doc.save(fileName);
                 
             } catch (error) {
