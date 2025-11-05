@@ -290,6 +290,26 @@
             gap: 10px;
             margin-top: 15px;
         }
+        .serial-number {
+            background: #005A9C;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .attendance-percentage {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .percentage-good { color: #4CAF50; }
+        .percentage-average { color: #ff9800; }
+        .percentage-poor { color: #f44336; }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -441,6 +461,7 @@
                         <table id="attendanceTable">
                             <thead>
                                 <tr>
+                                    <th>#</th>
                                     <th>Student ID</th>
                                     <th>Name</th>
                                     <th>Subject</th>
@@ -451,7 +472,7 @@
                                 </tr>
                             </thead>
                             <tbody id="attendanceTbody">
-                                <tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                                <tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -719,7 +740,8 @@
             userRole: null,
             currentAttendance: {},
             currentTeacher: null,
-            editingItem: null
+            editingItem: null,
+            realTimeUnsubscribe: null
         };
 
         // Role display mapping
@@ -1066,6 +1088,12 @@
         }
 
         function doLogout() {
+            // Unsubscribe from real-time updates
+            if (appData.realTimeUnsubscribe) {
+                appData.realTimeUnsubscribe();
+                appData.realTimeUnsubscribe = null;
+            }
+            
             auth.signOut().then(() => {
                 appData.currentUser = null;
                 appData.userRole = null;
@@ -1109,6 +1137,8 @@
                 loadGrades();
             } else if (tabName === 'dashboard') {
                 loadDashboard();
+            } else if (tabName === 'viewAttendance') {
+                setupRealTimeAttendance();
             }
         }
 
@@ -1132,6 +1162,8 @@
                     loadGrades();
                 } else if (tabName === 'dashboard') {
                     loadDashboard();
+                } else if (tabName === 'viewAttendance') {
+                    setupRealTimeAttendance();
                 }
             }
         }
@@ -1139,7 +1171,7 @@
         // Fixed version of loadClassDropdowns function
         async function loadClassDropdowns() {
             try {
-                const snapshot = await db.collection('grades').get();
+                const snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
                 const classSelect = document.getElementById('selectClass');
                 const reportClassSelect = document.getElementById('reportClass');
                 const viewClassSelect = document.getElementById('viewClass');
@@ -1161,6 +1193,7 @@
                     return;
                 }
                 
+                let counter = 1;
                 snapshot.forEach(doc => {
                     const gradeData = doc.data();
                     
@@ -1183,6 +1216,8 @@
                     filterOption.value = optionValue;
                     filterOption.textContent = displayText;
                     filterStudentClass.appendChild(filterOption);
+                    
+                    counter++;
                 });
                 
                 console.log("Classes loaded successfully. Total:", snapshot.size);
@@ -1197,7 +1232,7 @@
 
         async function loadSubjectDropdowns() {
             try {
-                const snapshot = await db.collection('subjects').get();
+                const snapshot = await db.collection('subjects').orderBy('name').get();
                 const selectSubject = document.getElementById('selectSubject');
                 const reportSubject = document.getElementById('reportSubject');
                 const viewSubject = document.getElementById('viewSubject');
@@ -1239,7 +1274,7 @@
 
         async function loadTeacherDropdowns() {
             try {
-                const snapshot = await db.collection('teachers').get();
+                const snapshot = await db.collection('teachers').orderBy('name').get();
                 const selectTeacher = document.getElementById('selectTeacher');
                 const viewTeacher = document.getElementById('viewTeacher');
                 
@@ -1434,12 +1469,13 @@
             }
         }
 
+        // Updated loadStudents function with serial numbers and sorting
         async function loadStudents() {
             const studentList = document.getElementById('studentList');
             studentList.innerHTML = '<div class="loading">Loading students...</div>';
             
             try {
-                const snapshot = await db.collection('students').get();
+                const snapshot = await db.collection('students').orderBy('studentId').get();
                 studentList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1447,14 +1483,18 @@
                     return;
                 }
                 
+                let serialNumber = 1;
                 snapshot.forEach(doc => {
                     const student = doc.data();
                     const studentItem = document.createElement('div');
                     studentItem.className = 'student-item';
                     studentItem.innerHTML = `
-                        <div class="item-info">
-                            <strong>${student.studentId}</strong> - ${student.name}
-                            <br><small>${student.gradeDisplay || 'Grade not set'} • ${student.gender}</small>
+                        <div class="item-info" style="display: flex; align-items: center;">
+                            <div class="serial-number">${serialNumber}</div>
+                            <div>
+                                <strong>${student.studentId}</strong> - ${student.name}
+                                <br><small>${student.gradeDisplay || 'Grade not set'} • ${student.gender}</small>
+                            </div>
                         </div>
                         <div class="item-actions">
                             <button class="btn btn-warning btn-small" onclick="editStudent('${doc.id}')">Edit</button>
@@ -1462,6 +1502,7 @@
                         </div>
                     `;
                     studentList.appendChild(studentItem);
+                    serialNumber++;
                 });
             } catch (error) {
                 console.error("Error loading students:", error);
@@ -1474,13 +1515,24 @@
             const classFilter = document.getElementById('filterStudentClass').value;
             const studentItems = document.querySelectorAll('.student-item');
             
+            let visibleCount = 0;
             studentItems.forEach(item => {
                 const text = item.textContent.toLowerCase();
                 const grade = item.querySelector('small').textContent;
                 const classMatch = !classFilter || grade.includes(classFilter);
                 const filterMatch = text.includes(filter);
                 
-                item.style.display = (classMatch && filterMatch) ? 'flex' : 'none';
+                if (classMatch && filterMatch) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                    // Update serial number for visible items
+                    const serialNumber = item.querySelector('.serial-number');
+                    if (serialNumber) {
+                        serialNumber.textContent = visibleCount;
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
             });
         }
 
@@ -1544,12 +1596,13 @@
             }
         }
 
+        // Updated loadTeachers function with serial numbers and sorting
         async function loadTeachers() {
             const teachersList = document.getElementById('teachersList');
             teachersList.innerHTML = '<div class="loading">Loading teachers...</div>';
             
             try {
-                const snapshot = await db.collection('teachers').get();
+                const snapshot = await db.collection('teachers').orderBy('teacherId').get();
                 teachersList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1557,14 +1610,18 @@
                     return;
                 }
                 
+                let serialNumber = 1;
                 snapshot.forEach(doc => {
                     const teacher = doc.data();
                     const teacherItem = document.createElement('div');
                     teacherItem.className = 'teacher-item';
                     teacherItem.innerHTML = `
-                        <div class="item-info">
-                            <strong>${teacher.teacherId}</strong> - ${teacher.name}
-                            <br><small>${teacher.subjectName} • ${roleDisplayMapping[teacher.role]}</small>
+                        <div class="item-info" style="display: flex; align-items: center;">
+                            <div class="serial-number">${serialNumber}</div>
+                            <div>
+                                <strong>${teacher.teacherId}</strong> - ${teacher.name}
+                                <br><small>${teacher.subjectName} • ${roleDisplayMapping[teacher.role]}</small>
+                            </div>
                         </div>
                         <div class="item-actions">
                             <button class="btn btn-warning btn-small" onclick="editTeacher('${doc.id}')">Edit</button>
@@ -1572,6 +1629,7 @@
                         </div>
                     `;
                     teachersList.appendChild(teacherItem);
+                    serialNumber++;
                 });
             } catch (error) {
                 console.error("Error loading teachers:", error);
@@ -1583,9 +1641,20 @@
             const filter = document.getElementById('teacherFilter').value.toLowerCase();
             const teacherItems = document.querySelectorAll('.teacher-item');
             
+            let visibleCount = 0;
             teacherItems.forEach(item => {
                 const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(filter) ? 'flex' : 'none';
+                if (text.includes(filter)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                    // Update serial number for visible items
+                    const serialNumber = item.querySelector('.serial-number');
+                    if (serialNumber) {
+                        serialNumber.textContent = visibleCount;
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
             });
         }
 
@@ -1633,12 +1702,13 @@
             }
         }
 
+        // Updated loadSubjects function with serial numbers and sorting
         async function loadSubjects() {
             const subjectsList = document.getElementById('subjectsList');
             subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
             
             try {
-                const snapshot = await db.collection('subjects').get();
+                const snapshot = await db.collection('subjects').orderBy('name').get();
                 subjectsList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1646,13 +1716,17 @@
                     return;
                 }
                 
+                let serialNumber = 1;
                 snapshot.forEach(doc => {
                     const subject = doc.data();
                     const subjectItem = document.createElement('div');
                     subjectItem.className = 'subject-item';
                     subjectItem.innerHTML = `
-                        <div class="item-info">
-                            <strong>${subject.name}</strong>
+                        <div class="item-info" style="display: flex; align-items: center;">
+                            <div class="serial-number">${serialNumber}</div>
+                            <div>
+                                <strong>${subject.name}</strong>
+                            </div>
                         </div>
                         <div class="item-actions">
                             <button class="btn btn-warning btn-small" onclick="editSubject('${doc.id}')">Edit</button>
@@ -1660,6 +1734,7 @@
                         </div>
                     `;
                     subjectsList.appendChild(subjectItem);
+                    serialNumber++;
                 });
             } catch (error) {
                 console.error("Error loading subjects:", error);
@@ -1671,9 +1746,20 @@
             const filter = document.getElementById('subjectFilter').value.toLowerCase();
             const subjectItems = document.querySelectorAll('.subject-item');
             
+            let visibleCount = 0;
             subjectItems.forEach(item => {
                 const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(filter) ? 'flex' : 'none';
+                if (text.includes(filter)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                    // Update serial number for visible items
+                    const serialNumber = item.querySelector('.serial-number');
+                    if (serialNumber) {
+                        serialNumber.textContent = visibleCount;
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
             });
         }
 
@@ -1728,13 +1814,13 @@
             }
         }
 
-        // Fixed version of loadGrades function
+        // Updated loadGrades function with serial numbers and sorting
         async function loadGrades() {
             const gradesList = document.getElementById('gradesList');
             gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
             
             try {
-                const snapshot = await db.collection('grades').orderBy('grade').get();
+                const snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
                 gradesList.innerHTML = '';
                 
                 if (snapshot.empty) {
@@ -1742,6 +1828,7 @@
                     return;
                 }
                 
+                let serialNumber = 1;
                 snapshot.forEach(doc => {
                     const grade = doc.data();
                     const className = grade.className || 'A'; // FIX: Default to 'A' if not set
@@ -1749,8 +1836,11 @@
                     const gradeItem = document.createElement('div');
                     gradeItem.className = 'grade-item';
                     gradeItem.innerHTML = `
-                        <div class="item-info">
-                            <strong>${displayText}</strong>
+                        <div class="item-info" style="display: flex; align-items: center;">
+                            <div class="serial-number">${serialNumber}</div>
+                            <div>
+                                <strong>${displayText}</strong>
+                            </div>
                         </div>
                         <div class="item-actions">
                             <button class="btn btn-warning btn-small" onclick="editGrade('${doc.id}')">Edit</button>
@@ -1758,6 +1848,7 @@
                         </div>
                     `;
                     gradesList.appendChild(gradeItem);
+                    serialNumber++;
                 });
             } catch (error) {
                 console.error("Error loading grades:", error);
@@ -1769,9 +1860,20 @@
             const filter = document.getElementById('gradeFilter').value.toLowerCase();
             const gradeItems = document.querySelectorAll('.grade-item');
             
+            let visibleCount = 0;
             gradeItems.forEach(item => {
                 const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(filter) ? 'flex' : 'none';
+                if (text.includes(filter)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                    // Update serial number for visible items
+                    const serialNumber = item.querySelector('.serial-number');
+                    if (serialNumber) {
+                        serialNumber.textContent = visibleCount;
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
             });
         }
 
@@ -1872,7 +1974,7 @@
             alert('Edit grade functionality would be implemented here for grade ID: ' + id);
         }
 
-        // Attendance Management Functions
+        // Attendance Management Functions with serial numbers
         async function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
@@ -1901,6 +2003,7 @@
                 // Get students for the selected class
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
+                    .orderBy('studentId')
                     .get();
                 
                 if (studentsSnapshot.empty) {
@@ -1916,10 +2019,12 @@
                 const tbody = document.getElementById('attendanceTbody');
                 tbody.innerHTML = '';
                 
+                let serialNumber = 1;
                 studentsSnapshot.forEach(doc => {
                     const student = doc.data();
                     const row = document.createElement('tr');
                     row.innerHTML = `
+                        <td>${serialNumber}</td>
                         <td>${student.studentId}</td>
                         <td>${student.name}</td>
                         <td>${subjectName}</td>
@@ -1936,6 +2041,7 @@
                         </td>
                     `;
                     tbody.appendChild(row);
+                    serialNumber++;
                 });
                 
                 // Show attendance summary
@@ -2000,7 +2106,7 @@
                 let savedCount = 0;
                 
                 for (const row of rows) {
-                    const studentId = row.cells[0].textContent;
+                    const studentId = row.cells[1].textContent; // Changed from 0 to 1 because of serial number column
                     const status = row.querySelector('.attendance-status').value;
                     
                     // Create a unique ID for this attendance record
@@ -2026,7 +2132,7 @@
             }
         }
 
-        // Report Generation
+        // Updated Report Generation with percentages
         async function generateReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -2061,6 +2167,7 @@
                 // Get students for the selected class
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
+                    .orderBy('studentId')
                     .get();
                 
                 const students = {};
@@ -2095,21 +2202,26 @@
                 // Generate report HTML
                 let reportHTML = '<h3>Monthly Attendance Report</h3>';
                 reportHTML += `<p>Month: ${selectedMonth}</p>`;
-                reportHTML += '<table><thead><tr><th>Student ID</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
+                reportHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
                 
+                let serialNumber = 1;
                 Object.keys(attendanceData).forEach(studentId => {
                     const data = attendanceData[studentId];
                     const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+                    const percentageClass = percentage >= 80 ? 'percentage-good' : percentage >= 60 ? 'percentage-average' : 'percentage-poor';
+                    
                     reportHTML += `
                         <tr>
+                            <td>${serialNumber}</td>
                             <td>${studentId}</td>
                             <td>${data.name}</td>
                             <td class="present">${data.present}</td>
                             <td class="absent">${data.absent}</td>
                             <td>${data.total}</td>
-                            <td>${percentage}%</td>
+                            <td class="${percentageClass}"><strong>${percentage}%</strong></td>
                         </tr>
                     `;
+                    serialNumber++;
                 });
                 
                 reportHTML += '</tbody></table>';
@@ -2158,56 +2270,67 @@
             }
         }
 
-        // View Attendance Records (Principal Only)
+        // Real-time attendance view with serial numbers
+        function setupRealTimeAttendance() {
+            // Unsubscribe from previous real-time listener
+            if (appData.realTimeUnsubscribe) {
+                appData.realTimeUnsubscribe();
+            }
+            
+            const selectedDate = document.getElementById('viewDate').value;
+            if (!selectedDate) {
+                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">Please select a date to view attendance.</div>';
+                return;
+            }
+            
+            // Set up real-time listener for attendance records
+            appData.realTimeUnsubscribe = db.collection('attendance')
+                .where('date', '==', selectedDate)
+                .onSnapshot(async (snapshot) => {
+                    await displayAttendanceRecords(snapshot);
+                }, (error) => {
+                    console.error("Error in real-time attendance:", error);
+                    document.getElementById('viewAttendanceOutput').innerHTML = '<div class="error-msg">Error loading attendance records: ' + error.message + '</div>';
+                });
+        }
+
         async function viewAttendanceRecords() {
+            setupRealTimeAttendance();
+        }
+
+        async function displayAttendanceRecords(snapshot) {
             const selectedClass = document.getElementById('viewClass').value;
             const selectedSubject = document.getElementById('viewSubject').value;
             const selectedTeacher = document.getElementById('viewTeacher').value;
             const selectedDate = document.getElementById('viewDate').value;
             
             if (!selectedDate) {
-                alert('Please select a date');
+                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">Please select a date to view attendance.</div>';
                 return;
             }
             
             try {
-                let query = db.collection('attendance').where('date', '==', selectedDate);
-                
-                if (selectedClass) {
-                    // If class is selected, we need to get students from that class first
-                    const studentsSnapshot = await db.collection('students')
-                        .where('grade', '==', selectedClass)
-                        .get();
-                    
-                    const studentIds = [];
-                    studentsSnapshot.forEach(doc => {
-                        studentIds.push(doc.data().studentId);
-                    });
-                    
-                    if (studentIds.length > 0) {
-                        query = query.where('studentId', 'in', studentIds);
-                    }
-                }
-                
-                if (selectedSubject) {
-                    query = query.where('subject', '==', selectedSubject);
-                }
-                
-                if (selectedTeacher) {
-                    query = query.where('teacher', '==', selectedTeacher);
-                }
-                
-                const attendanceSnapshot = await query.get();
-                
-                if (attendanceSnapshot.empty) {
+                if (snapshot.empty) {
                     document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
                     return;
                 }
                 
                 // Get additional information for display
                 const attendanceRecords = [];
-                for (const doc of attendanceSnapshot.docs) {
+                for (const doc of snapshot.docs) {
                     const record = doc.data();
+                    
+                    // Apply filters
+                    if (selectedClass) {
+                        const studentDoc = await db.collection('students')
+                            .where('studentId', '==', record.studentId)
+                            .where('grade', '==', selectedClass)
+                            .get();
+                        if (studentDoc.empty) continue;
+                    }
+                    
+                    if (selectedSubject && record.subject !== selectedSubject) continue;
+                    if (selectedTeacher && record.teacher !== selectedTeacher) continue;
                     
                     // Get student name
                     const studentDoc = await db.collection('students')
@@ -2215,8 +2338,11 @@
                         .get();
                     
                     let studentName = 'Unknown';
+                    let gradeDisplay = 'Unknown';
                     if (!studentDoc.empty) {
-                        studentName = studentDoc.docs[0].data().name;
+                        const studentData = studentDoc.docs[0].data();
+                        studentName = studentData.name;
+                        gradeDisplay = studentData.gradeDisplay || 'Unknown';
                     }
                     
                     // Get teacher name
@@ -2237,34 +2363,71 @@
                         ...record,
                         studentName: studentName,
                         teacherName: teacherName,
-                        subjectName: subjectName
+                        subjectName: subjectName,
+                        gradeDisplay: gradeDisplay
                     });
                 }
+                
+                if (attendanceRecords.length === 0) {
+                    document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
+                    return;
+                }
+                
+                // Sort by student ID
+                attendanceRecords.sort((a, b) => a.studentId.localeCompare(b.studentId));
                 
                 // Generate display HTML
                 let outputHTML = '<h3>Attendance Records</h3>';
                 outputHTML += `<p>Date: ${selectedDate}</p>`;
-                outputHTML += '<table><thead><tr><th>Student ID</th><th>Student Name</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead><tbody>';
+                outputHTML += `<p><strong>Total Records: ${attendanceRecords.length}</strong></p>`;
+                outputHTML += '<div style="overflow-x: auto;">';
+                outputHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Student Name</th><th>Class</th><th>Subject</th><th>Teacher</th><th>Status</th><th>Time</th></tr></thead><tbody>';
+                
+                let serialNumber = 1;
+                let presentCount = 0;
+                let absentCount = 0;
                 
                 attendanceRecords.forEach(record => {
                     const statusClass = record.status === 'present' ? 'present' : 'absent';
+                    const time = record.timestamp ? new Date(record.timestamp.toDate()).toLocaleTimeString() : 'N/A';
+                    
+                    if (record.status === 'present') presentCount++;
+                    if (record.status === 'absent') absentCount++;
+                    
                     outputHTML += `
                         <tr>
+                            <td>${serialNumber}</td>
                             <td>${record.studentId}</td>
                             <td>${record.studentName}</td>
+                            <td>${record.gradeDisplay}</td>
                             <td>${record.subjectName}</td>
                             <td>${record.teacherName}</td>
-                            <td class="${statusClass}">${record.status.toUpperCase()}</td>
+                            <td class="${statusClass}"><strong>${record.status.toUpperCase()}</strong></td>
+                            <td><small>${time}</small></td>
                         </tr>
                     `;
+                    serialNumber++;
                 });
                 
-                outputHTML += '</tbody></table>';
+                const totalCount = presentCount + absentCount;
+                const presentPercentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+                const absentPercentage = totalCount > 0 ? Math.round((absentCount / totalCount) * 100) : 0;
+                
+                outputHTML += '</tbody></table></div>';
+                
+                // Add summary
+                outputHTML += `
+                    <div class="attendance-summary" style="margin-top: 20px;">
+                        <h4>Summary</h4>
+                        <p>Present: ${presentCount} (${presentPercentage}%) | Absent: ${absentCount} (${absentPercentage}%) | Total: ${totalCount}</p>
+                    </div>
+                `;
+                
                 document.getElementById('viewAttendanceOutput').innerHTML = outputHTML;
                 
             } catch (error) {
-                console.error("Error viewing attendance records:", error);
-                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="error-msg">Error viewing attendance records: ' + error.message + '</div>';
+                console.error("Error displaying attendance records:", error);
+                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="error-msg">Error displaying attendance records: ' + error.message + '</div>';
             }
         }
 
