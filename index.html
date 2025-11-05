@@ -2381,6 +2381,15 @@
                 // Generate report HTML
                 let reportHTML = '<h3>Monthly Attendance Report</h3>';
                 reportHTML += `<p>Month: ${selectedMonth}</p>`;
+                
+                // Get additional information for the report header
+                const classDoc = await db.collection('grades').doc(selectedClass).get();
+                const classData = classDoc.exists ? classDoc.data() : { grade: 'Unknown', className: 'Unknown' };
+                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
+                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
+                
+                reportHTML += `<p><strong>Class:</strong> ${classData.grade} - ${classData.className} | <strong>Subject:</strong> ${subjectName}</p>`;
+                
                 reportHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
                 
                 let serialNumber = 1;
@@ -2431,10 +2440,14 @@
             }
         }
 
+        // FIXED: PDF generation with all required information
         async function generatePdfReport() {
-            const reportOutput = document.getElementById('reportOutput');
-            if (!reportOutput.innerHTML) {
-                alert('Please generate a report first');
+            const selectedClass = document.getElementById('reportClass').value;
+            const selectedSubject = document.getElementById('reportSubject').value;
+            const selectedMonth = document.getElementById('reportMonth').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedMonth) {
+                alert('Please select all required fields first');
                 return;
             }
             
@@ -2446,21 +2459,109 @@
                 doc.setFontSize(16);
                 doc.text('Monthly Attendance Report', 14, 15);
                 
-                // Add date
-                const selectedMonth = document.getElementById('reportMonth').value;
+                // Add date and details
                 doc.setFontSize(12);
+                
+                // Get additional information for the report
+                const classDoc = await db.collection('grades').doc(selectedClass).get();
+                const classData = classDoc.exists ? classDoc.data() : { grade: 'Unknown', className: 'Unknown' };
+                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
+                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
+                
                 doc.text(`Month: ${selectedMonth}`, 14, 25);
+                doc.text(`Class: ${classData.grade} - ${classData.className}`, 14, 35);
+                doc.text(`Subject: ${subjectName}`, 14, 45);
+                
+                // Get report data
+                const startDate = new Date(selectedMonth + '-01');
+                const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+                const startDateStr = startDate.toISOString().split('T')[0];
+                const endDateStr = endDate.toISOString().split('T')[0];
+                
+                // Get all students for the selected class
+                const studentsSnapshot = await db.collection('students')
+                    .where('grade', '==', selectedClass)
+                    .get();
+                
+                // Get attendance records for the selected period
+                const attendanceSnapshot = await db.collection('attendance')
+                    .where('subject', '==', selectedSubject)
+                    .where('date', '>=', startDateStr)
+                    .where('date', '<=', endDateStr)
+                    .get();
+                
+                // Process attendance data
+                const attendanceData = {};
+                studentsSnapshot.forEach(doc => {
+                    const student = doc.data();
+                    attendanceData[student.studentId] = {
+                        name: student.name,
+                        present: 0,
+                        absent: 0,
+                        total: 0
+                    };
+                });
+                
+                attendanceSnapshot.forEach(doc => {
+                    const record = doc.data();
+                    if (attendanceData[record.studentId]) {
+                        attendanceData[record.studentId].total++;
+                        if (record.status === 'present') {
+                            attendanceData[record.studentId].present++;
+                        } else {
+                            attendanceData[record.studentId].absent++;
+                        }
+                    }
+                });
+                
+                // Prepare table data
+                const tableData = [];
+                let totalPresent = 0;
+                let totalAbsent = 0;
+                let totalRecords = 0;
+                
+                Object.keys(attendanceData).sort().forEach(studentId => {
+                    const data = attendanceData[studentId];
+                    const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+                    
+                    tableData.push([
+                        studentId,
+                        data.name,
+                        data.present.toString(),
+                        data.absent.toString(),
+                        data.total.toString(),
+                        `${percentage}%`
+                    ]);
+                    
+                    totalPresent += data.present;
+                    totalAbsent += data.absent;
+                    totalRecords += data.total;
+                });
                 
                 // Add table using autoTable
                 doc.autoTable({
-                    html: '#reportOutput table',
-                    startY: 30,
+                    head: [['Student ID', 'Name', 'Present', 'Absent', 'Total', 'Percentage']],
+                    body: tableData,
+                    startY: 55,
                     styles: { fontSize: 10 },
                     headStyles: { fillColor: [0, 90, 156] }
                 });
                 
+                // Add summary
+                const overallPercentage = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
+                const finalY = doc.lastAutoTable.finalY + 10;
+                
+                doc.setFontSize(12);
+                doc.text(`Summary: ${totalPresent} Present, ${totalAbsent} Absent, ${totalRecords} Total Records`, 14, finalY);
+                doc.text(`Overall Attendance Rate: ${overallPercentage}%`, 14, finalY + 10);
+                
+                // Add generated date
+                const generatedDate = new Date().toLocaleDateString();
+                doc.text(`Generated on: ${generatedDate}`, 14, finalY + 20);
+                
                 // Save the PDF
-                doc.save(`attendance_report_${selectedMonth}.pdf`);
+                const fileName = `attendance_report_${classData.grade}_${classData.className}_${subjectName}_${selectedMonth}.pdf`;
+                doc.save(fileName);
                 
             } catch (error) {
                 console.error("Error generating PDF:", error);
