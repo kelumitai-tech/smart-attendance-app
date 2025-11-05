@@ -310,6 +310,13 @@
         .percentage-good { color: #4CAF50; }
         .percentage-average { color: #ff9800; }
         .percentage-poor { color: #f44336; }
+        .debug-panel {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -611,6 +618,17 @@
                     <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
                         <p>Total Subjects</p>
                         <h2 id="totalSubjects">0</h2>
+                    </div>
+                </div>
+                
+                <!-- Debug Panel for Principal -->
+                <div class="debug-panel principal-only">
+                    <h4>🔧 Debug Tools</h4>
+                    <p>If you're experiencing issues with grades loading, use these tools:</p>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-warning btn-small" onclick="debugGrades()">Debug Grades</button>
+                        <button class="btn btn-secondary btn-small" onclick="manuallyAddGrades()">Add Sample Grades</button>
+                        <button class="btn btn-primary btn-small" onclick="loadClassDropdowns()">Reload Classes</button>
                     </div>
                 </div>
             </div>
@@ -1171,7 +1189,11 @@
         // Fixed version of loadClassDropdowns function
         async function loadClassDropdowns() {
             try {
-                const snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
+                console.log("Loading classes from Firestore...");
+                
+                const snapshot = await db.collection('grades').get();
+                console.log("Grades snapshot:", snapshot.size, "documents found");
+                
                 const classSelect = document.getElementById('selectClass');
                 const reportClassSelect = document.getElementById('reportClass');
                 const viewClassSelect = document.getElementById('viewClass');
@@ -1187,6 +1209,7 @@
                 filterStudentClass.innerHTML = '<option value="">All Classes</option>';
                 
                 if (snapshot.empty) {
+                    console.log("No grades found in database");
                     dropdowns.forEach(select => {
                         select.innerHTML += '<option value="" disabled>No classes available. Please add classes first.</option>';
                     });
@@ -1196,10 +1219,12 @@
                 let counter = 1;
                 snapshot.forEach(doc => {
                     const gradeData = doc.data();
+                    console.log("Grade data:", doc.id, gradeData);
                     
-                    // FIX: Ensure className exists and use proper format
-                    const className = gradeData.className || 'A'; // Default to 'A' if className is missing
-                    const displayText = `${gradeData.grade} - ${className}`;
+                    // FIX: Ensure all required fields exist
+                    const grade = gradeData.grade || 'Unknown Grade';
+                    const className = gradeData.className || 'A';
+                    const displayText = `${grade} - ${className}`;
                     const optionValue = doc.id;
                     
                     // Create option for main dropdowns
@@ -1221,9 +1246,12 @@
                 });
                 
                 console.log("Classes loaded successfully. Total:", snapshot.size);
+                
             } catch (error) {
                 console.error("Error loading classes:", error);
-                const errorOption = '<option value="" disabled>Error loading classes</option>';
+                console.error("Error details:", error.message, error.stack);
+                
+                const errorOption = '<option value="" disabled>Error loading classes. Check console.</option>';
                 document.querySelectorAll('#selectClass, #reportClass, #viewClass, #studentGrade, #filterStudentClass').forEach(select => {
                     select.innerHTML = errorOption;
                 });
@@ -1319,28 +1347,75 @@
                 
                 // Check if grades collection is empty
                 const gradesSnapshot = await db.collection('grades').get();
+                console.log("Existing grades:", gradesSnapshot.size);
+                
                 if (gradesSnapshot.empty) {
                     console.log("Adding sample grades...");
-                    // Add sample grades with proper class names - FIXED
+                    
+                    // Add sample grades with proper structure
                     const sampleGrades = [
-                        { grade: 'Grade 6', className: 'A', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
-                        { grade: 'Grade 7', className: 'B', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
-                        { grade: 'Grade 8', className: 'C', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
-                        { grade: 'Grade 9', className: 'A', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
-                        { grade: 'Grade 10', className: 'B', createdAt: firebase.firestore.FieldValue.serverTimestamp() }
+                        { 
+                            grade: 'Grade 6', 
+                            className: 'A', 
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdBy: 'system'
+                        },
+                        { 
+                            grade: 'Grade 7', 
+                            className: 'B', 
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdBy: 'system'
+                        },
+                        { 
+                            grade: 'Grade 8', 
+                            className: 'C', 
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdBy: 'system'
+                        },
+                        { 
+                            grade: 'Grade 9', 
+                            className: 'A', 
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdBy: 'system'
+                        },
+                        { 
+                            grade: 'Grade 10', 
+                            className: 'B', 
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdBy: 'system'
+                        }
                     ];
                     
-                    for (const grade of sampleGrades) {
-                        await db.collection('grades').add(grade);
-                    }
+                    const addPromises = sampleGrades.map(async (grade) => {
+                        try {
+                            const docRef = await db.collection('grades').add(grade);
+                            console.log("Added grade with ID:", docRef.id);
+                            return docRef;
+                        } catch (error) {
+                            console.error("Error adding grade:", error);
+                            throw error;
+                        }
+                    });
+                    
+                    await Promise.all(addPromises);
                     console.log("Sample grades added successfully");
                     
                     // Reload dropdowns after adding sample data
-                    setTimeout(loadClassDropdowns, 1000);
+                    setTimeout(() => {
+                        loadClassDropdowns();
+                        loadGrades();
+                    }, 2000);
+                    
                 } else {
-                    console.log("Grades already exist:", gradesSnapshot.size);
-                    // Even if grades exist, reload dropdowns to ensure they display correctly
+                    console.log("Grades already exist. Loading them...");
+                    // Load existing grades
+                    gradesSnapshot.forEach(doc => {
+                        console.log("Existing grade:", doc.id, doc.data());
+                    });
+                    
+                    // Load dropdowns with existing data
                     loadClassDropdowns();
+                    loadGrades();
                 }
 
                 // Check if subjects collection is empty
@@ -1405,6 +1480,7 @@
 
             } catch (error) {
                 console.error("Error initializing sample data:", error);
+                console.error("Error details:", error.message, error.stack);
             }
         }
 
@@ -1775,6 +1851,8 @@
             }
             
             try {
+                console.log("Adding new class:", newGrade, className);
+                
                 // Check if class already exists
                 const existingClass = await db.collection('grades')
                     .where('grade', '==', newGrade)
@@ -1786,11 +1864,16 @@
                     return;
                 }
                 
-                await db.collection('grades').add({
+                // Add new class with complete data structure
+                const classData = {
                     grade: newGrade,
                     className: className,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: appData.currentUser?.email || 'unknown'
+                };
+                
+                const docRef = await db.collection('grades').add(classData);
+                console.log("Class added with ID:", docRef.id);
                 
                 successMsg.textContent = 'Grade and class added successfully!';
                 successMsg.style.display = 'block';
@@ -1800,8 +1883,8 @@
                 document.getElementById('className').value = '';
                 
                 // Reload grade list and dropdowns
-                loadGrades();
-                loadClassDropdowns();
+                await loadGrades();
+                await loadClassDropdowns();
                 
                 // Hide success message after 3 seconds
                 setTimeout(() => {
@@ -1814,25 +1897,51 @@
             }
         }
 
-        // Updated loadGrades function with serial numbers and sorting
+        // Fixed version of loadGrades function
         async function loadGrades() {
             const gradesList = document.getElementById('gradesList');
             gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
             
             try {
-                const snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
+                console.log("Loading grades for display...");
+                
+                // Try different ordering approaches
+                let snapshot;
+                try {
+                    // First try with both fields
+                    snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
+                } catch (error) {
+                    console.log("First ordering failed, trying simple order:", error);
+                    // If that fails, try simple ordering
+                    snapshot = await db.collection('grades').orderBy('grade').get();
+                }
+                
+                console.log("Grades loaded:", snapshot.size);
+                
                 gradesList.innerHTML = '';
                 
                 if (snapshot.empty) {
-                    gradesList.innerHTML = '<div class="loading">No grades found. Add some grades to get started.</div>';
+                    gradesList.innerHTML = `
+                        <div class="loading">
+                            No grades found. 
+                            <button onclick="manuallyAddGrades()" class="btn btn-primary btn-small" style="margin-top: 10px;">
+                                Add Sample Data
+                            </button>
+                        </div>
+                    `;
                     return;
                 }
                 
                 let serialNumber = 1;
                 snapshot.forEach(doc => {
                     const grade = doc.data();
-                    const className = grade.className || 'A'; // FIX: Default to 'A' if not set
-                    const displayText = `${grade.grade} - ${className}`;
+                    console.log("Displaying grade:", doc.id, grade);
+                    
+                    // FIX: Handle missing fields gracefully
+                    const gradeName = grade.grade || 'Unknown Grade';
+                    const className = grade.className || 'A';
+                    const displayText = `${gradeName} - ${className}`;
+                    
                     const gradeItem = document.createElement('div');
                     gradeItem.className = 'grade-item';
                     gradeItem.innerHTML = `
@@ -1840,6 +1949,7 @@
                             <div class="serial-number">${serialNumber}</div>
                             <div>
                                 <strong>${displayText}</strong>
+                                <br><small>ID: ${doc.id}</small>
                             </div>
                         </div>
                         <div class="item-actions">
@@ -1850,9 +1960,20 @@
                     gradesList.appendChild(gradeItem);
                     serialNumber++;
                 });
+                
             } catch (error) {
                 console.error("Error loading grades:", error);
-                gradesList.innerHTML = '<div class="loading">Error loading grades</div>';
+                console.error("Error details:", error.message, error.stack);
+                
+                gradesList.innerHTML = `
+                    <div class="loading" style="color: #f44336;">
+                        Error loading grades: ${error.message}
+                        <br>
+                        <button onclick="debugGrades()" class="btn btn-warning btn-small" style="margin-top: 10px;">
+                            Debug Grades
+                        </button>
+                    </div>
+                `;
             }
         }
 
@@ -2428,6 +2549,67 @@
             } catch (error) {
                 console.error("Error displaying attendance records:", error);
                 document.getElementById('viewAttendanceOutput').innerHTML = '<div class="error-msg">Error displaying attendance records: ' + error.message + '</div>';
+            }
+        }
+
+        // Debug function to check grades collection
+        async function debugGrades() {
+            try {
+                console.log("=== DEBUG GRADES ===");
+                
+                // Check if grades collection exists
+                const gradesSnapshot = await db.collection('grades').get();
+                console.log("Total grades:", gradesSnapshot.size);
+                
+                if (gradesSnapshot.empty) {
+                    console.log("No grades found in collection");
+                    alert("No grades found in database. Please add grades first.");
+                    return;
+                }
+                
+                // Log all grades
+                gradesSnapshot.forEach(doc => {
+                    console.log("Grade ID:", doc.id);
+                    console.log("Grade Data:", doc.data());
+                    console.log("---");
+                });
+                
+                // Check Firestore rules
+                console.log("Firestore project:", firebaseConfig.projectId);
+                
+                alert("Check browser console for debug information");
+                
+            } catch (error) {
+                console.error("Debug error:", error);
+                alert("Debug error: " + error.message);
+            }
+        }
+
+        // Manual fix function to add grades if needed
+        async function manuallyAddGrades() {
+            try {
+                const sampleGrades = [
+                    { grade: 'Grade 6', className: 'A', createdAt: new Date() },
+                    { grade: 'Grade 7', className: 'B', createdAt: new Date() },
+                    { grade: 'Grade 8', className: 'C', createdAt: new Date() },
+                    { grade: 'Grade 9', className: 'A', createdAt: new Date() },
+                    { grade: 'Grade 10', className: 'B', createdAt: new Date() }
+                ];
+                
+                for (const grade of sampleGrades) {
+                    await db.collection('grades').add(grade);
+                }
+                
+                console.log("Manual grades added successfully");
+                alert("Sample grades added successfully!");
+                
+                // Reload data
+                loadClassDropdowns();
+                loadGrades();
+                
+            } catch (error) {
+                console.error("Error in manual add:", error);
+                alert("Error adding grades: " + error.message);
             }
         }
 
