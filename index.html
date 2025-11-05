@@ -774,9 +774,6 @@
             setupEventListeners();
             setTodayDate();
             checkAuthState();
-            
-            // Initialize sample data after a short delay
-            setTimeout(initializeSampleData, 2000);
         };
 
         function setTodayDate() {
@@ -1216,21 +1213,31 @@
                     return;
                 }
                 
-                let counter = 1;
+                // Sort grades by grade and class name
+                const sortedGrades = [];
                 snapshot.forEach(doc => {
                     const gradeData = doc.data();
-                    console.log("Grade data:", doc.id, gradeData);
-                    
-                    // FIX: Ensure all required fields exist
-                    const grade = gradeData.grade || 'Unknown Grade';
-                    const className = gradeData.className || 'A';
-                    const displayText = `${grade} - ${className}`;
-                    const optionValue = doc.id;
-                    
+                    sortedGrades.push({
+                        id: doc.id,
+                        grade: gradeData.grade || 'Unknown Grade',
+                        className: gradeData.className || 'A',
+                        displayText: `${gradeData.grade || 'Unknown Grade'} - ${gradeData.className || 'A'}`
+                    });
+                });
+                
+                // Sort by grade and class name
+                sortedGrades.sort((a, b) => {
+                    if (a.grade === b.grade) {
+                        return a.className.localeCompare(b.className);
+                    }
+                    return a.grade.localeCompare(b.grade);
+                });
+                
+                sortedGrades.forEach(grade => {
                     // Create option for main dropdowns
                     const option = document.createElement('option');
-                    option.value = optionValue;
-                    option.textContent = displayText;
+                    option.value = grade.id;
+                    option.textContent = grade.displayText;
                     
                     dropdowns.forEach(select => {
                         select.appendChild(option.cloneNode(true));
@@ -1238,11 +1245,9 @@
                     
                     // Create option for filter dropdown
                     const filterOption = document.createElement('option');
-                    filterOption.value = optionValue;
-                    filterOption.textContent = displayText;
+                    filterOption.value = grade.id;
+                    filterOption.textContent = grade.displayText;
                     filterStudentClass.appendChild(filterOption);
-                    
-                    counter++;
                 });
                 
                 console.log("Classes loaded successfully. Total:", snapshot.size);
@@ -1386,33 +1391,19 @@
                         }
                     ];
                     
-                    const addPromises = sampleGrades.map(async (grade) => {
-                        try {
-                            const docRef = await db.collection('grades').add(grade);
-                            console.log("Added grade with ID:", docRef.id);
-                            return docRef;
-                        } catch (error) {
-                            console.error("Error adding grade:", error);
-                            throw error;
-                        }
-                    });
-                    
-                    await Promise.all(addPromises);
+                    for (const grade of sampleGrades) {
+                        await db.collection('grades').add(grade);
+                    }
                     console.log("Sample grades added successfully");
                     
                     // Reload dropdowns after adding sample data
                     setTimeout(() => {
                         loadClassDropdowns();
                         loadGrades();
-                    }, 2000);
+                    }, 1000);
                     
                 } else {
                     console.log("Grades already exist. Loading them...");
-                    // Load existing grades
-                    gradesSnapshot.forEach(doc => {
-                        console.log("Existing grade:", doc.id, doc.data());
-                    });
-                    
                     // Load dropdowns with existing data
                     loadClassDropdowns();
                     loadGrades();
@@ -1551,17 +1542,49 @@
             studentList.innerHTML = '<div class="loading">Loading students...</div>';
             
             try {
-                const snapshot = await db.collection('students').orderBy('studentId').get();
-                studentList.innerHTML = '';
+                // Get all students and sort by grade and student ID
+                const snapshot = await db.collection('students').get();
                 
                 if (snapshot.empty) {
                     studentList.innerHTML = '<div class="loading">No students found. Add some students to get started.</div>';
                     return;
                 }
                 
-                let serialNumber = 1;
-                snapshot.forEach(doc => {
+                // Get grade information for sorting
+                const studentsWithGrade = [];
+                for (const doc of snapshot.docs) {
                     const student = doc.data();
+                    const gradeDoc = await db.collection('grades').doc(student.grade).get();
+                    if (gradeDoc.exists) {
+                        const gradeData = gradeDoc.data();
+                        studentsWithGrade.push({
+                            id: doc.id,
+                            studentId: student.studentId,
+                            name: student.name,
+                            grade: student.grade,
+                            gradeDisplay: student.gradeDisplay,
+                            gender: student.gender,
+                            gradeName: gradeData.grade || 'Unknown',
+                            className: gradeData.className || 'A'
+                        });
+                    }
+                }
+                
+                // Sort by grade name and student ID
+                studentsWithGrade.sort((a, b) => {
+                    if (a.gradeName === b.gradeName) {
+                        if (a.className === b.className) {
+                            return a.studentId.localeCompare(b.studentId);
+                        }
+                        return a.className.localeCompare(b.className);
+                    }
+                    return a.gradeName.localeCompare(b.gradeName);
+                });
+                
+                studentList.innerHTML = '';
+                
+                let serialNumber = 1;
+                studentsWithGrade.forEach(student => {
                     const studentItem = document.createElement('div');
                     studentItem.className = 'student-item';
                     studentItem.innerHTML = `
@@ -1573,8 +1596,8 @@
                             </div>
                         </div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editStudent('${doc.id}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteStudent('${doc.id}')">Delete</button>
+                            <button class="btn btn-warning btn-small" onclick="editStudent('${student.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteStudent('${student.id}')">Delete</button>
                         </div>
                     `;
                     studentList.appendChild(studentItem);
@@ -1905,17 +1928,7 @@
             try {
                 console.log("Loading grades for display...");
                 
-                // Try different ordering approaches
-                let snapshot;
-                try {
-                    // First try with both fields
-                    snapshot = await db.collection('grades').orderBy('grade').orderBy('className').get();
-                } catch (error) {
-                    console.log("First ordering failed, trying simple order:", error);
-                    // If that fails, try simple ordering
-                    snapshot = await db.collection('grades').orderBy('grade').get();
-                }
-                
+                const snapshot = await db.collection('grades').get();
                 console.log("Grades loaded:", snapshot.size);
                 
                 gradesList.innerHTML = '';
@@ -1932,29 +1945,40 @@
                     return;
                 }
                 
-                let serialNumber = 1;
+                // Sort grades by grade and class name
+                const sortedGrades = [];
                 snapshot.forEach(doc => {
                     const grade = doc.data();
-                    console.log("Displaying grade:", doc.id, grade);
-                    
-                    // FIX: Handle missing fields gracefully
-                    const gradeName = grade.grade || 'Unknown Grade';
-                    const className = grade.className || 'A';
-                    const displayText = `${gradeName} - ${className}`;
-                    
+                    sortedGrades.push({
+                        id: doc.id,
+                        grade: grade.grade || 'Unknown Grade',
+                        className: grade.className || 'A',
+                        displayText: `${grade.grade || 'Unknown Grade'} - ${grade.className || 'A'}`
+                    });
+                });
+                
+                // Sort by grade and class name
+                sortedGrades.sort((a, b) => {
+                    if (a.grade === b.grade) {
+                        return a.className.localeCompare(b.className);
+                    }
+                    return a.grade.localeCompare(b.grade);
+                });
+                
+                let serialNumber = 1;
+                sortedGrades.forEach(grade => {
                     const gradeItem = document.createElement('div');
                     gradeItem.className = 'grade-item';
                     gradeItem.innerHTML = `
                         <div class="item-info" style="display: flex; align-items: center;">
                             <div class="serial-number">${serialNumber}</div>
                             <div>
-                                <strong>${displayText}</strong>
-                                <br><small>ID: ${doc.id}</small>
+                                <strong>${grade.displayText}</strong>
                             </div>
                         </div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editGrade('${doc.id}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteGrade('${doc.id}')">Delete</button>
+                            <button class="btn btn-warning btn-small" onclick="editGrade('${grade.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteGrade('${grade.id}')">Delete</button>
                         </div>
                     `;
                     gradesList.appendChild(gradeItem);
@@ -2124,7 +2148,6 @@
                 // Get students for the selected class
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
-                    .orderBy('studentId')
                     .get();
                 
                 if (studentsSnapshot.empty) {
@@ -2140,9 +2163,15 @@
                 const tbody = document.getElementById('attendanceTbody');
                 tbody.innerHTML = '';
                 
-                let serialNumber = 1;
+                // Convert to array and sort by student ID
+                const students = [];
                 studentsSnapshot.forEach(doc => {
-                    const student = doc.data();
+                    students.push(doc.data());
+                });
+                students.sort((a, b) => a.studentId.localeCompare(b.studentId));
+                
+                let serialNumber = 1;
+                students.forEach(student => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${serialNumber}</td>
@@ -2288,7 +2317,6 @@
                 // Get students for the selected class
                 const studentsSnapshot = await db.collection('students')
                     .where('grade', '==', selectedClass)
-                    .orderBy('studentId')
                     .get();
                 
                 const students = {};
@@ -2320,13 +2348,16 @@
                     }
                 });
                 
+                // Sort by student ID
+                const sortedStudentIds = Object.keys(attendanceData).sort();
+                
                 // Generate report HTML
                 let reportHTML = '<h3>Monthly Attendance Report</h3>';
                 reportHTML += `<p>Month: ${selectedMonth}</p>`;
                 reportHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
                 
                 let serialNumber = 1;
-                Object.keys(attendanceData).forEach(studentId => {
+                sortedStudentIds.forEach(studentId => {
                     const data = attendanceData[studentId];
                     const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
                     const percentageClass = percentage >= 80 ? 'percentage-good' : percentage >= 60 ? 'percentage-average' : 'percentage-poor';
@@ -2612,6 +2643,11 @@
                 alert("Error adding grades: " + error.message);
             }
         }
+
+        // Initialize sample data on first load
+        setTimeout(() => {
+            initializeSampleData();
+        }, 3000);
 
         // Debug function to check data
         function debugData() {
