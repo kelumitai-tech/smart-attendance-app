@@ -557,8 +557,11 @@
                         <label>Month</label>
                         <input type="month" id="reportMonth">
                     </div>
-                    <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
-                    <button class="pdf-btn" id="generatePdfBtn">📄 Generate PDF Report</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
+                        <button class="pdf-btn" id="generatePdfBtn">📄 Generate PDF Report</button>
+                    </div>
+                    <!-- Report output will be displayed below the buttons -->
                     <div id="reportOutput" style="margin-top: 20px;"></div>
                 </div>
             </div>
@@ -2452,10 +2455,14 @@
             }
         }
 
+        // UPDATED: Generate PDF Report with real-time attendance summary
         async function generatePdfReport() {
-            const reportOutput = document.getElementById('reportOutput');
-            if (!reportOutput.innerHTML) {
-                alert('Please generate a report first');
+            const selectedClass = document.getElementById('reportClass').value;
+            const selectedSubject = document.getElementById('reportSubject').value;
+            const selectedMonth = document.getElementById('reportMonth').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedMonth) {
+                alert('Please select all required fields');
                 return;
             }
             
@@ -2467,21 +2474,78 @@
                 doc.setFontSize(16);
                 doc.text('Monthly Attendance Report', 14, 15);
                 
-                // Add date
-                const selectedMonth = document.getElementById('reportMonth').value;
+                // Add date and details
                 doc.setFontSize(12);
                 doc.text(`Month: ${selectedMonth}`, 14, 25);
                 
-                // Add table using autoTable
-                doc.autoTable({
-                    html: '#reportOutput table',
-                    startY: 30,
-                    styles: { fontSize: 10 },
-                    headStyles: { fillColor: [0, 90, 156] }
+                // Get class and subject names for display
+                const classDoc = await db.collection('grades').doc(selectedClass).get();
+                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
+                
+                const className = classDoc.exists ? classDoc.data().displayText : 'Unknown Class';
+                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
+                
+                doc.text(`Class: ${className}`, 14, 35);
+                doc.text(`Subject: ${subjectName}`, 14, 45);
+                
+                // Get real-time attendance data for summary
+                const startDate = new Date(selectedMonth + '-01');
+                const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+                const startDateStr = startDate.toISOString().split('T')[0];
+                const endDateStr = endDate.toISOString().split('T')[0];
+                
+                // Get attendance records for the selected period
+                const attendanceSnapshot = await db.collection('attendance')
+                    .where('subject', '==', selectedSubject)
+                    .where('date', '>=', startDateStr)
+                    .where('date', '<=', endDateStr)
+                    .get();
+                
+                // Calculate real-time summary
+                let totalPresent = 0;
+                let totalAbsent = 0;
+                let totalRecords = 0;
+                
+                attendanceSnapshot.forEach(doc => {
+                    const record = doc.data();
+                    totalRecords++;
+                    if (record.status === 'present') {
+                        totalPresent++;
+                    } else {
+                        totalAbsent++;
+                    }
                 });
                 
+                const overallPercentage = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
+                
+                // Add real-time attendance summary
+                doc.setFontSize(12);
+                doc.text('Real-Time Attendance Summary:', 14, 60);
+                doc.text(`Total Present: ${totalPresent}`, 14, 70);
+                doc.text(`Total Absent: ${totalAbsent}`, 14, 80);
+                doc.text(`Total Records: ${totalRecords}`, 14, 90);
+                doc.text(`Overall Attendance Rate: ${overallPercentage}%`, 14, 100);
+                
+                // Add table using autoTable
+                const reportTable = document.querySelector('#reportOutput table');
+                if (reportTable) {
+                    doc.autoTable({
+                        html: '#reportOutput table',
+                        startY: 110,
+                        styles: { fontSize: 10 },
+                        headStyles: { fillColor: [0, 90, 156] }
+                    });
+                } else {
+                    doc.text('No report data available. Please generate report first.', 14, 110);
+                }
+                
+                // Add footer with timestamp
+                const timestamp = new Date().toLocaleString();
+                doc.setFontSize(8);
+                doc.text(`Generated on: ${timestamp}`, 14, doc.internal.pageSize.height - 10);
+                
                 // Save the PDF
-                doc.save(`attendance_report_${selectedMonth}.pdf`);
+                doc.save(`attendance_report_${selectedMonth}_${className.replace(' ', '_')}.pdf`);
                 
             } catch (error) {
                 console.error("Error generating PDF:", error);
