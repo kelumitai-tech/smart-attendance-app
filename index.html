@@ -717,6 +717,8 @@
                                 <option value="D">D</option>
                                 <option value="E">E</option>
                                 <option value="F">F</option>
+                                <option value="T1">T1</option>
+                                <option value="T2">T2</option>
                             </select>
                         </div>
                     </div>
@@ -1366,7 +1368,7 @@
                 if (gradesSnapshot.empty) {
                     console.log("Adding sample grades...");
                     
-                    // Add sample grades with proper structure
+                    // Add sample grades with proper structure - Starting from Grade 6
                     const sampleGrades = [
                         { 
                             grade: 'Grade 6', 
@@ -1400,6 +1402,13 @@
                             grade: 'Grade 7', 
                             className: 'B', 
                             displayText: 'Grade 7 - B',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdBy: 'system'
+                        },
+                        { 
+                            grade: 'Grade 13', 
+                            className: 'T2', 
+                            displayText: 'Grade 13 - T2',
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             createdBy: 'system'
                         }
@@ -2682,7 +2691,19 @@
                     { grade: 'Grade 6', className: 'B', displayText: 'Grade 6 - B', createdAt: new Date() },
                     { grade: 'Grade 6', className: 'C', displayText: 'Grade 6 - C', createdAt: new Date() },
                     { grade: 'Grade 7', className: 'A', displayText: 'Grade 7 - A', createdAt: new Date() },
-                    { grade: 'Grade 7', className: 'B', displayText: 'Grade 7 - B', createdAt: new Date() }
+                    { grade: 'Grade 7', className: 'B', displayText: 'Grade 7 - B', createdAt: new Date() },
+                    { grade: 'Grade 8', className: 'A', displayText: 'Grade 8 - A', createdAt: new Date() },
+                    { grade: 'Grade 8', className: 'B', displayText: 'Grade 8 - B', createdAt: new Date() },
+                    { grade: 'Grade 9', className: 'A', displayText: 'Grade 9 - A', createdAt: new Date() },
+                    { grade: 'Grade 9', className: 'B', displayText: 'Grade 9 - B', createdAt: new Date() },
+                    { grade: 'Grade 10', className: 'A', displayText: 'Grade 10 - A', createdAt: new Date() },
+                    { grade: 'Grade 10', className: 'B', displayText: 'Grade 10 - B', createdAt: new Date() },
+                    { grade: 'Grade 11', className: 'A', displayText: 'Grade 11 - A', createdAt: new Date() },
+                    { grade: 'Grade 11', className: 'B', displayText: 'Grade 11 - B', createdAt: new Date() },
+                    { grade: 'Grade 12', className: 'A', displayText: 'Grade 12 - A', createdAt: new Date() },
+                    { grade: 'Grade 12', className: 'B', displayText: 'Grade 12 - B', createdAt: new Date() },
+                    { grade: 'Grade 13', className: 'T1', displayText: 'Grade 13 - T1', createdAt: new Date() },
+                    { grade: 'Grade 13', className: 'T2', displayText: 'Grade 13 - T2', createdAt: new Date() }
                 ];
                 
                 for (const grade of sampleGrades) {
