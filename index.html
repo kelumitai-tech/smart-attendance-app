@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -390,6 +388,11 @@
                     <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
                     <div class="error-msg" id="loginError"></div>
                     
+                    <!-- Debug button for testing -->
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button class="btn btn-warning btn-small" onclick="debugAuth()">Debug Auth</button>
+                    </div>
+                    
                     <!-- Registration Section -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                         <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
@@ -725,31 +728,20 @@
     </div>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCPPqnPEfVLkc7K29YPV7GDkIaC6tcHn4E",
-            authDomain: "smart-attendance-tracker-5573b.firebaseapp.com",
-            projectId: "smart-attendance-tracker-5573b",
-            storageBucket: "smart-attendance-tracker-5573b.firebasestorage.app",
-            messagingSenderId: "342955621552",
-            appId: "1:342955621552:web:790e9b4fb8a4e8edec4f75",
-            measurementId: "G-01LEWN7WHX"
+        // Supabase Configuration - REPLACE WITH YOUR ACTUAL CREDENTIALS
+        const supabaseConfig = {
+            supabaseUrl: 'https://your-project.supabase.co', // Replace with your Supabase URL
+            supabaseKey: 'your-anon-key' // Replace with your Supabase anon key
         };
 
-        // Initialize Firebase
-        let auth, db;
+        // Initialize Supabase
+        let supabase;
         try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            } else {
-                firebase.app();
-            }
-            auth = firebase.auth();
-            db = firebase.firestore();
-            console.log("✅ Firebase initialized successfully!");
+            supabase = window.supabase.createClient(supabaseConfig.supabaseUrl, supabaseConfig.supabaseKey);
+            console.log("✅ Supabase initialized successfully!");
         } catch (error) {
-            console.error("❌ Firebase initialization error:", error);
-            alert("Firebase initialization failed: " + error.message);
+            console.error("❌ Supabase initialization error:", error);
+            alert("Supabase initialization failed: " + error.message);
         }
 
         // Global app data
@@ -809,40 +801,77 @@
             });
         }
 
-        function checkAuthState() {
-            if (auth) {
-                auth.onAuthStateChanged((user) => {
-                    if (user) {
-                        console.log("User logged in:", user.email);
-                        getUserRole(user.uid).then(role => {
-                            console.log("User role retrieved:", role);
-                            appData.currentUser = user;
-                            appData.userRole = role;
-                            showApp(role);
-                        }).catch(error => {
-                            console.error("Error getting user role:", error);
-                        });
+        async function checkAuthState() {
+            if (supabase) {
+                try {
+                    const { data: { session }, error } = await supabase.auth.getSession();
+                    
+                    if (session && session.user) {
+                        console.log("User logged in:", session.user.email);
+                        await getUserRole(session.user.id);
                     } else {
                         console.log("No user logged in");
                         document.getElementById('loginScreen').style.display = 'block';
                         document.getElementById('appContent').style.display = 'none';
                         showLoginForm();
                     }
-                });
+
+                    // Listen for auth changes
+                    supabase.auth.onAuthStateChange(async (event, session) => {
+                        console.log("Auth state changed:", event, session);
+                        if (session && session.user) {
+                            console.log("User signed in:", session.user.email);
+                            await getUserRole(session.user.id);
+                        } else {
+                            console.log("User signed out");
+                            document.getElementById('loginScreen').style.display = 'block';
+                            document.getElementById('appContent').style.display = 'none';
+                            showLoginForm();
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error checking auth state:", error);
+                }
             }
         }
 
-        async function getUserRole(uid) {
+        async function getUserRole(userId) {
             try {
-                console.log("Getting role for user:", uid);
-                const doc = await db.collection('users').doc(uid).get();
-                if (doc.exists) {
-                    const userData = doc.data();
-                    const role = userData.role;
-                    console.log("Role found in Firestore:", role);
-                    return role || null;
+                console.log("Getting role for user:", userId);
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', userId);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const role = data[0].role;
+                    console.log("Role found:", role);
+                    appData.currentUser = { id: userId };
+                    appData.userRole = role;
+                    showApp(role);
+                    return role;
                 } else {
-                    console.log("No user document found in Firestore");
+                    console.log("No user document found");
+                    // Create a default user record if not found
+                    const { data: userData } = await supabase.auth.getUser();
+                    if (userData.user) {
+                        const { error: insertError } = await supabase
+                            .from('users')
+                            .insert([{
+                                id: userId,
+                                email: userData.user.email,
+                                role: 'principal' // Default role
+                            }]);
+                        
+                        if (!insertError) {
+                            appData.currentUser = { id: userId };
+                            appData.userRole = 'principal';
+                            showApp('principal');
+                            return 'principal';
+                        }
+                    }
                     return null;
                 }
             } catch (error) {
@@ -917,7 +946,7 @@
             document.getElementById('registerPassword').value = '';
         }
 
-        function doLogin() {
+        async function doLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             const selectedRole = document.getElementById('loginRole').value;
@@ -929,46 +958,57 @@
                 return;
             }
             
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log("Login successful for:", user.email);
-                    
-                    // Check if user exists in Firestore and get their role
-                    return db.collection('users').doc(user.uid).get()
-                        .then((doc) => {
-                            if (doc.exists) {
-                                const userData = doc.data();
-                                const storedRole = userData.role;
-                                
-                                if (storedRole) {
-                                    if (storedRole === selectedRole) {
-                                        return storedRole;
-                                    } else {
-                                        throw new Error(`Your account is registered as ${roleDisplayMapping[storedRole]}, but you are trying to login as ${roleDisplayMapping[selectedRole]}. Please select the correct role.`);
-                                    }
-                                } else {
-                                    throw new Error('User role not found in database. Please contact administrator.');
-                                }
-                            } else {
-                                throw new Error('User account not found. Please register first.');
-                            }
-                        });
-                })
-                .then((role) => {
-                    console.log("Role after login:", role);
-                    appData.userRole = role;
-                    showApp(role);
-                    errorMsg.style.display = 'none';
-                })
-                .catch((error) => {
-                    console.error("Login error:", error);
-                    errorMsg.textContent = 'Login failed: ' + error.message;
-                    errorMsg.style.display = 'block';
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
                 });
+
+                if (error) throw error;
+
+                // Get user role from users table - without .single()
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', data.user.id);
+
+                if (userError) throw userError;
+
+                let userRole = 'principal'; // Default role
+                
+                if (userData && userData.length > 0) {
+                    userRole = userData[0].role;
+                } else {
+                    // Create user record if it doesn't exist
+                    const { error: insertError } = await supabase
+                        .from('users')
+                        .insert([{
+                            id: data.user.id,
+                            email: email,
+                            role: selectedRole
+                        }]);
+                    
+                    if (insertError) throw insertError;
+                    userRole = selectedRole;
+                }
+
+                if (userRole !== selectedRole) {
+                    await supabase.auth.signOut();
+                    throw new Error(`Your account is registered as ${roleDisplayMapping[userRole]}, but you are trying to login as ${roleDisplayMapping[selectedRole]}. Please select the correct role.`);
+                }
+
+                appData.userRole = userRole;
+                showApp(userRole);
+                errorMsg.style.display = 'none';
+                
+            } catch (error) {
+                console.error("Login error:", error);
+                errorMsg.textContent = 'Login failed: ' + error.message;
+                errorMsg.style.display = 'block';
+            }
         }
 
-        function doRegistration() {
+        async function doRegistration() {
             const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value.trim();
             const role = document.getElementById('registerRole').value;
@@ -986,41 +1026,58 @@
                 return;
             }
 
-            // First try to create user in Firebase Authentication
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log("User created in auth:", user.email);
-                    
-                    // Then create user document in Firestore with selected role
-                    return db.collection('users').doc(user.uid).set({
-                        email: email,
-                        role: role,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        console.log("User document created with role:", role);
-                        return user;
-                    });
-                })
-                .then((user) => {
-                    // Login the user after successful registration
-                    return auth.signInWithEmailAndPassword(email, password);
-                })
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    appData.userRole = role;
-                    showApp(role);
-                    errorMsg.style.display = 'none';
-                })
-                .catch((error) => {
-                    console.error("Registration error:", error);
-                    if (error.code === 'auth/email-already-in-use') {
-                        errorMsg.textContent = 'Email already exists. Please use a different email or try to login.';
-                    } else {
-                        errorMsg.textContent = 'Registration failed: ' + error.message;
-                    }
-                    errorMsg.style.display = 'block';
+            try {
+                // Create user in Supabase Auth
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
                 });
+
+                if (authError) throw authError;
+
+                // Wait a moment for the user to be created in auth
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Create user record in users table
+                const { error: userError } = await supabase
+                    .from('users')
+                    .insert([{
+                        id: authData.user.id,
+                        email: email,
+                        role: role
+                    }]);
+
+                if (userError) {
+                    // If user already exists in users table, try to update
+                    const { error: updateError } = await supabase
+                        .from('users')
+                        .update({ role: role })
+                        .eq('id', authData.user.id);
+                        
+                    if (updateError) throw updateError;
+                }
+
+                // Auto-login after registration
+                const { error: loginError } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (loginError) throw loginError;
+
+                appData.userRole = role;
+                showApp(role);
+                errorMsg.style.display = 'none';
+                
+            } catch (error) {
+                console.error("Registration error:", error);
+                if (error.message.includes('User already registered') || error.message.includes('already exists')) {
+                    errorMsg.textContent = 'Email already exists. Please use a different email or try to login.';
+                } else {
+                    errorMsg.textContent = 'Registration failed: ' + error.message;
+                }
+                errorMsg.style.display = 'block';
+            }
         }
 
         function showApp(role) {
@@ -1039,7 +1096,6 @@
             updateAll();
         }
 
-        // FIXED: Update role-based visibility to allow Class Teachers to add students
         function updateRoleBasedVisibility(role) {
             console.log("Updating visibility for role:", role);
             
@@ -1050,20 +1106,16 @@
             
             // Show elements based on role with proper permissions
             if (role === 'principal') {
-                // Principal sees everything
                 document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
-                // Show all tabs for principal
                 document.querySelectorAll('.nav-tab').forEach(tab => {
                     tab.style.display = 'block';
                 });
             } else if (role === 'classTeacher') {
-                // Class Teacher sees class-teacher-only elements AND can add students
                 document.querySelectorAll('.class-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
-                // Show only allowed tabs for class teacher (including students tab)
                 document.querySelectorAll('.nav-tab').forEach(tab => {
                     const tabName = tab.getAttribute('data-tab');
                     const allowedTabs = ['attendance', 'students', 'reports', 'grades', 'subjects'];
@@ -1074,11 +1126,9 @@
                     }
                 });
             } else if (role === 'subjectTeacher') {
-                // Subject Teacher sees ONLY attendance and reports - NO student management
                 document.querySelectorAll('.subject-teacher-only').forEach(el => {
                     el.style.display = 'block';
                 });
-                // Show only allowed tabs for subject teacher
                 document.querySelectorAll('.nav-tab').forEach(tab => {
                     const tabName = tab.getAttribute('data-tab');
                     const allowedTabs = ['attendance', 'reports'];
@@ -1097,26 +1147,28 @@
                 if (firstVisibleTab) {
                     showTab(firstVisibleTab.getAttribute('data-tab'));
                 } else {
-                    // If no visible tabs, show attendance tab
                     showTab('attendance');
                 }
             }
         }
 
-        function doLogout() {
+        async function doLogout() {
             // Unsubscribe from real-time updates
             if (appData.realTimeUnsubscribe) {
                 appData.realTimeUnsubscribe();
                 appData.realTimeUnsubscribe = null;
             }
             
-            auth.signOut().then(() => {
-                appData.currentUser = null;
-                appData.userRole = null;
-                document.getElementById('loginScreen').style.display = 'block';
-                document.getElementById('appContent').style.display = 'none';
-                showLoginForm();
-            });
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error("Logout error:", error);
+            }
+            
+            appData.currentUser = null;
+            appData.userRole = null;
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('appContent').style.display = 'none';
+            showLoginForm();
         }
 
         function showTab(tabName) {
@@ -1184,14 +1236,16 @@
             }
         }
 
-        // Fixed version of loadClassDropdowns function
+        // DATABASE OPERATIONS
+
         async function loadClassDropdowns() {
             try {
-                console.log("Loading classes from Firestore...");
-                
-                const snapshot = await db.collection('grades').get();
-                console.log("Grades snapshot:", snapshot.size, "documents found");
-                
+                const { data: grades, error } = await supabase
+                    .from('grades')
+                    .select('*')
+                    .order('grade')
+                    .order('class_name');
+
                 const classSelect = document.getElementById('selectClass');
                 const reportClassSelect = document.getElementById('reportClass');
                 const viewClassSelect = document.getElementById('viewClass');
@@ -1206,39 +1260,21 @@
                 
                 filterStudentClass.innerHTML = '<option value="">All Classes</option>';
                 
-                if (snapshot.empty) {
-                    console.log("No grades found in database");
+                if (error) throw error;
+                if (!grades || grades.length === 0) {
                     dropdowns.forEach(select => {
                         select.innerHTML += '<option value="" disabled>No classes available. Please add classes first.</option>';
                     });
                     return;
                 }
                 
-                // Sort grades by grade and class name
-                const sortedGrades = [];
-                snapshot.forEach(doc => {
-                    const gradeData = doc.data();
-                    sortedGrades.push({
-                        id: doc.id,
-                        grade: gradeData.grade || 'Unknown Grade',
-                        className: gradeData.className || 'A',
-                        displayText: `${gradeData.grade || 'Unknown Grade'} - ${gradeData.className || 'A'}`
-                    });
-                });
-                
-                // Sort by grade and class name
-                sortedGrades.sort((a, b) => {
-                    if (a.grade === b.grade) {
-                        return a.className.localeCompare(b.className);
-                    }
-                    return a.grade.localeCompare(b.grade);
-                });
-                
-                sortedGrades.forEach(grade => {
+                grades.forEach(grade => {
+                    const displayText = `${grade.grade} - ${grade.class_name}`;
+                    
                     // Create option for main dropdowns
                     const option = document.createElement('option');
                     option.value = grade.id;
-                    option.textContent = grade.displayText;
+                    option.textContent = displayText;
                     
                     dropdowns.forEach(select => {
                         select.appendChild(option.cloneNode(true));
@@ -1247,16 +1283,14 @@
                     // Create option for filter dropdown
                     const filterOption = document.createElement('option');
                     filterOption.value = grade.id;
-                    filterOption.textContent = grade.displayText;
+                    filterOption.textContent = displayText;
                     filterStudentClass.appendChild(filterOption);
                 });
                 
-                console.log("Classes loaded successfully. Total:", snapshot.size);
+                console.log("Classes loaded successfully. Total:", grades.length);
                 
             } catch (error) {
                 console.error("Error loading classes:", error);
-                console.error("Error details:", error.message, error.stack);
-                
                 const errorOption = '<option value="" disabled>Error loading classes. Check console.</option>';
                 document.querySelectorAll('#selectClass, #reportClass, #viewClass, #studentGrade, #filterStudentClass').forEach(select => {
                     select.innerHTML = errorOption;
@@ -1266,7 +1300,11 @@
 
         async function loadSubjectDropdowns() {
             try {
-                const snapshot = await db.collection('subjects').orderBy('name').get();
+                const { data: subjects, error } = await supabase
+                    .from('subjects')
+                    .select('*')
+                    .order('name');
+
                 const selectSubject = document.getElementById('selectSubject');
                 const reportSubject = document.getElementById('reportSubject');
                 const viewSubject = document.getElementById('viewSubject');
@@ -1278,25 +1316,25 @@
                     select.innerHTML = '<option value="">Select Subject</option>';
                 });
                 
-                if (snapshot.empty) {
+                if (error) throw error;
+                if (!subjects || subjects.length === 0) {
                     dropdowns.forEach(select => {
                         select.innerHTML += '<option value="" disabled>No subjects available. Please add subjects first.</option>';
                     });
                     return;
                 }
                 
-                snapshot.forEach(doc => {
-                    const subjectData = doc.data();
+                subjects.forEach(subject => {
                     const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.textContent = subjectData.name;
+                    option.value = subject.id;
+                    option.textContent = subject.name;
                     
                     dropdowns.forEach(select => {
                         select.appendChild(option.cloneNode(true));
                     });
                 });
                 
-                console.log("Subjects loaded successfully. Total:", snapshot.size);
+                console.log("Subjects loaded successfully. Total:", subjects.length);
             } catch (error) {
                 console.error("Error loading subjects:", error);
                 const errorOption = '<option value="" disabled>Error loading subjects</option>';
@@ -1308,7 +1346,11 @@
 
         async function loadTeacherDropdowns() {
             try {
-                const snapshot = await db.collection('teachers').orderBy('name').get();
+                const { data: teachers, error } = await supabase
+                    .from('teachers')
+                    .select('*')
+                    .order('name');
+
                 const selectTeacher = document.getElementById('selectTeacher');
                 const viewTeacher = document.getElementById('viewTeacher');
                 
@@ -1318,25 +1360,25 @@
                     select.innerHTML = '<option value="">Select Teacher</option>';
                 });
                 
-                if (snapshot.empty) {
+                if (error) throw error;
+                if (!teachers || teachers.length === 0) {
                     dropdowns.forEach(select => {
                         select.innerHTML += '<option value="" disabled>No teachers available. Please add teachers first.</option>';
                     });
                     return;
                 }
                 
-                snapshot.forEach(doc => {
-                    const teacherData = doc.data();
+                teachers.forEach(teacher => {
                     const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.textContent = `${teacherData.name} (${teacherData.teacherId}) - ${teacherData.subjectName}`;
+                    option.value = teacher.id;
+                    option.textContent = `${teacher.name} (${teacher.teacher_id}) - ${teacher.subject_name}`;
                     
                     dropdowns.forEach(select => {
                         select.appendChild(option.cloneNode(true));
                     });
                 });
                 
-                console.log("Teachers loaded successfully. Total:", snapshot.size);
+                console.log("Teachers loaded successfully. Total:", teachers.length);
             } catch (error) {
                 console.error("Error loading teachers:", error);
                 const errorOption = '<option value="" disabled>Error loading teachers</option>';
@@ -1346,137 +1388,6 @@
             }
         }
 
-        // Fixed version of initializeSampleData function
-        async function initializeSampleData() {
-            try {
-                console.log("Initializing sample data...");
-                
-                // Check if grades collection is empty
-                const gradesSnapshot = await db.collection('grades').get();
-                console.log("Existing grades:", gradesSnapshot.size);
-                
-                if (gradesSnapshot.empty) {
-                    console.log("Adding sample grades...");
-                    
-                    // Add sample grades with proper structure
-                    const sampleGrades = [
-                        { 
-                            grade: 'Grade 6', 
-                            className: 'A', 
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            createdBy: 'system'
-                        },
-                        { 
-                            grade: 'Grade 7', 
-                            className: 'B', 
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            createdBy: 'system'
-                        },
-                        { 
-                            grade: 'Grade 8', 
-                            className: 'C', 
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            createdBy: 'system'
-                        },
-                        { 
-                            grade: 'Grade 9', 
-                            className: 'A', 
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            createdBy: 'system'
-                        },
-                        { 
-                            grade: 'Grade 10', 
-                            className: 'B', 
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            createdBy: 'system'
-                        }
-                    ];
-                    
-                    for (const grade of sampleGrades) {
-                        await db.collection('grades').add(grade);
-                    }
-                    console.log("Sample grades added successfully");
-                    
-                    // Reload dropdowns after adding sample data
-                    setTimeout(() => {
-                        loadClassDropdowns();
-                        loadGrades();
-                    }, 1000);
-                    
-                } else {
-                    console.log("Grades already exist. Loading them...");
-                    // Load dropdowns with existing data
-                    loadClassDropdowns();
-                    loadGrades();
-                }
-
-                // Check if subjects collection is empty
-                const subjectsSnapshot = await db.collection('subjects').get();
-                if (subjectsSnapshot.empty) {
-                    console.log("Adding sample subjects...");
-                    // Add sample subjects
-                    const sampleSubjects = [
-                        { name: 'Mathematics', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
-                        { name: 'Science', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
-                        { name: 'English', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
-                        { name: 'History', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
-                        { name: 'Sinhala', createdAt: firebase.firestore.FieldValue.serverTimestamp() }
-                    ];
-                    
-                    for (const subject of sampleSubjects) {
-                        await db.collection('subjects').add(subject);
-                    }
-                    console.log("Sample subjects added successfully");
-                }
-
-                // Check if teachers collection is empty
-                const teachersSnapshot = await db.collection('teachers').get();
-                if (teachersSnapshot.empty && !subjectsSnapshot.empty) {
-                    console.log("Adding sample teachers...");
-                    // Get first subject for sample teacher
-                    const firstSubject = subjectsSnapshot.docs[0];
-                    
-                    // Add sample teacher
-                    await db.collection('teachers').add({
-                        teacherId: 'T001',
-                        name: 'Sample Teacher',
-                        subject: firstSubject.id,
-                        subjectName: firstSubject.data().name,
-                        role: 'classTeacher',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    console.log("Sample teacher added successfully");
-                }
-
-                // Check if students collection is empty and add sample students
-                const studentsSnapshot = await db.collection('students').get();
-                if (studentsSnapshot.empty && !gradesSnapshot.empty) {
-                    console.log("Adding sample students...");
-                    // Get first grade for sample student
-                    const firstGrade = gradesSnapshot.docs[0];
-                    const gradeData = firstGrade.data();
-                    const className = gradeData.className || 'A';
-                    const gradeDisplay = `${gradeData.grade} - ${className}`;
-                    
-                    // Add sample student
-                    await db.collection('students').add({
-                        studentId: 'S001',
-                        name: 'Sample Student',
-                        grade: firstGrade.id,
-                        gradeDisplay: gradeDisplay,
-                        gender: 'Male',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    console.log("Sample student added successfully");
-                }
-
-            } catch (error) {
-                console.error("Error initializing sample data:", error);
-                console.error("Error details:", error.message, error.stack);
-            }
-        }
-
-        // Fixed version of addStudent function
         async function addStudent() {
             const studentId = document.getElementById('studentId').value.trim();
             const studentName = document.getElementById('studentName').value.trim();
@@ -1491,30 +1402,43 @@
             
             try {
                 // Check if student ID already exists
-                const existingStudent = await db.collection('students').where('studentId', '==', studentId).get();
-                if (!existingStudent.empty) {
+                const { data: existingStudent, error: checkError } = await supabase
+                    .from('students')
+                    .select('student_id')
+                    .eq('student_id', studentId)
+                    .limit(1);
+
+                if (existingStudent && existingStudent.length > 0) {
                     alert('Student ID already exists');
                     return;
                 }
                 
-                // Get grade data for display - FIXED
-                const gradeDoc = await db.collection('grades').doc(studentGrade).get();
-                if (!gradeDoc.exists) {
+                // Get grade data for display
+                const { data: gradeData, error: gradeError } = await supabase
+                    .from('grades')
+                    .select('grade, class_name')
+                    .eq('id', studentGrade)
+                    .limit(1);
+
+                if (gradeError) throw gradeError;
+                if (!gradeData || gradeData.length === 0) {
                     alert('Selected grade not found');
                     return;
                 }
-                const gradeData = gradeDoc.data();
-                const className = gradeData.className || 'A';
-                const gradeDisplay = `${gradeData.grade} - ${className}`;
+
+                const gradeDisplay = `${gradeData[0].grade} - ${gradeData[0].class_name}`;
                 
-                await db.collection('students').add({
-                    studentId: studentId,
-                    name: studentName,
-                    grade: studentGrade,
-                    gradeDisplay: gradeDisplay, // FIX: Store proper display format
-                    gender: studentGender,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                const { error } = await supabase
+                    .from('students')
+                    .insert([{
+                        student_id: studentId,
+                        name: studentName,
+                        grade_id: studentGrade,
+                        grade_display: gradeDisplay,
+                        gender: studentGender
+                    }]);
+
+                if (error) throw error;
                 
                 successMsg.textContent = 'Student added successfully!';
                 successMsg.style.display = 'block';
@@ -1526,7 +1450,6 @@
                 // Reload student list
                 loadStudents();
                 
-                // Hide success message after 3 seconds
                 setTimeout(() => {
                     successMsg.style.display = 'none';
                 }, 3000);
@@ -1537,63 +1460,40 @@
             }
         }
 
-        // Updated loadStudents function with serial numbers and sorting
         async function loadStudents() {
             const studentList = document.getElementById('studentList');
             studentList.innerHTML = '<div class="loading">Loading students...</div>';
             
             try {
-                // Get all students and sort by grade and student ID
-                const snapshot = await db.collection('students').get();
+                const { data: students, error } = await supabase
+                    .from('students')
+                    .select(`
+                        *,
+                        grades (grade, class_name)
+                    `)
+                    .order('student_id');
+
+                if (error) throw error;
                 
-                if (snapshot.empty) {
+                if (!students || students.length === 0) {
                     studentList.innerHTML = '<div class="loading">No students found. Add some students to get started.</div>';
                     return;
                 }
                 
-                // Get grade information for sorting
-                const studentsWithGrade = [];
-                for (const doc of snapshot.docs) {
-                    const student = doc.data();
-                    const gradeDoc = await db.collection('grades').doc(student.grade).get();
-                    if (gradeDoc.exists) {
-                        const gradeData = gradeDoc.data();
-                        studentsWithGrade.push({
-                            id: doc.id,
-                            studentId: student.studentId,
-                            name: student.name,
-                            grade: student.grade,
-                            gradeDisplay: student.gradeDisplay,
-                            gender: student.gender,
-                            gradeName: gradeData.grade || 'Unknown',
-                            className: gradeData.className || 'A'
-                        });
-                    }
-                }
-                
-                // Sort by grade name and student ID
-                studentsWithGrade.sort((a, b) => {
-                    if (a.gradeName === b.gradeName) {
-                        if (a.className === b.className) {
-                            return a.studentId.localeCompare(b.studentId);
-                        }
-                        return a.className.localeCompare(b.className);
-                    }
-                    return a.gradeName.localeCompare(b.gradeName);
-                });
-                
                 studentList.innerHTML = '';
                 
                 let serialNumber = 1;
-                studentsWithGrade.forEach(student => {
+                students.forEach(student => {
+                    const gradeDisplay = student.grade_display || `${student.grades.grade} - ${student.grades.class_name}`;
+                    
                     const studentItem = document.createElement('div');
                     studentItem.className = 'student-item';
                     studentItem.innerHTML = `
                         <div class="item-info" style="display: flex; align-items: center;">
                             <div class="serial-number">${serialNumber}</div>
                             <div>
-                                <strong>${student.studentId}</strong> - ${student.name}
-                                <br><small>${student.gradeDisplay || 'Grade not set'} • ${student.gender}</small>
+                                <strong>${student.student_id}</strong> - ${student.name}
+                                <br><small>${gradeDisplay} • ${student.gender}</small>
                             </div>
                         </div>
                         <div class="item-actions">
@@ -1610,33 +1510,6 @@
             }
         }
 
-        function filterStudents() {
-            const filter = document.getElementById('studentFilter').value.toLowerCase();
-            const classFilter = document.getElementById('filterStudentClass').value;
-            const studentItems = document.querySelectorAll('.student-item');
-            
-            let visibleCount = 0;
-            studentItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                const grade = item.querySelector('small').textContent;
-                const classMatch = !classFilter || grade.includes(classFilter);
-                const filterMatch = text.includes(filter);
-                
-                if (classMatch && filterMatch) {
-                    item.style.display = 'flex';
-                    visibleCount++;
-                    // Update serial number for visible items
-                    const serialNumber = item.querySelector('.serial-number');
-                    if (serialNumber) {
-                        serialNumber.textContent = visibleCount;
-                    }
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        // Teacher Management (Principal only)
         async function addTeacher() {
             const teacherId = document.getElementById('teacherIdInput').value.trim();
             const teacherName = document.getElementById('teacherNameInput').value.trim();
@@ -1651,28 +1524,41 @@
             
             try {
                 // Check if teacher ID already exists
-                const existingTeacher = await db.collection('teachers').where('teacherId', '==', teacherId).get();
-                if (!existingTeacher.empty) {
+                const { data: existingTeacher, error: checkError } = await supabase
+                    .from('teachers')
+                    .select('teacher_id')
+                    .eq('teacher_id', teacherId)
+                    .limit(1);
+
+                if (existingTeacher && existingTeacher.length > 0) {
                     alert('Teacher ID already exists');
                     return;
                 }
                 
                 // Get subject name for display
-                const subjectDoc = await db.collection('subjects').doc(teacherSubject).get();
-                if (!subjectDoc.exists) {
+                const { data: subjectData, error: subjectError } = await supabase
+                    .from('subjects')
+                    .select('name')
+                    .eq('id', teacherSubject)
+                    .limit(1);
+
+                if (subjectError) throw subjectError;
+                if (!subjectData || subjectData.length === 0) {
                     alert('Selected subject not found');
                     return;
                 }
-                const subjectData = subjectDoc.data();
-                
-                await db.collection('teachers').add({
-                    teacherId: teacherId,
-                    name: teacherName,
-                    subject: teacherSubject,
-                    subjectName: subjectData.name,
-                    role: teacherRole,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+
+                const { error } = await supabase
+                    .from('teachers')
+                    .insert([{
+                        teacher_id: teacherId,
+                        name: teacherName,
+                        subject_id: teacherSubject,
+                        subject_name: subjectData[0].name,
+                        role: teacherRole
+                    }]);
+
+                if (error) throw error;
                 
                 successMsg.textContent = 'Teacher added successfully!';
                 successMsg.style.display = 'block';
@@ -1685,7 +1571,6 @@
                 loadTeachers();
                 loadTeacherDropdowns();
                 
-                // Hide success message after 3 seconds
                 setTimeout(() => {
                     successMsg.style.display = 'none';
                 }, 3000);
@@ -1696,36 +1581,45 @@
             }
         }
 
-        // Updated loadTeachers function with serial numbers and sorting
         async function loadTeachers() {
             const teachersList = document.getElementById('teachersList');
             teachersList.innerHTML = '<div class="loading">Loading teachers...</div>';
             
             try {
-                const snapshot = await db.collection('teachers').orderBy('teacherId').get();
+                const { data: teachers, error } = await supabase
+                    .from('teachers')
+                    .select(`
+                        *,
+                        subjects (name)
+                    `)
+                    .order('teacher_id');
+
+                if (error) throw error;
+                
                 teachersList.innerHTML = '';
                 
-                if (snapshot.empty) {
+                if (!teachers || teachers.length === 0) {
                     teachersList.innerHTML = '<div class="loading">No teachers found. Add some teachers to get started.</div>';
                     return;
                 }
                 
                 let serialNumber = 1;
-                snapshot.forEach(doc => {
-                    const teacher = doc.data();
+                teachers.forEach(teacher => {
+                    const subjectName = teacher.subject_name || teacher.subjects?.name || 'Unknown Subject';
+                    
                     const teacherItem = document.createElement('div');
                     teacherItem.className = 'teacher-item';
                     teacherItem.innerHTML = `
                         <div class="item-info" style="display: flex; align-items: center;">
                             <div class="serial-number">${serialNumber}</div>
                             <div>
-                                <strong>${teacher.teacherId}</strong> - ${teacher.name}
-                                <br><small>${teacher.subjectName} • ${roleDisplayMapping[teacher.role]}</small>
+                                <strong>${teacher.teacher_id}</strong> - ${teacher.name}
+                                <br><small>${subjectName} • ${roleDisplayMapping[teacher.role]}</small>
                             </div>
                         </div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editTeacher('${doc.id}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteTeacher('${doc.id}')">Delete</button>
+                            <button class="btn btn-warning btn-small" onclick="editTeacher('${teacher.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteTeacher('${teacher.id}')">Delete</button>
                         </div>
                     `;
                     teachersList.appendChild(teacherItem);
@@ -1737,28 +1631,6 @@
             }
         }
 
-        function filterTeachers() {
-            const filter = document.getElementById('teacherFilter').value.toLowerCase();
-            const teacherItems = document.querySelectorAll('.teacher-item');
-            
-            let visibleCount = 0;
-            teacherItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
-                    item.style.display = 'flex';
-                    visibleCount++;
-                    // Update serial number for visible items
-                    const serialNumber = item.querySelector('.serial-number');
-                    if (serialNumber) {
-                        serialNumber.textContent = visibleCount;
-                    }
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        // Subject Management (Principal only)
         async function addSubject() {
             const subjectName = document.getElementById('subjectName').value.trim();
             const successMsg = document.getElementById('subjectSuccess');
@@ -1770,16 +1642,24 @@
             
             try {
                 // Check if subject already exists
-                const existingSubject = await db.collection('subjects').where('name', '==', subjectName).get();
-                if (!existingSubject.empty) {
+                const { data: existingSubject, error: checkError } = await supabase
+                    .from('subjects')
+                    .select('name')
+                    .eq('name', subjectName)
+                    .limit(1);
+
+                if (existingSubject && existingSubject.length > 0) {
                     alert('Subject already exists');
                     return;
                 }
                 
-                await db.collection('subjects').add({
-                    name: subjectName,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                const { error } = await supabase
+                    .from('subjects')
+                    .insert([{
+                        name: subjectName
+                    }]);
+
+                if (error) throw error;
                 
                 successMsg.textContent = 'Subject added successfully!';
                 successMsg.style.display = 'block';
@@ -1791,7 +1671,6 @@
                 loadSubjects();
                 loadSubjectDropdowns();
                 
-                // Hide success message after 3 seconds
                 setTimeout(() => {
                     successMsg.style.display = 'none';
                 }, 3000);
@@ -1802,23 +1681,27 @@
             }
         }
 
-        // Updated loadSubjects function with serial numbers and sorting
         async function loadSubjects() {
             const subjectsList = document.getElementById('subjectsList');
             subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
             
             try {
-                const snapshot = await db.collection('subjects').orderBy('name').get();
+                const { data: subjects, error } = await supabase
+                    .from('subjects')
+                    .select('*')
+                    .order('name');
+
+                if (error) throw error;
+                
                 subjectsList.innerHTML = '';
                 
-                if (snapshot.empty) {
+                if (!subjects || subjects.length === 0) {
                     subjectsList.innerHTML = '<div class="loading">No subjects found. Add some subjects to get started.</div>';
                     return;
                 }
                 
                 let serialNumber = 1;
-                snapshot.forEach(doc => {
-                    const subject = doc.data();
+                subjects.forEach(subject => {
                     const subjectItem = document.createElement('div');
                     subjectItem.className = 'subject-item';
                     subjectItem.innerHTML = `
@@ -1829,8 +1712,8 @@
                             </div>
                         </div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editSubject('${doc.id}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteSubject('${doc.id}')">Delete</button>
+                            <button class="btn btn-warning btn-small" onclick="editSubject('${subject.id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteSubject('${subject.id}')">Delete</button>
                         </div>
                     `;
                     subjectsList.appendChild(subjectItem);
@@ -1842,28 +1725,6 @@
             }
         }
 
-        function filterSubjects() {
-            const filter = document.getElementById('subjectFilter').value.toLowerCase();
-            const subjectItems = document.querySelectorAll('.subject-item');
-            
-            let visibleCount = 0;
-            subjectItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
-                    item.style.display = 'flex';
-                    visibleCount++;
-                    // Update serial number for visible items
-                    const serialNumber = item.querySelector('.serial-number');
-                    if (serialNumber) {
-                        serialNumber.textContent = visibleCount;
-                    }
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        // Fixed version of addClass function
         async function addClass() {
             const newGrade = document.getElementById('newGrade').value;
             const className = document.getElementById('className').value.trim();
@@ -1875,29 +1736,27 @@
             }
             
             try {
-                console.log("Adding new class:", newGrade, className);
-                
                 // Check if class already exists
-                const existingClass = await db.collection('grades')
-                    .where('grade', '==', newGrade)
-                    .where('className', '==', className)
-                    .get();
-                    
-                if (!existingClass.empty) {
+                const { data: existingClass, error: checkError } = await supabase
+                    .from('grades')
+                    .select('id')
+                    .eq('grade', newGrade)
+                    .eq('class_name', className)
+                    .limit(1);
+
+                if (existingClass && existingClass.length > 0) {
                     alert('This grade and class combination already exists');
                     return;
                 }
                 
-                // Add new class with complete data structure
-                const classData = {
-                    grade: newGrade,
-                    className: className,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdBy: appData.currentUser?.email || 'unknown'
-                };
-                
-                const docRef = await db.collection('grades').add(classData);
-                console.log("Class added with ID:", docRef.id);
+                const { error } = await supabase
+                    .from('grades')
+                    .insert([{
+                        grade: newGrade,
+                        class_name: className
+                    }]);
+
+                if (error) throw error;
                 
                 successMsg.textContent = 'Grade and class added successfully!';
                 successMsg.style.display = 'block';
@@ -1910,7 +1769,6 @@
                 await loadGrades();
                 await loadClassDropdowns();
                 
-                // Hide success message after 3 seconds
                 setTimeout(() => {
                     successMsg.style.display = 'none';
                 }, 3000);
@@ -1921,20 +1779,22 @@
             }
         }
 
-        // Fixed version of loadGrades function
         async function loadGrades() {
             const gradesList = document.getElementById('gradesList');
             gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
             
             try {
-                console.log("Loading grades for display...");
-                
-                const snapshot = await db.collection('grades').get();
-                console.log("Grades loaded:", snapshot.size);
+                const { data: grades, error } = await supabase
+                    .from('grades')
+                    .select('*')
+                    .order('grade')
+                    .order('class_name');
+
+                if (error) throw error;
                 
                 gradesList.innerHTML = '';
                 
-                if (snapshot.empty) {
+                if (!grades || grades.length === 0) {
                     gradesList.innerHTML = `
                         <div class="loading">
                             No grades found. 
@@ -1946,35 +1806,15 @@
                     return;
                 }
                 
-                // Sort grades by grade and class name
-                const sortedGrades = [];
-                snapshot.forEach(doc => {
-                    const grade = doc.data();
-                    sortedGrades.push({
-                        id: doc.id,
-                        grade: grade.grade || 'Unknown Grade',
-                        className: grade.className || 'A',
-                        displayText: `${grade.grade || 'Unknown Grade'} - ${grade.className || 'A'}`
-                    });
-                });
-                
-                // Sort by grade and class name
-                sortedGrades.sort((a, b) => {
-                    if (a.grade === b.grade) {
-                        return a.className.localeCompare(b.className);
-                    }
-                    return a.grade.localeCompare(b.grade);
-                });
-                
                 let serialNumber = 1;
-                sortedGrades.forEach(grade => {
+                grades.forEach(grade => {
                     const gradeItem = document.createElement('div');
                     gradeItem.className = 'grade-item';
                     gradeItem.innerHTML = `
                         <div class="item-info" style="display: flex; align-items: center;">
                             <div class="serial-number">${serialNumber}</div>
                             <div>
-                                <strong>${grade.displayText}</strong>
+                                <strong>${grade.grade} - ${grade.class_name}</strong>
                             </div>
                         </div>
                         <div class="item-actions">
@@ -1988,139 +1828,15 @@
                 
             } catch (error) {
                 console.error("Error loading grades:", error);
-                console.error("Error details:", error.message, error.stack);
-                
                 gradesList.innerHTML = `
                     <div class="loading" style="color: #f44336;">
                         Error loading grades: ${error.message}
-                        <br>
-                        <button onclick="debugGrades()" class="btn btn-warning btn-small" style="margin-top: 10px;">
-                            Debug Grades
-                        </button>
                     </div>
                 `;
             }
         }
 
-        function filterGrades() {
-            const filter = document.getElementById('gradeFilter').value.toLowerCase();
-            const gradeItems = document.querySelectorAll('.grade-item');
-            
-            let visibleCount = 0;
-            gradeItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
-                    item.style.display = 'flex';
-                    visibleCount++;
-                    // Update serial number for visible items
-                    const serialNumber = item.querySelector('.serial-number');
-                    if (serialNumber) {
-                        serialNumber.textContent = visibleCount;
-                    }
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        // Dashboard functions
-        async function loadDashboard() {
-            try {
-                // Get counts from all collections
-                const studentsCount = await db.collection('students').get().then(snap => snap.size);
-                const teachersCount = await db.collection('teachers').get().then(snap => snap.size);
-                const gradesCount = await db.collection('grades').get().then(snap => snap.size);
-                const subjectsCount = await db.collection('subjects').get().then(snap => snap.size);
-                
-                document.getElementById('totalStudents').textContent = studentsCount;
-                document.getElementById('totalTeachers').textContent = teachersCount;
-                document.getElementById('totalGrades').textContent = gradesCount;
-                document.getElementById('totalSubjects').textContent = subjectsCount;
-                
-                console.log("Dashboard loaded:", { studentsCount, teachersCount, gradesCount, subjectsCount });
-            } catch (error) {
-                console.error("Error loading dashboard:", error);
-            }
-        }
-
-        // Delete functions
-        function deleteStudent(id) {
-            if (confirm('Are you sure you want to delete this student?')) {
-                db.collection('students').doc(id).delete()
-                    .then(() => {
-                        loadStudents();
-                        alert('Student deleted successfully');
-                    })
-                    .catch(error => {
-                        console.error("Error deleting student:", error);
-                        alert('Error deleting student');
-                    });
-            }
-        }
-
-        function deleteTeacher(id) {
-            if (confirm('Are you sure you want to delete this teacher?')) {
-                db.collection('teachers').doc(id).delete()
-                    .then(() => {
-                        loadTeachers();
-                        loadTeacherDropdowns();
-                        alert('Teacher deleted successfully');
-                    })
-                    .catch(error => {
-                        console.error("Error deleting teacher:", error);
-                        alert('Error deleting teacher');
-                    });
-            }
-        }
-
-        function deleteSubject(id) {
-            if (confirm('Are you sure you want to delete this subject?')) {
-                db.collection('subjects').doc(id).delete()
-                    .then(() => {
-                        loadSubjects();
-                        loadSubjectDropdowns();
-                        alert('Subject deleted successfully');
-                    })
-                    .catch(error => {
-                        console.error("Error deleting subject:", error);
-                        alert('Error deleting subject');
-                    });
-            }
-        }
-
-        function deleteGrade(id) {
-            if (confirm('Are you sure you want to delete this grade/class?')) {
-                db.collection('grades').doc(id).delete()
-                    .then(() => {
-                        loadGrades();
-                        loadClassDropdowns();
-                        alert('Grade/Class deleted successfully');
-                    })
-                    .catch(error => {
-                        console.error("Error deleting grade:", error);
-                        alert('Error deleting grade');
-                    });
-            }
-        }
-
-        // Edit functions - PLACEHOLDER
-        function editStudent(id) {
-            alert('Edit student functionality would be implemented here for student ID: ' + id);
-        }
-
-        function editTeacher(id) {
-            alert('Edit teacher functionality would be implemented here for teacher ID: ' + id);
-        }
-
-        function editSubject(id) {
-            alert('Edit subject functionality would be implemented here for subject ID: ' + id);
-        }
-
-        function editGrade(id) {
-            alert('Edit grade functionality would be implemented here for grade ID: ' + id);
-        }
-
-        // FIXED: Update the loadAttendance function to properly initialize attendance status and percentages
+        // ATTENDANCE FUNCTIONS
         async function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
@@ -2134,68 +1850,79 @@
             
             try {
                 // Get teacher information
-                const teacherDoc = await db.collection('teachers').doc(selectedTeacher).get();
-                if (!teacherDoc.exists) {
+                const { data: teacherData, error: teacherError } = await supabase
+                    .from('teachers')
+                    .select('*')
+                    .eq('id', selectedTeacher)
+                    .limit(1);
+
+                if (teacherError) throw teacherError;
+                if (!teacherData || teacherData.length === 0) {
                     alert('Selected teacher not found');
                     return;
                 }
-                const teacherData = teacherDoc.data();
                 
                 // Display teacher information
-                document.getElementById('teacherIdDisplay').textContent = teacherData.teacherId;
-                document.getElementById('teacherNameDisplay').textContent = teacherData.name;
+                document.getElementById('teacherIdDisplay').textContent = teacherData[0].teacher_id;
+                document.getElementById('teacherNameDisplay').textContent = teacherData[0].name;
                 document.getElementById('teacherInfo').style.display = 'block';
                 
                 // Get students for the selected class
-                const studentsSnapshot = await db.collection('students')
-                    .where('grade', '==', selectedClass)
-                    .get();
+                const { data: students, error: studentsError } = await supabase
+                    .from('students')
+                    .select('*')
+                    .eq('grade_id', selectedClass)
+                    .order('student_id');
+
+                if (studentsError) throw studentsError;
                 
-                if (studentsSnapshot.empty) {
+                if (!students || students.length === 0) {
                     alert('No students found for the selected class');
                     return;
                 }
                 
                 // Get subject information
-                const subjectDoc = await db.collection('subjects').doc(selectedSubject).get();
-                const subjectName = subjectDoc.exists ? subjectDoc.data().name : 'Unknown Subject';
+                const { data: subjectData, error: subjectError } = await supabase
+                    .from('subjects')
+                    .select('name')
+                    .eq('id', selectedSubject)
+                    .limit(1);
+
+                const subjectName = subjectData && subjectData.length > 0 ? subjectData[0].name : 'Unknown Subject';
                 
                 // Check for existing attendance records for this date
-                const existingAttendanceSnapshot = await db.collection('attendance')
-                    .where('date', '==', selectedDate)
-                    .where('subject', '==', selectedSubject)
-                    .where('teacher', '==', selectedTeacher)
-                    .get();
+                const { data: existingAttendance, error: attendanceError } = await supabase
+                    .from('attendance')
+                    .select('*')
+                    .eq('date', selectedDate)
+                    .eq('subject_id', selectedSubject)
+                    .eq('teacher_id', selectedTeacher);
+
+                if (attendanceError) throw attendanceError;
                 
-                const existingAttendance = {};
-                existingAttendanceSnapshot.forEach(doc => {
-                    const record = doc.data();
-                    existingAttendance[record.studentId] = record.status;
-                });
+                const existingAttendanceMap = {};
+                if (existingAttendance) {
+                    existingAttendance.forEach(record => {
+                        existingAttendanceMap[record.student_id] = record.status;
+                    });
+                }
                 
                 // Clear and populate attendance table
                 const tbody = document.getElementById('attendanceTbody');
                 tbody.innerHTML = '';
                 
-                // Convert to array and sort by student ID
-                const students = [];
-                studentsSnapshot.forEach(doc => {
-                    students.push(doc.data());
-                });
-                students.sort((a, b) => a.studentId.localeCompare(b.studentId));
-                
                 let serialNumber = 1;
                 students.forEach(student => {
-                    const existingStatus = existingAttendance[student.studentId] || 'present'; // Default to present
+                    const existingStatus = existingAttendanceMap[student.student_id] || 'present';
                     
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${serialNumber}</td>
-                        <td>${student.studentId}</td>
+                        <td>${student.student_id}</td>
                         <td>${student.name}</td>
                         <td>${subjectName}</td>
-                        <td>${teacherData.teacherId}</td>
-                        <td>${teacherData.name}</td>
+                        <td>${teacherData[0].teacher_id}</td>
+                        <td>${teacherData[0].name}</td>
                         <td>
                             <select class="attendance-status" onchange="updateAttendanceSummary()">
                                 <option value="present" ${existingStatus === 'present' ? 'selected' : ''}>Present</option>
@@ -2212,53 +1939,12 @@
                 
                 // Show attendance summary
                 document.getElementById('attendanceSummary').style.display = 'block';
-                updateAttendanceSummary(); // Initialize the summary
+                updateAttendanceSummary();
                 
             } catch (error) {
                 console.error("Error loading attendance:", error);
                 alert('Error loading attendance: ' + error.message);
             }
-        }
-
-        function toggleAttendance(button) {
-            const row = button.closest('tr');
-            const statusSelect = row.querySelector('.attendance-status');
-            statusSelect.value = statusSelect.value === 'present' ? 'absent' : 'present';
-            updateAttendanceSummary();
-        }
-
-        function markAllPresent() {
-            document.querySelectorAll('.attendance-status').forEach(select => {
-                select.value = 'present';
-            });
-            updateAttendanceSummary();
-        }
-
-        function markAllAbsent() {
-            document.querySelectorAll('.attendance-status').forEach(select => {
-                select.value = 'absent';
-            });
-            updateAttendanceSummary();
-        }
-
-        // FIXED: Update attendance percentage calculation
-        function updateAttendanceSummary() {
-            const statusSelects = document.querySelectorAll('.attendance-status');
-            const totalStudents = statusSelects.length;
-            
-            // FIXED: Properly count present students
-            let presentCount = 0;
-            statusSelects.forEach(select => {
-                if (select.value === 'present') {
-                    presentCount++;
-                }
-            });
-            
-            const percentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
-            
-            document.getElementById('presentCount').textContent = presentCount;
-            document.getElementById('totalCount').textContent = totalStudents;
-            document.getElementById('attendancePercentage').textContent = percentage;
         }
 
         async function saveAttendance() {
@@ -2279,28 +1965,31 @@
             }
             
             try {
-                let savedCount = 0;
+                const attendanceRecords = [];
                 
                 for (const row of rows) {
-                    const studentId = row.cells[1].textContent; // Changed from 0 to 1 because of serial number column
+                    const studentId = row.cells[1].textContent;
                     const status = row.querySelector('.attendance-status').value;
                     
-                    // Create a unique ID for this attendance record
-                    const attendanceId = `${studentId}_${selectedDate}_${selectedSubject}`;
-                    
-                    await db.collection('attendance').doc(attendanceId).set({
-                        studentId: studentId,
+                    attendanceRecords.push({
+                        student_id: studentId,
                         date: selectedDate,
-                        subject: selectedSubject,
-                        teacher: selectedTeacher,
-                        status: status,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        subject_id: selectedSubject,
+                        teacher_id: selectedTeacher,
+                        status: status
                     });
-                    
-                    savedCount++;
                 }
                 
-                alert(`Successfully saved attendance for ${savedCount} students`);
+                // Use upsert to handle both insert and update
+                const { error } = await supabase
+                    .from('attendance')
+                    .upsert(attendanceRecords, {
+                        onConflict: 'student_id,date,subject_id'
+                    });
+
+                if (error) throw error;
+                
+                alert(`Successfully saved attendance for ${attendanceRecords.length} students`);
                 
             } catch (error) {
                 console.error("Error saving attendance:", error);
@@ -2308,7 +1997,7 @@
             }
         }
 
-        // FIXED: Update report generation to use real-time data without delays
+        // REPORT GENERATION
         async function generateReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -2331,30 +2020,36 @@
                 const startDateStr = startDate.toISOString().split('T')[0];
                 const endDateStr = endDate.toISOString().split('T')[0];
                 
-                // Get all students for the selected class FIRST
-                const studentsSnapshot = await db.collection('students')
-                    .where('grade', '==', selectedClass)
-                    .get();
+                // Get all students for the selected class
+                const { data: students, error: studentsError } = await supabase
+                    .from('students')
+                    .select('*')
+                    .eq('grade_id', selectedClass)
+                    .order('student_id');
+
+                if (studentsError) throw studentsError;
                 
-                if (studentsSnapshot.empty) {
+                if (!students || students.length === 0) {
                     reportOutput.innerHTML = '<div class="loading">No students found in the selected class.</div>';
                     return;
                 }
                 
                 // Get attendance records for the selected period
-                const attendanceSnapshot = await db.collection('attendance')
-                    .where('subject', '==', selectedSubject)
-                    .where('date', '>=', startDateStr)
-                    .where('date', '<=', endDateStr)
-                    .get();
+                const { data: attendanceRecords, error: attendanceError } = await supabase
+                    .from('attendance')
+                    .select('*')
+                    .eq('subject_id', selectedSubject)
+                    .gte('date', startDateStr)
+                    .lte('date', endDateStr);
+
+                if (attendanceError) throw attendanceError;
                 
-                // Process attendance data more efficiently
+                // Process attendance data
                 const attendanceData = {};
                 
                 // Initialize all students with zero counts
-                studentsSnapshot.forEach(doc => {
-                    const student = doc.data();
-                    attendanceData[student.studentId] = {
+                students.forEach(student => {
+                    attendanceData[student.student_id] = {
                         name: student.name,
                         present: 0,
                         absent: 0,
@@ -2363,17 +2058,18 @@
                 });
                 
                 // Count attendance from records
-                attendanceSnapshot.forEach(doc => {
-                    const record = doc.data();
-                    if (attendanceData[record.studentId]) {
-                        attendanceData[record.studentId].total++;
-                        if (record.status === 'present') {
-                            attendanceData[record.studentId].present++;
-                        } else {
-                            attendanceData[record.studentId].absent++;
+                if (attendanceRecords) {
+                    attendanceRecords.forEach(record => {
+                        if (attendanceData[record.student_id]) {
+                            attendanceData[record.student_id].total++;
+                            if (record.status === 'present') {
+                                attendanceData[record.student_id].present++;
+                            } else {
+                                attendanceData[record.student_id].absent++;
+                            }
                         }
-                    }
-                });
+                    });
+                }
                 
                 // Sort by student ID
                 const sortedStudentIds = Object.keys(attendanceData).sort();
@@ -2468,7 +2164,7 @@
             }
         }
 
-        // Real-time attendance view with serial numbers
+        // VIEW ATTENDANCE FUNCTIONS
         function setupRealTimeAttendance() {
             // Unsubscribe from previous real-time listener
             if (appData.realTimeUnsubscribe) {
@@ -2482,21 +2178,32 @@
             }
             
             // Set up real-time listener for attendance records
-            appData.realTimeUnsubscribe = db.collection('attendance')
-                .where('date', '==', selectedDate)
-                .onSnapshot(async (snapshot) => {
-                    await displayAttendanceRecords(snapshot);
-                }, (error) => {
-                    console.error("Error in real-time attendance:", error);
-                    document.getElementById('viewAttendanceOutput').innerHTML = '<div class="error-msg">Error loading attendance records: ' + error.message + '</div>';
-                });
+            const subscription = supabase
+                .channel('attendance-changes')
+                .on('postgres_changes', 
+                    { 
+                        event: '*', 
+                        schema: 'public', 
+                        table: 'attendance',
+                        filter: `date=eq.${selectedDate}`
+                    },
+                    (payload) => {
+                        loadAttendanceRecords();
+                    }
+                )
+                .subscribe();
+            
+            appData.realTimeUnsubscribe = () => subscription.unsubscribe();
+            
+            // Load initial data
+            loadAttendanceRecords();
         }
 
         async function viewAttendanceRecords() {
             setupRealTimeAttendance();
         }
 
-        async function displayAttendanceRecords(snapshot) {
+        async function loadAttendanceRecords() {
             const selectedClass = document.getElementById('viewClass').value;
             const selectedSubject = document.getElementById('viewSubject').value;
             const selectedTeacher = document.getElementById('viewTeacher').value;
@@ -2508,76 +2215,55 @@
             }
             
             try {
-                if (snapshot.empty) {
+                // Build query based on filters
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (student_id, name, grade_display),
+                        teachers (teacher_id, name),
+                        subjects (name)
+                    `)
+                    .eq('date', selectedDate);
+
+                if (selectedSubject) {
+                    query = query.eq('subject_id', selectedSubject);
+                }
+                
+                if (selectedTeacher) {
+                    query = query.eq('teacher_id', selectedTeacher);
+                }
+
+                const { data: attendanceRecords, error } = await query;
+
+                if (error) throw error;
+                
+                if (!attendanceRecords || attendanceRecords.length === 0) {
                     document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
                     return;
                 }
                 
-                // Get additional information for display
-                const attendanceRecords = [];
-                for (const doc of snapshot.docs) {
-                    const record = doc.data();
-                    
-                    // Apply filters
-                    if (selectedClass) {
-                        const studentDoc = await db.collection('students')
-                            .where('studentId', '==', record.studentId)
-                            .where('grade', '==', selectedClass)
-                            .get();
-                        if (studentDoc.empty) continue;
-                    }
-                    
-                    if (selectedSubject && record.subject !== selectedSubject) continue;
-                    if (selectedTeacher && record.teacher !== selectedTeacher) continue;
-                    
-                    // Get student name
-                    const studentDoc = await db.collection('students')
-                        .where('studentId', '==', record.studentId)
-                        .get();
-                    
-                    let studentName = 'Unknown';
-                    let gradeDisplay = 'Unknown';
-                    if (!studentDoc.empty) {
-                        const studentData = studentDoc.docs[0].data();
-                        studentName = studentData.name;
-                        gradeDisplay = studentData.gradeDisplay || 'Unknown';
-                    }
-                    
-                    // Get teacher name
-                    const teacherDoc = await db.collection('teachers').doc(record.teacher).get();
-                    let teacherName = 'Unknown';
-                    if (teacherDoc.exists) {
-                        teacherName = teacherDoc.data().name;
-                    }
-                    
-                    // Get subject name
-                    const subjectDoc = await db.collection('subjects').doc(record.subject).get();
-                    let subjectName = 'Unknown';
-                    if (subjectDoc.exists) {
-                        subjectName = subjectDoc.data().name;
-                    }
-                    
-                    attendanceRecords.push({
-                        ...record,
-                        studentName: studentName,
-                        teacherName: teacherName,
-                        subjectName: subjectName,
-                        gradeDisplay: gradeDisplay
-                    });
+                // Apply class filter in memory (since it's a relation)
+                let filteredRecords = attendanceRecords;
+                if (selectedClass) {
+                    filteredRecords = attendanceRecords.filter(record => 
+                        record.students && record.students.grade_display && 
+                        record.students.grade_display.includes(selectedClass)
+                    );
                 }
                 
-                if (attendanceRecords.length === 0) {
+                if (filteredRecords.length === 0) {
                     document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
                     return;
                 }
                 
                 // Sort by student ID
-                attendanceRecords.sort((a, b) => a.studentId.localeCompare(b.studentId));
+                filteredRecords.sort((a, b) => a.students.student_id.localeCompare(b.students.student_id));
                 
                 // Generate display HTML
                 let outputHTML = '<h3>Attendance Records</h3>';
                 outputHTML += `<p>Date: ${selectedDate}</p>`;
-                outputHTML += `<p><strong>Total Records: ${attendanceRecords.length}</strong></p>`;
+                outputHTML += `<p><strong>Total Records: ${filteredRecords.length}</strong></p>`;
                 outputHTML += '<div style="overflow-x: auto;">';
                 outputHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Student Name</th><th>Class</th><th>Subject</th><th>Teacher</th><th>Status</th><th>Time</th></tr></thead><tbody>';
                 
@@ -2585,9 +2271,9 @@
                 let presentCount = 0;
                 let absentCount = 0;
                 
-                attendanceRecords.forEach(record => {
+                filteredRecords.forEach(record => {
                     const statusClass = record.status === 'present' ? 'present' : 'absent';
-                    const time = record.timestamp ? new Date(record.timestamp.toDate()).toLocaleTimeString() : 'N/A';
+                    const time = record.timestamp ? new Date(record.timestamp).toLocaleTimeString() : 'N/A';
                     
                     if (record.status === 'present') presentCount++;
                     if (record.status === 'absent') absentCount++;
@@ -2595,11 +2281,11 @@
                     outputHTML += `
                         <tr>
                             <td>${serialNumber}</td>
-                            <td>${record.studentId}</td>
-                            <td>${record.studentName}</td>
-                            <td>${record.gradeDisplay}</td>
-                            <td>${record.subjectName}</td>
-                            <td>${record.teacherName}</td>
+                            <td>${record.students?.student_id || 'N/A'}</td>
+                            <td>${record.students?.name || 'N/A'}</td>
+                            <td>${record.students?.grade_display || 'N/A'}</td>
+                            <td>${record.subjects?.name || 'N/A'}</td>
+                            <td>${record.teachers?.name || 'N/A'}</td>
                             <td class="${statusClass}"><strong>${record.status.toUpperCase()}</strong></td>
                             <td><small>${time}</small></td>
                         </tr>
@@ -2629,30 +2315,298 @@
             }
         }
 
-        // Debug function to check grades collection
+        // DASHBOARD FUNCTION
+        async function loadDashboard() {
+            try {
+                // Get counts from all tables
+                const { count: studentsCount } = await supabase
+                    .from('students')
+                    .select('*', { count: 'exact', head: true });
+
+                const { count: teachersCount } = await supabase
+                    .from('teachers')
+                    .select('*', { count: 'exact', head: true });
+
+                const { count: gradesCount } = await supabase
+                    .from('grades')
+                    .select('*', { count: 'exact', head: true });
+
+                const { count: subjectsCount } = await supabase
+                    .from('subjects')
+                    .select('*', { count: 'exact', head: true });
+
+                document.getElementById('totalStudents').textContent = studentsCount || 0;
+                document.getElementById('totalTeachers').textContent = teachersCount || 0;
+                document.getElementById('totalGrades').textContent = gradesCount || 0;
+                document.getElementById('totalSubjects').textContent = subjectsCount || 0;
+                
+                console.log("Dashboard loaded:", { studentsCount, teachersCount, gradesCount, subjectsCount });
+            } catch (error) {
+                console.error("Error loading dashboard:", error);
+            }
+        }
+
+        // FILTER FUNCTIONS
+        function filterStudents() {
+            const filter = document.getElementById('studentFilter').value.toLowerCase();
+            const classFilter = document.getElementById('filterStudentClass').value;
+            const studentItems = document.querySelectorAll('.student-item');
+            
+            let visibleCount = 0;
+            studentItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const grade = item.querySelector('small').textContent;
+                const classMatch = !classFilter || grade.includes(classFilter);
+                const filterMatch = text.includes(filter);
+                
+                if (classMatch && filterMatch) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                    const serialNumber = item.querySelector('.serial-number');
+                    if (serialNumber) {
+                        serialNumber.textContent = visibleCount;
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterTeachers() {
+            const filter = document.getElementById('teacherFilter').value.toLowerCase();
+            const teacherItems = document.querySelectorAll('.teacher-item');
+            
+            let visibleCount = 0;
+            teacherItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                    const serialNumber = item.querySelector('.serial-number');
+                    if (serialNumber) {
+                        serialNumber.textContent = visibleCount;
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterSubjects() {
+            const filter = document.getElementById('subjectFilter').value.toLowerCase();
+            const subjectItems = document.querySelectorAll('.subject-item');
+            
+            let visibleCount = 0;
+            subjectItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                    const serialNumber = item.querySelector('.serial-number');
+                    if (serialNumber) {
+                        serialNumber.textContent = visibleCount;
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterGrades() {
+            const filter = document.getElementById('gradeFilter').value.toLowerCase();
+            const gradeItems = document.querySelectorAll('.grade-item');
+            
+            let visibleCount = 0;
+            gradeItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                    const serialNumber = item.querySelector('.serial-number');
+                    if (serialNumber) {
+                        serialNumber.textContent = visibleCount;
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // DELETE FUNCTIONS
+        async function deleteStudent(id) {
+            if (confirm('Are you sure you want to delete this student?')) {
+                try {
+                    const { error } = await supabase
+                        .from('students')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+                    
+                    loadStudents();
+                    alert('Student deleted successfully');
+                } catch (error) {
+                    console.error("Error deleting student:", error);
+                    alert('Error deleting student');
+                }
+            }
+        }
+
+        async function deleteTeacher(id) {
+            if (confirm('Are you sure you want to delete this teacher?')) {
+                try {
+                    const { error } = await supabase
+                        .from('teachers')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+                    
+                    loadTeachers();
+                    loadTeacherDropdowns();
+                    alert('Teacher deleted successfully');
+                } catch (error) {
+                    console.error("Error deleting teacher:", error);
+                    alert('Error deleting teacher');
+                }
+            }
+        }
+
+        async function deleteSubject(id) {
+            if (confirm('Are you sure you want to delete this subject?')) {
+                try {
+                    const { error } = await supabase
+                        .from('subjects')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+                    
+                    loadSubjects();
+                    loadSubjectDropdowns();
+                    alert('Subject deleted successfully');
+                } catch (error) {
+                    console.error("Error deleting subject:", error);
+                    alert('Error deleting subject');
+                }
+            }
+        }
+
+        async function deleteGrade(id) {
+            if (confirm('Are you sure you want to delete this grade/class?')) {
+                try {
+                    const { error } = await supabase
+                        .from('grades')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+                    
+                    loadGrades();
+                    loadClassDropdowns();
+                    alert('Grade/Class deleted successfully');
+                } catch (error) {
+                    console.error("Error deleting grade:", error);
+                    alert('Error deleting grade');
+                }
+            }
+        }
+
+        // HELPER FUNCTIONS
+        function toggleAttendance(button) {
+            const row = button.closest('tr');
+            const statusSelect = row.querySelector('.attendance-status');
+            statusSelect.value = statusSelect.value === 'present' ? 'absent' : 'present';
+            updateAttendanceSummary();
+        }
+
+        function markAllPresent() {
+            document.querySelectorAll('.attendance-status').forEach(select => {
+                select.value = 'present';
+            });
+            updateAttendanceSummary();
+        }
+
+        function markAllAbsent() {
+            document.querySelectorAll('.attendance-status').forEach(select => {
+                select.value = 'absent';
+            });
+            updateAttendanceSummary();
+        }
+
+        function updateAttendanceSummary() {
+            const statusSelects = document.querySelectorAll('.attendance-status');
+            const totalStudents = statusSelects.length;
+            
+            let presentCount = 0;
+            statusSelects.forEach(select => {
+                if (select.value === 'present') {
+                    presentCount++;
+                }
+            });
+            
+            const percentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
+            
+            document.getElementById('presentCount').textContent = presentCount;
+            document.getElementById('totalCount').textContent = totalStudents;
+            document.getElementById('attendancePercentage').textContent = percentage;
+        }
+
+        // EDIT FUNCTIONS (Placeholders)
+        function editStudent(id) {
+            alert('Edit student functionality would be implemented here for student ID: ' + id);
+        }
+
+        function editTeacher(id) {
+            alert('Edit teacher functionality would be implemented here for teacher ID: ' + id);
+        }
+
+        function editSubject(id) {
+            alert('Edit subject functionality would be implemented here for subject ID: ' + id);
+        }
+
+        function editGrade(id) {
+            alert('Edit grade functionality would be implemented here for grade ID: ' + id);
+        }
+
+        // DEBUG FUNCTIONS
+        async function debugAuth() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                console.log("Current session:", session);
+                
+                const { data: users } = await supabase.from('users').select('*');
+                console.log("Users in database:", users);
+                
+                alert("Check browser console for debug information");
+            } catch (error) {
+                console.error("Debug auth error:", error);
+            }
+        }
+
         async function debugGrades() {
             try {
                 console.log("=== DEBUG GRADES ===");
                 
-                // Check if grades collection exists
-                const gradesSnapshot = await db.collection('grades').get();
-                console.log("Total grades:", gradesSnapshot.size);
+                const { data: grades, error } = await supabase
+                    .from('grades')
+                    .select('*');
+
+                if (error) throw error;
                 
-                if (gradesSnapshot.empty) {
-                    console.log("No grades found in collection");
+                console.log("Total grades:", grades?.length || 0);
+                
+                if (!grades || grades.length === 0) {
+                    console.log("No grades found in database");
                     alert("No grades found in database. Please add grades first.");
                     return;
                 }
                 
-                // Log all grades
-                gradesSnapshot.forEach(doc => {
-                    console.log("Grade ID:", doc.id);
-                    console.log("Grade Data:", doc.data());
+                grades.forEach(grade => {
+                    console.log("Grade ID:", grade.id);
+                    console.log("Grade Data:", grade);
                     console.log("---");
                 });
-                
-                // Check Firestore rules
-                console.log("Firestore project:", firebaseConfig.projectId);
                 
                 alert("Check browser console for debug information");
                 
@@ -2662,20 +2616,21 @@
             }
         }
 
-        // Manual fix function to add grades if needed
         async function manuallyAddGrades() {
             try {
                 const sampleGrades = [
-                    { grade: 'Grade 6', className: 'A', createdAt: new Date() },
-                    { grade: 'Grade 7', className: 'B', createdAt: new Date() },
-                    { grade: 'Grade 8', className: 'C', createdAt: new Date() },
-                    { grade: 'Grade 9', className: 'A', createdAt: new Date() },
-                    { grade: 'Grade 10', className: 'B', createdAt: new Date() }
+                    { grade: 'Grade 6', class_name: 'A' },
+                    { grade: 'Grade 7', class_name: 'B' },
+                    { grade: 'Grade 8', class_name: 'C' },
+                    { grade: 'Grade 9', class_name: 'A' },
+                    { grade: 'Grade 10', class_name: 'B' }
                 ];
                 
-                for (const grade of sampleGrades) {
-                    await db.collection('grades').add(grade);
-                }
+                const { error } = await supabase
+                    .from('grades')
+                    .insert(sampleGrades);
+
+                if (error) throw error;
                 
                 console.log("Manual grades added successfully");
                 alert("Sample grades added successfully!");
@@ -2690,29 +2645,74 @@
             }
         }
 
-        // Initialize sample data on first load
+        // SAMPLE DATA INITIALIZATION
+        async function initializeSampleData() {
+            try {
+                console.log("Initializing sample data...");
+                
+                // Check if grades collection is empty
+                const { data: grades, error: gradesError } = await supabase
+                    .from('grades')
+                    .select('*');
+
+                if (gradesError) throw gradesError;
+                
+                console.log("Existing grades:", grades?.length || 0);
+                
+                if (!grades || grades.length === 0) {
+                    console.log("Adding sample grades...");
+                    
+                    const sampleGrades = [
+                        { grade: 'Grade 6', class_name: 'A' },
+                        { grade: 'Grade 7', class_name: 'B' },
+                        { grade: 'Grade 8', class_name: 'C' },
+                        { grade: 'Grade 9', class_name: 'A' },
+                        { grade: 'Grade 10', class_name: 'B' }
+                    ];
+                    
+                    const { error: insertError } = await supabase
+                        .from('grades')
+                        .insert(sampleGrades);
+
+                    if (insertError) throw insertError;
+                    console.log("Sample grades added successfully");
+                }
+
+                // Check if subjects collection is empty
+                const { data: subjects, error: subjectsError } = await supabase
+                    .from('subjects')
+                    .select('*');
+
+                if (!subjects || subjects.length === 0) {
+                    console.log("Adding sample subjects...");
+                    
+                    const sampleSubjects = [
+                        { name: 'Mathematics' },
+                        { name: 'Science' },
+                        { name: 'English' },
+                        { name: 'History' },
+                        { name: 'Sinhala' }
+                    ];
+                    
+                    const { error: subjectInsertError } = await supabase
+                        .from('subjects')
+                        .insert(sampleSubjects);
+
+                    if (subjectInsertError) throw subjectInsertError;
+                    console.log("Sample subjects added successfully");
+                }
+
+                console.log("Sample data initialization complete");
+                
+            } catch (error) {
+                console.error("Error initializing sample data:", error);
+            }
+        }
+
+        // Call initializeSampleData on load
         setTimeout(() => {
             initializeSampleData();
         }, 3000);
-
-        // Debug function to check data
-        function debugData() {
-            console.log("Current User:", appData.currentUser);
-            console.log("User Role:", appData.userRole);
-            console.log("Current Attendance:", appData.currentAttendance);
-            
-            // Check collections
-            db.collection('grades').get().then(snap => {
-                console.log("Grades in DB:", snap.size);
-                snap.forEach(doc => console.log("Grade:", doc.id, doc.data()));
-            });
-            
-            db.collection('users').get().then(snap => {
-                console.log("Users in DB:", snap.size);
-                snap.forEach(doc => console.log("User:", doc.data()));
-            });
-        }
     </script>
 </body>
 </html>
-
