@@ -282,6 +282,10 @@
         .percentage-good { color: #4CAF50; }
         .percentage-average { color: #ff9800; }
         .percentage-poor { color: #f44336; }
+        .restricted-option {
+            color: #999;
+            font-style: italic;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -316,10 +320,15 @@
                     <div class="form-group">
                         <label>Register As</label>
                         <select id="registerRole">
-                            <option value="principal">Principal (Admin)</option>
-                            <option value="classTeacher">Class Teacher</option>
+                            <!-- Only Subject Teacher available for registration -->
                             <option value="subjectTeacher">Subject Teacher</option>
+                            <option value="principal" class="restricted-option" disabled>Principal (Admin) - Contact Administrator</option>
+                            <option value="classTeacher" class="restricted-option" disabled>Class Teacher - Contact Administrator</option>
                         </select>
+                    </div>
+                    <div class="info-box" style="margin-bottom: 20px;">
+                        <strong>Note:</strong> Only Subject Teacher accounts can be created through registration. 
+                        For Principal or Class Teacher accounts, please contact the system administrator.
                     </div>
                     <div class="form-group">
                         <label>Email Address</label>
@@ -329,7 +338,7 @@
                         <label>Password</label>
                         <input type="password" id="registerPassword" placeholder="Create a password (min 6 characters)">
                     </div>
-                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">📝 Create Account</button>
+                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">📝 Create Subject Teacher Account</button>
                     <button class="btn btn-primary btn-full" id="backToLoginBtn">← Back to Login</button>
                     <div class="error-msg" id="registerError"></div>
                 </div>
@@ -358,7 +367,10 @@
                     <!-- Registration Section -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                         <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
-                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register New Account</button>
+                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register as Subject Teacher</button>
+                        <p style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">
+                            Need Principal or Class Teacher access? <br>Contact administrator.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -710,7 +722,28 @@
             setupEventListeners();
             setTodayDate();
             checkAuthState();
+            setupRegistrationRestrictions();
         };
+
+        function setupRegistrationRestrictions() {
+            // Disable restricted options in registration dropdown
+            const registerRoleSelect = document.getElementById('registerRole');
+            registerRoleSelect.addEventListener('change', function() {
+                if (this.value !== 'subjectTeacher') {
+                    this.value = 'subjectTeacher';
+                    alert('Only Subject Teacher accounts can be created through registration. Please contact administrator for other roles.');
+                }
+            });
+
+            // Prevent form submission if restricted role is selected
+            document.getElementById('confirmRegisterBtn').addEventListener('click', function() {
+                const selectedRole = document.getElementById('registerRole').value;
+                if (selectedRole !== 'subjectTeacher') {
+                    alert('Only Subject Teacher accounts can be created through registration.');
+                    return false;
+                }
+            });
+        }
 
         function setTodayDate() {
             const today = new Date();
@@ -1032,6 +1065,13 @@
             
             if (password.length < 6) {
                 errorMsg.textContent = 'Password should be at least 6 characters';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // Ensure only subject teacher can register
+            if (role !== 'subjectTeacher') {
+                errorMsg.textContent = 'Only Subject Teacher accounts can be created through registration. Please contact administrator for other roles.';
                 errorMsg.style.display = 'block';
                 return;
             }
@@ -1470,6 +1510,7 @@
                     
                     const studentItem = document.createElement('div');
                     studentItem.className = 'student-item';
+                    studentItem.setAttribute('data-class-id', student.grade_id);
                     studentItem.innerHTML = `
                         <div class="item-info" style="display: flex; align-items: center;">
                             <div class="serial-number">${serialNumber}</div>
@@ -1968,7 +2009,7 @@
             }
         }
 
-        // REPORT GENERATION
+        // REPORT GENERATION WITH TEACHER NAME
         async function generateReport() {
             const selectedClass = document.getElementById('reportClass').value;
             const selectedSubject = document.getElementById('reportSubject').value;
@@ -2005,15 +2046,45 @@
                     return;
                 }
                 
-                // Get attendance records for the selected period
+                // Get attendance records for the selected period with teacher information
                 const { data: attendanceRecords, error: attendanceError } = await supabase
                     .from('attendance')
-                    .select('*')
+                    .select(`
+                        *,
+                        teachers (name, teacher_id)
+                    `)
                     .eq('subject_id', selectedSubject)
                     .gte('date', startDateStr)
                     .lte('date', endDateStr);
 
                 if (attendanceError) throw attendanceError;
+                
+                // Get subject and teacher information
+                const { data: subjectData, error: subjectError } = await supabase
+                    .from('subjects')
+                    .select('name')
+                    .eq('id', selectedSubject)
+                    .limit(1);
+
+                if (subjectError) throw subjectError;
+                const subjectName = subjectData && subjectData.length > 0 ? subjectData[0].name : 'Unknown Subject';
+                
+                // Get teacher information from attendance records
+                let teacherName = 'Multiple Teachers';
+                let teacherId = 'Multiple';
+                
+                if (attendanceRecords && attendanceRecords.length > 0) {
+                    // Check if all records have the same teacher
+                    const uniqueTeachers = [...new Set(attendanceRecords.map(record => 
+                        record.teachers ? record.teachers.teacher_id : 'Unknown'
+                    ))];
+                    
+                    if (uniqueTeachers.length === 1) {
+                        const firstRecord = attendanceRecords[0];
+                        teacherName = firstRecord.teachers ? firstRecord.teachers.name : 'Unknown Teacher';
+                        teacherId = firstRecord.teachers ? firstRecord.teachers.teacher_id : 'Unknown';
+                    }
+                }
                 
                 // Process attendance data
                 const attendanceData = {};
@@ -2042,12 +2113,15 @@
                     });
                 }
                 
-                // Generate report HTML
+                // Generate report HTML with teacher information
                 let reportHTML = `
                     <h3>Monthly Attendance Report</h3>
-                    <p><strong>Month:</strong> ${selectedMonth}</p>
-                    <p><strong>Subject:</strong> ${document.getElementById('reportSubject').options[document.getElementById('reportSubject').selectedIndex].text}</p>
-                    <p><strong>Class:</strong> ${document.getElementById('reportClass').options[document.getElementById('reportClass').selectedIndex].text}</p>
+                    <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p><strong>Month:</strong> ${selectedMonth}</p>
+                        <p><strong>Subject:</strong> ${subjectName}</p>
+                        <p><strong>Class:</strong> ${document.getElementById('reportClass').options[document.getElementById('reportClass').selectedIndex].text}</p>
+                        <p><strong>Teacher:</strong> ${teacherName} (${teacherId})</p>
+                    </div>
                     <div style="overflow-x: auto; margin-top: 20px;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
@@ -2360,6 +2434,76 @@
                 .subscribe();
         }
 
+        // PDF REPORT GENERATION WITH TEACHER NAME
+        async function generatePdfReport() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Get the current report data
+            const reportOutput = document.getElementById('reportOutput');
+            const tables = reportOutput.getElementsByTagName('table');
+            
+            if (tables.length === 0) {
+                alert('Please generate a report first before creating a PDF');
+                return;
+            }
+            
+            // Add title and details
+            doc.setFontSize(16);
+            doc.text('Monthly Attendance Report', 14, 15);
+            
+            doc.setFontSize(10);
+            const selectedMonth = document.getElementById('reportMonth').value;
+            const selectedSubject = document.getElementById('reportSubject').options[document.getElementById('reportSubject').selectedIndex].text;
+            const selectedClass = document.getElementById('reportClass').options[document.getElementById('reportClass').selectedIndex].text;
+            
+            // Extract teacher name from report
+            let teacherInfo = 'Teacher: Multiple Teachers';
+            const reportText = reportOutput.textContent;
+            const teacherMatch = reportText.match(/Teacher:\s*([^(]+)\s*\(([^)]+)\)/);
+            if (teacherMatch) {
+                teacherInfo = `Teacher: ${teacherMatch[1].trim()} (${teacherMatch[2].trim()})`;
+            }
+            
+            doc.text(`Month: ${selectedMonth}`, 14, 25);
+            doc.text(`Subject: ${selectedSubject}`, 14, 32);
+            doc.text(`Class: ${selectedClass}`, 14, 39);
+            doc.text(teacherInfo, 14, 46);
+            
+            // Extract table data
+            const table = tables[0];
+            const headers = [];
+            const rows = [];
+            
+            // Get headers
+            const headerCells = table.rows[0].cells;
+            for (let i = 0; i < headerCells.length; i++) {
+                headers.push(headerCells[i].textContent);
+            }
+            
+            // Get rows
+            for (let i = 1; i < table.rows.length - 1; i++) { // -1 to exclude footer
+                const row = [];
+                const cells = table.rows[i].cells;
+                for (let j = 0; j < cells.length; j++) {
+                    row.push(cells[j].textContent);
+                }
+                rows.push(row);
+            }
+            
+            // Generate PDF table
+            doc.autoTable({
+                head: [headers],
+                body: rows,
+                startY: 55,
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [0, 90, 156] }
+            });
+            
+            // Save the PDF
+            doc.save(`attendance_report_${selectedMonth}.pdf`);
+        }
+
         // CRUD Operations for Edit/Delete
         async function editStudent(id) {
             // Implementation for editing student
@@ -2458,68 +2602,6 @@
                     alert('Error deleting grade: ' + error.message);
                 }
             }
-        }
-
-        // PDF Generation
-        async function generatePdfReport() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // Get the current report data
-            const reportOutput = document.getElementById('reportOutput');
-            const tables = reportOutput.getElementsByTagName('table');
-            
-            if (tables.length === 0) {
-                alert('Please generate a report first before creating a PDF');
-                return;
-            }
-            
-            // Add title
-            doc.setFontSize(16);
-            doc.text('Monthly Attendance Report', 14, 15);
-            
-            // Add report details
-            doc.setFontSize(10);
-            const selectedMonth = document.getElementById('reportMonth').value;
-            const selectedSubject = document.getElementById('reportSubject').options[document.getElementById('reportSubject').selectedIndex].text;
-            const selectedClass = document.getElementById('reportClass').options[document.getElementById('reportClass').selectedIndex].text;
-            
-            doc.text(`Month: ${selectedMonth}`, 14, 25);
-            doc.text(`Subject: ${selectedSubject}`, 14, 32);
-            doc.text(`Class: ${selectedClass}`, 14, 39);
-            
-            // Extract table data
-            const table = tables[0];
-            const headers = [];
-            const rows = [];
-            
-            // Get headers
-            const headerCells = table.rows[0].cells;
-            for (let i = 0; i < headerCells.length; i++) {
-                headers.push(headerCells[i].textContent);
-            }
-            
-            // Get rows
-            for (let i = 1; i < table.rows.length; i++) {
-                const row = [];
-                const cells = table.rows[i].cells;
-                for (let j = 0; j < cells.length; j++) {
-                    row.push(cells[j].textContent);
-                }
-                rows.push(row);
-            }
-            
-            // Generate PDF table
-            doc.autoTable({
-                head: [headers],
-                body: rows,
-                startY: 45,
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [0, 90, 156] }
-            });
-            
-            // Save the PDF
-            doc.save(`attendance_report_${selectedMonth}.pdf`);
         }
     </script>
 </body>
