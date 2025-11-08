@@ -315,6 +315,23 @@
             margin: 10px 0;
             border-left: 4px solid #ffc107;
         }
+        .connection-status {
+            position: absolute;
+            top: 20px;
+            right: 100px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .connection-good {
+            background: #4CAF50;
+            color: white;
+        }
+        .connection-bad {
+            background: #f44336;
+            color: white;
+        }
         @media (max-width: 768px) {
             .grid-2 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -328,6 +345,11 @@
                 width: 100%;
                 justify-content: flex-end;
             }
+            .connection-status {
+                position: static;
+                margin-top: 10px;
+                display: inline-block;
+            }
         }
     </style>
 </head>
@@ -336,6 +358,7 @@
         <div class="header">
             <h1>📚 Smart Attendance Tracker</h1>
             <p>Efficient Student Attendance Management System</p>
+            <div id="connectionStatus" class="connection-status connection-bad">🔴 Disconnected</div>
         </div>
 
         <!-- Login Screen -->
@@ -728,21 +751,100 @@
     </div>
 
     <script>
-        // Supabase Configuration - WITH YOUR ACTUAL CREDENTIALS
-        const supabaseConfig = {
+        // Supabase Configuration
+        const SUPABASE_CONFIG = {
             supabaseUrl: 'https://gqczamhaurawfpnakboa.supabase.co',
+            // For production, you would set this via environment variable
+            // For this example, we'll use a placeholder that you can replace
             supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxY3phbWhhdXJhd2ZwbmFrYm9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgxMjYsImV4cCI6MjA3ODA2NDEyNn0.RJIz-U0kigyHX00wigmAcxfx7TVMU77_xLyzOhAjdpU'
         };
 
         // Initialize Supabase
         let supabase;
-        try {
-            supabase = window.supabase.createClient(supabaseConfig.supabaseUrl, supabaseConfig.supabaseKey);
-            console.log("✅ Supabase initialized successfully!");
-            console.log("Project URL:", supabaseConfig.supabaseUrl);
-        } catch (error) {
-            console.error("❌ Supabase initialization error:", error);
-            alert("Supabase initialization failed: " + error.message);
+        
+        async function initializeSupabase() {
+            const statusElement = document.getElementById('connectionStatus');
+            
+            try {
+                console.log("🔄 Initializing Supabase...");
+                statusElement.textContent = "🔄 Connecting...";
+                statusElement.className = "connection-status connection-bad";
+
+                // Test basic connectivity first
+                const testResponse = await fetch(SUPABASE_CONFIG.supabaseUrl, {
+                    method: 'HEAD',
+                    mode: 'cors'
+                });
+                
+                if (!testResponse.ok) {
+                    throw new Error(`Cannot reach Supabase URL (HTTP ${testResponse.status})`);
+                }
+
+                console.log("✅ Supabase URL is reachable");
+
+                // Initialize Supabase client
+                supabase = window.supabase.createClient(
+                    SUPABASE_CONFIG.supabaseUrl, 
+                    SUPABASE_CONFIG.supabaseKey,
+                    {
+                        auth: {
+                            persistSession: true,
+                            autoRefreshToken: true,
+                            detectSessionInUrl: true
+                        }
+                    }
+                );
+
+                // Test the connection with a simple query
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count')
+                    .limit(1);
+
+                if (error) {
+                    // If there's an error but it's not a connection error, we're still connected
+                    if (error.message.includes('JWT')) {
+                        console.log("⚠️  Supabase connected but JWT error (expected without auth)");
+                    } else {
+                        throw error;
+                    }
+                }
+
+                console.log("✅ Supabase initialized successfully!");
+                statusElement.textContent = "✅ Connected";
+                statusElement.className = "connection-status connection-good";
+                
+                return true;
+                
+            } catch (error) {
+                console.error("❌ Supabase initialization failed:", error);
+                statusElement.textContent = "❌ Connection Failed";
+                statusElement.className = "connection-status connection-bad";
+                
+                // Show detailed error information
+                showConnectionError(error);
+                return false;
+            }
+        }
+
+        function showConnectionError(error) {
+            const loginError = document.getElementById('loginError');
+            if (loginError) {
+                let errorMessage = `Connection Error: ${error.message}`;
+                
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += '\n\nPossible causes:';
+                    errorMessage += '\n• CORS issue - Check Supabase CORS settings';
+                    errorMessage += '\n• Network connectivity issue';
+                    errorMessage += '\n• Invalid Supabase URL';
+                } else if (error.message.includes('JWT')) {
+                    errorMessage += '\n\nThis might be a JWT configuration issue.';
+                }
+                
+                errorMessage += '\n\nCheck browser console for details.';
+                loginError.textContent = errorMessage;
+                loginError.style.display = 'block';
+            }
         }
 
         // Global app data
@@ -763,7 +865,13 @@
         };
 
         // Initialize the application
-        window.onload = function() {
+        window.onload = async function() {
+            console.log("🚀 Starting Smart Attendance Tracker...");
+            
+            // Initialize Supabase first
+            await initializeSupabase();
+            
+            // Then set up the rest of the application
             setupEventListeners();
             setTodayDate();
             checkAuthState();
@@ -958,7 +1066,7 @@
                 resultDiv.style.color = '#856404';
                 
                 // Test basic connectivity
-                const response = await fetch(supabaseConfig.supabaseUrl);
+                const response = await fetch(SUPABASE_CONFIG.supabaseUrl);
                 resultDiv.textContent += `\n✅ Supabase URL reachable (Status: ${response.status})`;
                 
                 // Test database access
@@ -1003,15 +1111,12 @@
             loginBtn.disabled = true;
             
             try {
-                console.log("Attempting login for:", email);
+                console.log("🔐 Attempting login for:", email);
                 
-                // Test basic connectivity first
-                try {
-                    const response = await fetch(supabaseConfig.supabaseUrl);
-                    console.log("Supabase URL reachable:", response.status);
-                } catch (fetchError) {
-                    console.error("Cannot reach Supabase URL:", fetchError);
-                    throw new Error('Cannot connect to server. Check your internet connection and Supabase URL.');
+                // Test connection first
+                const isConnected = await initializeSupabase();
+                if (!isConnected) {
+                    throw new Error('Cannot connect to server. Please check your connection and try again.');
                 }
                 
                 // Attempt login
@@ -1028,33 +1133,24 @@
                         throw new Error('Invalid email or password. Please check your credentials.');
                     } else if (error.message.includes('Email not confirmed')) {
                         throw new Error('Please check your email to confirm your account.');
-                    } else if (error.message.includes('Failed to fetch')) {
-                        throw new Error('Network error. Please check your internet connection and try again.');
+                    } else if (error.message.includes('User not found')) {
+                        throw new Error('No account found with this email address.');
                     } else {
                         throw error;
                     }
                 }
 
-                console.log("Login successful, user ID:", data.user.id);
+                console.log("✅ Login successful, user ID:", data.user.id);
                 
                 // Get user role from users table
                 const { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('role')
-                    .eq('id', data.user.id);
+                    .eq('id', data.user.id)
+                    .single();
 
                 if (userError) {
-                    console.error("Error fetching user role:", userError);
-                    throw new Error('Error loading user profile. Please try again.');
-                }
-
-                let userRole = 'principal'; // Default role
-                
-                if (userData && userData.length > 0) {
-                    userRole = userData[0].role;
-                    console.log("User role found:", userRole);
-                } else {
-                    console.log("No user record found, creating default...");
+                    console.warn("User record not found, creating default...");
                     // Create user record if it doesn't exist
                     const { error: insertError } = await supabase
                         .from('users')
@@ -1063,22 +1159,24 @@
                             email: email,
                             role: selectedRole
                         }]);
-                    
+
                     if (insertError) {
                         console.error("Error creating user record:", insertError);
                         throw new Error('Error creating user profile. Please contact administrator.');
                     }
-                    userRole = selectedRole;
+                    
+                    appData.userRole = selectedRole;
+                } else {
+                    appData.userRole = userData.role;
+                    
+                    // Verify role match
+                    if (userData.role !== selectedRole) {
+                        await supabase.auth.signOut();
+                        throw new Error(`Your account is registered as ${roleDisplayMapping[userData.role]}, but you are trying to login as ${roleDisplayMapping[selectedRole]}. Please select the correct role.`);
+                    }
                 }
 
-                // Verify role match
-                if (userRole !== selectedRole) {
-                    await supabase.auth.signOut();
-                    throw new Error(`Your account is registered as ${roleDisplayMapping[userRole]}, but you are trying to login as ${roleDisplayMapping[selectedRole]}. Please select the correct role.`);
-                }
-
-                appData.userRole = userRole;
-                showApp(userRole);
+                showApp(appData.userRole);
                 errorMsg.style.display = 'none';
                 
             } catch (error) {
@@ -2409,7 +2507,7 @@
 
                 const { count: teachersCount } = await supabase
                     .from('teachers')
-                    .select('*', { count: 'exact', head: true });
+                    .select('*', { count: 'exact', head: true );
 
                 const { count: gradesCount } = await supabase
                     .from('grades')
