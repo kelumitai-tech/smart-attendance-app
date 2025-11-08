@@ -390,7 +390,7 @@
                     
                     <!-- Debug button for testing -->
                     <div style="text-align: center; margin-top: 15px;">
-                        <button class="btn btn-warning btn-small" onclick="debugAuth()">Debug Auth</button>
+                        <button class="btn btn-warning btn-small" onclick="testSupabaseConnection()">Test Connection</button>
                     </div>
                     
                     <!-- Registration Section -->
@@ -728,10 +728,10 @@
     </div>
 
     <script>
-        // Supabase Configuration - REPLACE WITH YOUR ACTUAL CREDENTIALS
+        // Supabase Configuration - WITH YOUR ACTUAL CREDENTIALS
         const supabaseConfig = {
-            supabaseUrl: 'https://your-project.supabase.co', // Replace with your Supabase URL
-            supabaseKey: 'your-anon-key' // Replace with your Supabase anon key
+            supabaseUrl: 'https://gqczamhaurawfpnakboa.supabase.co',
+            supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxY3phbWhhdXJhd2ZwbmFrYm9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgxMjYsImV4cCI6MjA3ODA2NDEyNn0.RJIz-U0kigyHX00wigmAcxfx7TVMU77_xLyzOhAjdpU'
         };
 
         // Initialize Supabase
@@ -739,6 +739,7 @@
         try {
             supabase = window.supabase.createClient(supabaseConfig.supabaseUrl, supabaseConfig.supabaseKey);
             console.log("✅ Supabase initialized successfully!");
+            console.log("Project URL:", supabaseConfig.supabaseUrl);
         } catch (error) {
             console.error("❌ Supabase initialization error:", error);
             alert("Supabase initialization failed: " + error.message);
@@ -946,6 +947,43 @@
             document.getElementById('registerPassword').value = '';
         }
 
+        // Connection test function
+        async function testSupabaseConnection() {
+            try {
+                console.log("Testing Supabase connection...");
+                const resultDiv = document.getElementById('loginError');
+                resultDiv.textContent = 'Testing connection to Supabase...';
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#fff3cd';
+                resultDiv.style.color = '#856404';
+                
+                // Test basic connectivity
+                const response = await fetch(supabaseConfig.supabaseUrl);
+                resultDiv.textContent += `\n✅ Supabase URL reachable (Status: ${response.status})`;
+                
+                // Test database access
+                const { data, error } = await supabase.from('users').select('count');
+                if (error) throw error;
+                resultDiv.textContent += '\n✅ Database access successful';
+                
+                // Test auth configuration
+                const { data: authConfig } = await supabase.auth.getSession();
+                resultDiv.textContent += '\n✅ Auth configuration OK';
+                
+                resultDiv.textContent += '\n\n🎉 All tests passed! Your Supabase configuration is correct.';
+                resultDiv.style.background = '#e7f5e7';
+                resultDiv.style.color = '#2e7d32';
+                
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                const resultDiv = document.getElementById('loginError');
+                resultDiv.textContent = `❌ Connection test failed: ${error.message}`;
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#fee';
+                resultDiv.style.color = '#c00';
+            }
+        }
+
         async function doLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
@@ -958,27 +996,65 @@
                 return;
             }
             
+            // Show loading state
+            const loginBtn = document.getElementById('loginBtn');
+            const originalText = loginBtn.textContent;
+            loginBtn.textContent = 'Logging in...';
+            loginBtn.disabled = true;
+            
             try {
+                console.log("Attempting login for:", email);
+                
+                // Test basic connectivity first
+                try {
+                    const response = await fetch(supabaseConfig.supabaseUrl);
+                    console.log("Supabase URL reachable:", response.status);
+                } catch (fetchError) {
+                    console.error("Cannot reach Supabase URL:", fetchError);
+                    throw new Error('Cannot connect to server. Check your internet connection and Supabase URL.');
+                }
+                
+                // Attempt login
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Auth error details:", error);
+                    
+                    // Provide specific error messages
+                    if (error.message.includes('Invalid login credentials')) {
+                        throw new Error('Invalid email or password. Please check your credentials.');
+                    } else if (error.message.includes('Email not confirmed')) {
+                        throw new Error('Please check your email to confirm your account.');
+                    } else if (error.message.includes('Failed to fetch')) {
+                        throw new Error('Network error. Please check your internet connection and try again.');
+                    } else {
+                        throw error;
+                    }
+                }
 
-                // Get user role from users table - without .single()
+                console.log("Login successful, user ID:", data.user.id);
+                
+                // Get user role from users table
                 const { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('role')
                     .eq('id', data.user.id);
 
-                if (userError) throw userError;
+                if (userError) {
+                    console.error("Error fetching user role:", userError);
+                    throw new Error('Error loading user profile. Please try again.');
+                }
 
                 let userRole = 'principal'; // Default role
                 
                 if (userData && userData.length > 0) {
                     userRole = userData[0].role;
+                    console.log("User role found:", userRole);
                 } else {
+                    console.log("No user record found, creating default...");
                     // Create user record if it doesn't exist
                     const { error: insertError } = await supabase
                         .from('users')
@@ -988,10 +1064,14 @@
                             role: selectedRole
                         }]);
                     
-                    if (insertError) throw insertError;
+                    if (insertError) {
+                        console.error("Error creating user record:", insertError);
+                        throw new Error('Error creating user profile. Please contact administrator.');
+                    }
                     userRole = selectedRole;
                 }
 
+                // Verify role match
                 if (userRole !== selectedRole) {
                     await supabase.auth.signOut();
                     throw new Error(`Your account is registered as ${roleDisplayMapping[userRole]}, but you are trying to login as ${roleDisplayMapping[selectedRole]}. Please select the correct role.`);
@@ -1005,6 +1085,10 @@
                 console.error("Login error:", error);
                 errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
+            } finally {
+                // Restore button state
+                loginBtn.textContent = originalText;
+                loginBtn.disabled = false;
             }
         }
 
@@ -2570,20 +2654,6 @@
         }
 
         // DEBUG FUNCTIONS
-        async function debugAuth() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                console.log("Current session:", session);
-                
-                const { data: users } = await supabase.from('users').select('*');
-                console.log("Users in database:", users);
-                
-                alert("Check browser console for debug information");
-            } catch (error) {
-                console.error("Debug auth error:", error);
-            }
-        }
-
         async function debugGrades() {
             try {
                 console.log("=== DEBUG GRADES ===");
