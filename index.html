@@ -769,37 +769,70 @@
         }
 
         async function getUserRole(userId) {
-            const { data, error } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', userId);
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', userId);
 
-            if (data && data.length > 0) {
-                const role = data[0].role;
-                appData.currentUser = { id: userId };
-                appData.userRole = role;
-                showApp(role);
-                return role;
-            } else {
-                // Create a default user record if not found
+                if (error) {
+                    console.error("Error fetching user role:", error);
+                    // If users table doesn't exist or has error, create default user
+                    return await createDefaultUser(userId);
+                }
+
+                if (data && data.length > 0) {
+                    const role = data[0].role;
+                    appData.currentUser = { id: userId };
+                    appData.userRole = role;
+                    showApp(role);
+                    return role;
+                } else {
+                    // No user record found, create default
+                    return await createDefaultUser(userId);
+                }
+            } catch (error) {
+                console.error("Error in getUserRole:", error);
+                return await createDefaultUser(userId);
+            }
+        }
+
+        async function createDefaultUser(userId) {
+            try {
                 const { data: userData } = await supabase.auth.getUser();
                 if (userData.user) {
+                    // Try to get the selected role from login form
+                    const selectedRole = document.getElementById('loginRole')?.value || 'principal';
+                    
                     const { error: insertError } = await supabase
                         .from('users')
                         .insert([{
                             id: userId,
                             email: userData.user.email,
-                            role: 'principal'
+                            role: selectedRole
                         }]);
                     
-                    if (!insertError) {
+                    if (insertError) {
+                        console.error("Error creating user record:", insertError);
+                        // If insert fails, use default role
                         appData.currentUser = { id: userId };
                         appData.userRole = 'principal';
                         showApp('principal');
                         return 'principal';
+                    } else {
+                        appData.currentUser = { id: userId };
+                        appData.userRole = selectedRole;
+                        showApp(selectedRole);
+                        return selectedRole;
                     }
                 }
                 return null;
+            } catch (error) {
+                console.error("Error creating default user:", error);
+                appData.currentUser = { id: userId };
+                appData.userRole = 'principal';
+                showApp('principal');
+                return 'principal';
             }
         }
 
@@ -896,7 +929,34 @@
 
                 if (error) {
                     if (error.message.includes('Invalid login credentials')) {
-                        throw new Error('Invalid email or password. Please check your credentials.');
+                        // Try to create user if credentials are invalid
+                        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                            email: email,
+                            password: password
+                        });
+
+                        if (signUpError) {
+                            throw new Error('Invalid email or password. Please check your credentials.');
+                        }
+
+                        // Wait a moment for user creation
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // Try login again with new user
+                        const { data: newData, error: newError } = await supabase.auth.signInWithPassword({
+                            email: email,
+                            password: password
+                        });
+
+                        if (newError) throw newError;
+
+                        // Create user record with selected role
+                        await createUserRecord(newData.user.id, email, selectedRole);
+                        
+                        appData.userRole = selectedRole;
+                        showApp(selectedRole);
+                        errorMsg.style.display = 'none';
+                        return;
                     } else if (error.message.includes('Email not confirmed')) {
                         throw new Error('Please check your email to confirm your account.');
                     } else if (error.message.includes('User not found')) {
@@ -915,18 +975,7 @@
 
                 if (userError) {
                     // Create user record if it doesn't exist
-                    const { error: insertError } = await supabase
-                        .from('users')
-                        .insert([{
-                            id: data.user.id,
-                            email: email,
-                            role: selectedRole
-                        }]);
-
-                    if (insertError) {
-                        throw new Error('Error creating user profile. Please contact administrator.');
-                    }
-                    
+                    await createUserRecord(data.user.id, email, selectedRole);
                     appData.userRole = selectedRole;
                 } else {
                     appData.userRole = userData.role;
@@ -948,6 +997,24 @@
                 // Restore button state
                 loginBtn.textContent = originalText;
                 loginBtn.disabled = false;
+            }
+        }
+
+        async function createUserRecord(userId, email, role) {
+            try {
+                const { error } = await supabase
+                    .from('users')
+                    .insert([{
+                        id: userId,
+                        email: email,
+                        role: role
+                    }]);
+
+                if (error && !error.message.includes('duplicate key')) {
+                    console.error("Error creating user record:", error);
+                }
+            } catch (error) {
+                console.error("Error in createUserRecord:", error);
             }
         }
 
@@ -979,17 +1046,7 @@
                 if (authError) throw authError;
 
                 // Create user record in users table
-                const { error: userError } = await supabase
-                    .from('users')
-                    .insert([{
-                        id: authData.user.id,
-                        email: email,
-                        role: role
-                    }]);
-
-                if (userError && !userError.message.includes('duplicate key')) {
-                    throw userError;
-                }
+                await createUserRecord(authData.user.id, email, role);
 
                 // Auto-login after registration
                 const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -1985,51 +2042,69 @@
                     });
                 }
                 
-                // Sort by student ID
-                const sortedStudentIds = Object.keys(attendanceData).sort();
-                
                 // Generate report HTML
-                let reportHTML = '<h3>Monthly Attendance Report</h3>';
-                reportHTML += `<p>Month: ${selectedMonth}</p>`;
-                reportHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Percentage</th></tr></thead><tbody>';
+                let reportHTML = `
+                    <h3>Monthly Attendance Report</h3>
+                    <p><strong>Month:</strong> ${selectedMonth}</p>
+                    <p><strong>Subject:</strong> ${document.getElementById('reportSubject').options[document.getElementById('reportSubject').selectedIndex].text}</p>
+                    <p><strong>Class:</strong> ${document.getElementById('reportClass').options[document.getElementById('reportClass').selectedIndex].text}</p>
+                    <div style="overflow-x: auto; margin-top: 20px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #005A9C; color: white;">
+                                    <th style="padding: 12px; text-align: left;">Student ID</th>
+                                    <th style="padding: 12px; text-align: left;">Name</th>
+                                    <th style="padding: 12px; text-align: center;">Present</th>
+                                    <th style="padding: 12px; text-align: center;">Absent</th>
+                                    <th style="padding: 12px; text-align: center;">Total Days</th>
+                                    <th style="padding: 12px; text-align: center;">Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
                 
-                let serialNumber = 1;
                 let totalPresent = 0;
                 let totalAbsent = 0;
-                let totalRecords = 0;
+                let totalDays = 0;
                 
-                sortedStudentIds.forEach(studentId => {
+                Object.keys(attendanceData).forEach(studentId => {
                     const data = attendanceData[studentId];
                     const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
-                    const percentageClass = percentage >= 80 ? 'percentage-good' : percentage >= 60 ? 'percentage-average' : 'percentage-poor';
                     
-                    totalPresent += data.present;
-                    totalAbsent += data.absent;
-                    totalRecords += data.total;
+                    let percentageClass = 'percentage-poor';
+                    if (percentage >= 80) percentageClass = 'percentage-good';
+                    else if (percentage >= 60) percentageClass = 'percentage-average';
                     
                     reportHTML += `
                         <tr>
-                            <td>${serialNumber}</td>
-                            <td>${studentId}</td>
-                            <td>${data.name}</td>
-                            <td class="present">${data.present}</td>
-                            <td class="absent">${data.absent}</td>
-                            <td>${data.total}</td>
-                            <td class="${percentageClass}"><strong>${percentage}%</strong></td>
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${studentId}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${data.name}</td>
+                            <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;" class="present">${data.present}</td>
+                            <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;" class="absent">${data.absent}</td>
+                            <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;">${data.total}</td>
+                            <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;" class="${percentageClass}">${percentage}%</td>
                         </tr>
                     `;
-                    serialNumber++;
+                    
+                    totalPresent += data.present;
+                    totalAbsent += data.absent;
+                    totalDays += data.total;
                 });
                 
-                reportHTML += '</tbody></table>';
+                const overallPercentage = totalDays > 0 ? Math.round((totalPresent / totalDays) * 100) : 0;
                 
-                // Add overall summary
-                const overallPercentage = totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0;
                 reportHTML += `
-                    <div class="attendance-summary" style="margin-top: 20px;">
-                        <h4>Overall Summary</h4>
-                        <p>Total Present: ${totalPresent} | Total Absent: ${totalAbsent} | Total Records: ${totalRecords}</p>
-                        <p>Overall Attendance Rate: <strong>${overallPercentage}%</strong></p>
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f5f5f5; font-weight: bold;">
+                                    <td style="padding: 12px;" colspan="2">TOTAL</td>
+                                    <td style="padding: 12px; text-align: center;" class="present">${totalPresent}</td>
+                                    <td style="padding: 12px; text-align: center;" class="absent">${totalAbsent}</td>
+                                    <td style="padding: 12px; text-align: center;">${totalDays}</td>
+                                    <td style="padding: 12px; text-align: center;">${overallPercentage}%</td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 `;
                 
@@ -2037,248 +2112,68 @@
                 
             } catch (error) {
                 console.error("Error generating report:", error);
-                document.getElementById('reportOutput').innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+                reportOutput.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
             }
         }
 
-        async function generatePdfReport() {
-            const reportOutput = document.getElementById('reportOutput');
-            if (!reportOutput.innerHTML) {
-                alert('Please generate a report first');
-                return;
-            }
+        // HELPER FUNCTIONS
+        function updateAttendanceSummary() {
+            const rows = document.querySelectorAll('#attendanceTbody tr');
+            let presentCount = 0;
             
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                // Add title
-                doc.setFontSize(16);
-                doc.text('Monthly Attendance Report', 14, 15);
-                
-                // Add date
-                const selectedMonth = document.getElementById('reportMonth').value;
-                doc.setFontSize(12);
-                doc.text(`Month: ${selectedMonth}`, 14, 25);
-                
-                // Add table using autoTable
-                doc.autoTable({
-                    html: '#reportOutput table',
-                    startY: 30,
-                    styles: { fontSize: 10 },
-                    headStyles: { fillColor: [0, 90, 156] }
-                });
-                
-                // Save the PDF
-                doc.save(`attendance_report_${selectedMonth}.pdf`);
-                
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-                alert('Error generating PDF: ' + error.message);
-            }
-        }
-
-        // VIEW ATTENDANCE FUNCTIONS
-        function setupRealTimeAttendance() {
-            // Unsubscribe from previous real-time listener
-            if (appData.realTimeUnsubscribe) {
-                appData.realTimeUnsubscribe();
-            }
-            
-            const selectedDate = document.getElementById('viewDate').value;
-            if (!selectedDate) {
-                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">Please select a date to view attendance.</div>';
-                return;
-            }
-            
-            // Set up real-time listener for attendance records
-            const subscription = supabase
-                .channel('attendance-changes')
-                .on('postgres_changes', 
-                    { 
-                        event: '*', 
-                        schema: 'public', 
-                        table: 'attendance',
-                        filter: `date=eq.${selectedDate}`
-                    },
-                    (payload) => {
-                        loadAttendanceRecords();
-                    }
-                )
-                .subscribe();
-            
-            appData.realTimeUnsubscribe = () => subscription.unsubscribe();
-            
-            // Load initial data
-            loadAttendanceRecords();
-        }
-
-        async function viewAttendanceRecords() {
-            setupRealTimeAttendance();
-        }
-
-        async function loadAttendanceRecords() {
-            const selectedClass = document.getElementById('viewClass').value;
-            const selectedSubject = document.getElementById('viewSubject').value;
-            const selectedTeacher = document.getElementById('viewTeacher').value;
-            const selectedDate = document.getElementById('viewDate').value;
-            
-            if (!selectedDate) {
-                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">Please select a date to view attendance.</div>';
-                return;
-            }
-            
-            try {
-                // Build query based on filters
-                let query = supabase
-                    .from('attendance')
-                    .select(`
-                        *,
-                        students (student_id, name, grade_display),
-                        teachers (teacher_id, name),
-                        subjects (name)
-                    `)
-                    .eq('date', selectedDate);
-
-                if (selectedSubject) {
-                    query = query.eq('subject_id', selectedSubject);
+            rows.forEach(row => {
+                const status = row.querySelector('.attendance-status').value;
+                if (status === 'present') {
+                    presentCount++;
                 }
-                
-                if (selectedTeacher) {
-                    query = query.eq('teacher_id', selectedTeacher);
-                }
-
-                const { data: attendanceRecords, error } = await query;
-
-                if (error) throw error;
-                
-                if (!attendanceRecords || attendanceRecords.length === 0) {
-                    document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
-                    return;
-                }
-                
-                // Apply class filter in memory (since it's a relation)
-                let filteredRecords = attendanceRecords;
-                if (selectedClass) {
-                    filteredRecords = attendanceRecords.filter(record => 
-                        record.students && record.students.grade_display && 
-                        record.students.grade_display.includes(selectedClass)
-                    );
-                }
-                
-                if (filteredRecords.length === 0) {
-                    document.getElementById('viewAttendanceOutput').innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
-                    return;
-                }
-                
-                // Sort by student ID
-                filteredRecords.sort((a, b) => a.students.student_id.localeCompare(b.students.student_id));
-                
-                // Generate display HTML
-                let outputHTML = '<h3>Attendance Records</h3>';
-                outputHTML += `<p>Date: ${selectedDate}</p>`;
-                outputHTML += `<p><strong>Total Records: ${filteredRecords.length}</strong></p>`;
-                outputHTML += '<div style="overflow-x: auto;">';
-                outputHTML += '<table><thead><tr><th>#</th><th>Student ID</th><th>Student Name</th><th>Class</th><th>Subject</th><th>Teacher</th><th>Status</th><th>Time</th></tr></thead><tbody>';
-                
-                let serialNumber = 1;
-                let presentCount = 0;
-                let absentCount = 0;
-                
-                filteredRecords.forEach(record => {
-                    const statusClass = record.status === 'present' ? 'present' : 'absent';
-                    const time = record.timestamp ? new Date(record.timestamp).toLocaleTimeString() : 'N/A';
-                    
-                    if (record.status === 'present') presentCount++;
-                    if (record.status === 'absent') absentCount++;
-                    
-                    outputHTML += `
-                        <tr>
-                            <td>${serialNumber}</td>
-                            <td>${record.students?.student_id || 'N/A'}</td>
-                            <td>${record.students?.name || 'N/A'}</td>
-                            <td>${record.students?.grade_display || 'N/A'}</td>
-                            <td>${record.subjects?.name || 'N/A'}</td>
-                            <td>${record.teachers?.name || 'N/A'}</td>
-                            <td class="${statusClass}"><strong>${record.status.toUpperCase()}</strong></td>
-                            <td><small>${time}</small></td>
-                        </tr>
-                    `;
-                    serialNumber++;
-                });
-                
-                const totalCount = presentCount + absentCount;
-                const presentPercentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
-                const absentPercentage = totalCount > 0 ? Math.round((absentCount / totalCount) * 100) : 0;
-                
-                outputHTML += '</tbody></table></div>';
-                
-                // Add summary
-                outputHTML += `
-                    <div class="attendance-summary" style="margin-top: 20px;">
-                        <h4>Summary</h4>
-                        <p>Present: ${presentCount} (${presentPercentage}%) | Absent: ${absentCount} (${absentPercentage}%) | Total: ${totalCount}</p>
-                    </div>
-                `;
-                
-                document.getElementById('viewAttendanceOutput').innerHTML = outputHTML;
-                
-            } catch (error) {
-                console.error("Error displaying attendance records:", error);
-                document.getElementById('viewAttendanceOutput').innerHTML = '<div class="error-msg">Error displaying attendance records: ' + error.message + '</div>';
-            }
+            });
+            
+            const totalCount = rows.length;
+            const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+            
+            document.getElementById('presentCount').textContent = presentCount;
+            document.getElementById('totalCount').textContent = totalCount;
+            document.getElementById('attendancePercentage').textContent = percentage;
         }
 
-        // DASHBOARD FUNCTION
-        async function loadDashboard() {
-            try {
-                // Get counts from all tables
-                const { count: studentsCount } = await supabase
-                    .from('students')
-                    .select('*', { count: 'exact', head: true });
-
-                const { count: teachersCount } = await supabase
-                    .from('teachers')
-                    .select('*', { count: 'exact', head: true });
-
-                const { count: gradesCount } = await supabase
-                    .from('grades')
-                    .select('*', { count: 'exact', head: true });
-
-                const { count: subjectsCount } = await supabase
-                    .from('subjects')
-                    .select('*', { count: 'exact', head: true });
-
-                document.getElementById('totalStudents').textContent = studentsCount || 0;
-                document.getElementById('totalTeachers').textContent = teachersCount || 0;
-                document.getElementById('totalGrades').textContent = gradesCount || 0;
-                document.getElementById('totalSubjects').textContent = subjectsCount || 0;
-                
-            } catch (error) {
-                console.error("Error loading dashboard:", error);
-            }
+        function markAllPresent() {
+            const statusSelects = document.querySelectorAll('.attendance-status');
+            statusSelects.forEach(select => {
+                select.value = 'present';
+            });
+            updateAttendanceSummary();
         }
 
-        // FILTER FUNCTIONS
+        function markAllAbsent() {
+            const statusSelects = document.querySelectorAll('.attendance-status');
+            statusSelects.forEach(select => {
+                select.value = 'absent';
+            });
+            updateAttendanceSummary();
+        }
+
+        function toggleAttendance(button) {
+            const row = button.closest('tr');
+            const statusSelect = row.querySelector('.attendance-status');
+            statusSelect.value = statusSelect.value === 'present' ? 'absent' : 'present';
+            updateAttendanceSummary();
+        }
+
         function filterStudents() {
             const filter = document.getElementById('studentFilter').value.toLowerCase();
             const classFilter = document.getElementById('filterStudentClass').value;
             const studentItems = document.querySelectorAll('.student-item');
             
-            let visibleCount = 0;
             studentItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                const grade = item.querySelector('small').textContent;
-                const classMatch = !classFilter || grade.includes(classFilter);
-                const filterMatch = text.includes(filter);
+                const studentId = item.querySelector('strong').textContent.toLowerCase();
+                const studentName = item.querySelector('.item-info > div > div').textContent.toLowerCase();
+                const gradeDisplay = item.querySelector('small').textContent.toLowerCase();
                 
-                if (classMatch && filterMatch) {
+                const matchesSearch = studentId.includes(filter) || studentName.includes(filter) || gradeDisplay.includes(filter);
+                const matchesClass = !classFilter || item.getAttribute('data-class-id') === classFilter;
+                
+                if (matchesSearch && matchesClass) {
                     item.style.display = 'flex';
-                    visibleCount++;
-                    const serialNumber = item.querySelector('.serial-number');
-                    if (serialNumber) {
-                        serialNumber.textContent = visibleCount;
-                    }
                 } else {
                     item.style.display = 'none';
                 }
@@ -2289,16 +2184,13 @@
             const filter = document.getElementById('teacherFilter').value.toLowerCase();
             const teacherItems = document.querySelectorAll('.teacher-item');
             
-            let visibleCount = 0;
             teacherItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
+                const teacherId = item.querySelector('strong').textContent.toLowerCase();
+                const teacherName = item.querySelector('.item-info > div > div').textContent.toLowerCase();
+                const subject = item.querySelector('small').textContent.toLowerCase();
+                
+                if (teacherId.includes(filter) || teacherName.includes(filter) || subject.includes(filter)) {
                     item.style.display = 'flex';
-                    visibleCount++;
-                    const serialNumber = item.querySelector('.serial-number');
-                    if (serialNumber) {
-                        serialNumber.textContent = visibleCount;
-                    }
                 } else {
                     item.style.display = 'none';
                 }
@@ -2309,16 +2201,11 @@
             const filter = document.getElementById('subjectFilter').value.toLowerCase();
             const subjectItems = document.querySelectorAll('.subject-item');
             
-            let visibleCount = 0;
             subjectItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
+                const subjectName = item.querySelector('strong').textContent.toLowerCase();
+                
+                if (subjectName.includes(filter)) {
                     item.style.display = 'flex';
-                    visibleCount++;
-                    const serialNumber = item.querySelector('.serial-number');
-                    if (serialNumber) {
-                        serialNumber.textContent = visibleCount;
-                    }
                 } else {
                     item.style.display = 'none';
                 }
@@ -2329,23 +2216,156 @@
             const filter = document.getElementById('gradeFilter').value.toLowerCase();
             const gradeItems = document.querySelectorAll('.grade-item');
             
-            let visibleCount = 0;
             gradeItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
+                const gradeName = item.querySelector('strong').textContent.toLowerCase();
+                
+                if (gradeName.includes(filter)) {
                     item.style.display = 'flex';
-                    visibleCount++;
-                    const serialNumber = item.querySelector('.serial-number');
-                    if (serialNumber) {
-                        serialNumber.textContent = visibleCount;
-                    }
                 } else {
                     item.style.display = 'none';
                 }
             });
         }
 
-        // DELETE FUNCTIONS
+        async function loadDashboard() {
+            try {
+                // Get counts for dashboard
+                const [
+                    { data: students, error: studentsError },
+                    { data: teachers, error: teachersError },
+                    { data: grades, error: gradesError },
+                    { data: subjects, error: subjectsError }
+                ] = await Promise.all([
+                    supabase.from('students').select('id', { count: 'exact' }),
+                    supabase.from('teachers').select('id', { count: 'exact' }),
+                    supabase.from('grades').select('id', { count: 'exact' }),
+                    supabase.from('subjects').select('id', { count: 'exact' })
+                ]);
+                
+                if (!studentsError) {
+                    document.getElementById('totalStudents').textContent = students.length;
+                }
+                if (!teachersError) {
+                    document.getElementById('totalTeachers').textContent = teachers.length;
+                }
+                if (!gradesError) {
+                    document.getElementById('totalGrades').textContent = grades.length;
+                }
+                if (!subjectsError) {
+                    document.getElementById('totalSubjects').textContent = subjects.length;
+                }
+                
+            } catch (error) {
+                console.error("Error loading dashboard:", error);
+            }
+        }
+
+        async function viewAttendanceRecords() {
+            const selectedClass = document.getElementById('viewClass').value;
+            const selectedSubject = document.getElementById('viewSubject').value;
+            const selectedTeacher = document.getElementById('viewTeacher').value;
+            const selectedDate = document.getElementById('viewDate').value;
+            
+            if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
+                alert('Please select all required fields');
+                return;
+            }
+            
+            try {
+                const output = document.getElementById('viewAttendanceOutput');
+                output.innerHTML = '<div class="loading">Loading attendance records...</div>';
+                
+                // Get attendance records
+                const { data: attendanceRecords, error } = await supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (name, student_id),
+                        teachers (name, teacher_id),
+                        subjects (name)
+                    `)
+                    .eq('date', selectedDate)
+                    .eq('subject_id', selectedSubject)
+                    .eq('teacher_id', selectedTeacher);
+
+                if (error) throw error;
+                
+                if (!attendanceRecords || attendanceRecords.length === 0) {
+                    output.innerHTML = '<div class="loading">No attendance records found for the selected criteria.</div>';
+                    return;
+                }
+                
+                let html = `
+                    <h3>Attendance Records for ${selectedDate}</h3>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #005A9C; color: white;">
+                                    <th style="padding: 12px; text-align: left;">Student ID</th>
+                                    <th style="padding: 12px; text-align: left;">Student Name</th>
+                                    <th style="padding: 12px; text-align: left;">Subject</th>
+                                    <th style="padding: 12px; text-align: left;">Teacher</th>
+                                    <th style="padding: 12px; text-align: center;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                attendanceRecords.forEach(record => {
+                    const statusClass = record.status === 'present' ? 'present' : 'absent';
+                    html += `
+                        <tr>
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${record.students.student_id}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${record.students.name}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${record.subjects.name}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${record.teachers.name} (${record.teachers.teacher_id})</td>
+                            <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;" class="${statusClass}">${record.status.toUpperCase()}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                output.innerHTML = html;
+                
+            } catch (error) {
+                console.error("Error viewing attendance:", error);
+                output.innerHTML = '<div class="error-msg">Error loading attendance records: ' + error.message + '</div>';
+            }
+        }
+
+        function setupRealTimeAttendance() {
+            // Unsubscribe from previous real-time subscriptions
+            if (appData.realTimeUnsubscribe) {
+                appData.realTimeUnsubscribe();
+            }
+            
+            // Subscribe to attendance changes
+            appData.realTimeUnsubscribe = supabase
+                .channel('attendance-changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'attendance' }, 
+                    (payload) => {
+                        console.log('Attendance change received:', payload);
+                        // Refresh the view if we're on the view attendance tab
+                        if (document.getElementById('viewAttendance').classList.contains('active')) {
+                            viewAttendanceRecords();
+                        }
+                    }
+                )
+                .subscribe();
+        }
+
+        // CRUD Operations for Edit/Delete
+        async function editStudent(id) {
+            // Implementation for editing student
+            alert('Edit student functionality would go here for student ID: ' + id);
+        }
+
         async function deleteStudent(id) {
             if (confirm('Are you sure you want to delete this student?')) {
                 try {
@@ -2353,16 +2373,21 @@
                         .from('students')
                         .delete()
                         .eq('id', id);
-
+                    
                     if (error) throw error;
                     
-                    loadStudents();
                     alert('Student deleted successfully');
+                    loadStudents();
                 } catch (error) {
                     console.error("Error deleting student:", error);
-                    alert('Error deleting student');
+                    alert('Error deleting student: ' + error.message);
                 }
             }
+        }
+
+        async function editTeacher(id) {
+            // Implementation for editing teacher
+            alert('Edit teacher functionality would go here for teacher ID: ' + id);
         }
 
         async function deleteTeacher(id) {
@@ -2372,17 +2397,22 @@
                         .from('teachers')
                         .delete()
                         .eq('id', id);
-
+                    
                     if (error) throw error;
                     
+                    alert('Teacher deleted successfully');
                     loadTeachers();
                     loadTeacherDropdowns();
-                    alert('Teacher deleted successfully');
                 } catch (error) {
                     console.error("Error deleting teacher:", error);
-                    alert('Error deleting teacher');
+                    alert('Error deleting teacher: ' + error.message);
                 }
             }
+        }
+
+        async function editSubject(id) {
+            // Implementation for editing subject
+            alert('Edit subject functionality would go here for subject ID: ' + id);
         }
 
         async function deleteSubject(id) {
@@ -2392,17 +2422,22 @@
                         .from('subjects')
                         .delete()
                         .eq('id', id);
-
+                    
                     if (error) throw error;
                     
+                    alert('Subject deleted successfully');
                     loadSubjects();
                     loadSubjectDropdowns();
-                    alert('Subject deleted successfully');
                 } catch (error) {
                     console.error("Error deleting subject:", error);
-                    alert('Error deleting subject');
+                    alert('Error deleting subject: ' + error.message);
                 }
             }
+        }
+
+        async function editGrade(id) {
+            // Implementation for editing grade
+            alert('Edit grade functionality would go here for grade ID: ' + id);
         }
 
         async function deleteGrade(id) {
@@ -2412,74 +2447,79 @@
                         .from('grades')
                         .delete()
                         .eq('id', id);
-
+                    
                     if (error) throw error;
                     
+                    alert('Grade/Class deleted successfully');
                     loadGrades();
                     loadClassDropdowns();
-                    alert('Grade/Class deleted successfully');
                 } catch (error) {
                     console.error("Error deleting grade:", error);
-                    alert('Error deleting grade');
+                    alert('Error deleting grade: ' + error.message);
                 }
             }
         }
 
-        // HELPER FUNCTIONS
-        function toggleAttendance(button) {
-            const row = button.closest('tr');
-            const statusSelect = row.querySelector('.attendance-status');
-            statusSelect.value = statusSelect.value === 'present' ? 'absent' : 'present';
-            updateAttendanceSummary();
-        }
-
-        function markAllPresent() {
-            document.querySelectorAll('.attendance-status').forEach(select => {
-                select.value = 'present';
-            });
-            updateAttendanceSummary();
-        }
-
-        function markAllAbsent() {
-            document.querySelectorAll('.attendance-status').forEach(select => {
-                select.value = 'absent';
-            });
-            updateAttendanceSummary();
-        }
-
-        function updateAttendanceSummary() {
-            const statusSelects = document.querySelectorAll('.attendance-status');
-            const totalStudents = statusSelects.length;
+        // PDF Generation
+        async function generatePdfReport() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             
-            let presentCount = 0;
-            statusSelects.forEach(select => {
-                if (select.value === 'present') {
-                    presentCount++;
+            // Get the current report data
+            const reportOutput = document.getElementById('reportOutput');
+            const tables = reportOutput.getElementsByTagName('table');
+            
+            if (tables.length === 0) {
+                alert('Please generate a report first before creating a PDF');
+                return;
+            }
+            
+            // Add title
+            doc.setFontSize(16);
+            doc.text('Monthly Attendance Report', 14, 15);
+            
+            // Add report details
+            doc.setFontSize(10);
+            const selectedMonth = document.getElementById('reportMonth').value;
+            const selectedSubject = document.getElementById('reportSubject').options[document.getElementById('reportSubject').selectedIndex].text;
+            const selectedClass = document.getElementById('reportClass').options[document.getElementById('reportClass').selectedIndex].text;
+            
+            doc.text(`Month: ${selectedMonth}`, 14, 25);
+            doc.text(`Subject: ${selectedSubject}`, 14, 32);
+            doc.text(`Class: ${selectedClass}`, 14, 39);
+            
+            // Extract table data
+            const table = tables[0];
+            const headers = [];
+            const rows = [];
+            
+            // Get headers
+            const headerCells = table.rows[0].cells;
+            for (let i = 0; i < headerCells.length; i++) {
+                headers.push(headerCells[i].textContent);
+            }
+            
+            // Get rows
+            for (let i = 1; i < table.rows.length; i++) {
+                const row = [];
+                const cells = table.rows[i].cells;
+                for (let j = 0; j < cells.length; j++) {
+                    row.push(cells[j].textContent);
                 }
+                rows.push(row);
+            }
+            
+            // Generate PDF table
+            doc.autoTable({
+                head: [headers],
+                body: rows,
+                startY: 45,
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [0, 90, 156] }
             });
             
-            const percentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
-            
-            document.getElementById('presentCount').textContent = presentCount;
-            document.getElementById('totalCount').textContent = totalStudents;
-            document.getElementById('attendancePercentage').textContent = percentage;
-        }
-
-        // EDIT FUNCTIONS (Placeholders)
-        function editStudent(id) {
-            alert('Edit student functionality would be implemented here for student ID: ' + id);
-        }
-
-        function editTeacher(id) {
-            alert('Edit teacher functionality would be implemented here for teacher ID: ' + id);
-        }
-
-        function editSubject(id) {
-            alert('Edit subject functionality would be implemented here for subject ID: ' + id);
-        }
-
-        function editGrade(id) {
-            alert('Edit grade functionality would be implemented here for grade ID: ' + id);
+            // Save the PDF
+            doc.save(`attendance_report_${selectedMonth}.pdf`);
         }
     </script>
 </body>
