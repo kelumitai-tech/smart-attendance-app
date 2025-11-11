@@ -15,9 +15,6 @@
     <!-- Chart.js for dashboard charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -362,36 +359,6 @@
             font-size: 0.9em;
             color: #666;
         }
-        /* Mobile-specific styles */
-        .mobile-nav {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            padding: 10px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-        .mobile-nav-item {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            border: none;
-            background: none;
-            font-size: 12px;
-            color: #666;
-        }
-        .mobile-nav-item.active {
-            color: #005A9C;
-            font-weight: bold;
-        }
-        .mobile-nav-icon {
-            font-size: 20px;
-            display: block;
-            margin-bottom: 5px;
-        }
         @media (max-width: 768px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -407,26 +374,6 @@
             }
             .dashboard-controls {
                 flex-direction: column;
-            }
-            .nav-tabs {
-                display: none;
-            }
-            .mobile-nav {
-                display: flex;
-            }
-            .content {
-                padding: 20px;
-                padding-bottom: 80px; /* Space for mobile nav */
-            }
-            .header {
-                padding: 20px;
-            }
-            .header h1 {
-                font-size: 1.5em;
-            }
-            .role-badge, .logout-btn {
-                position: static;
-                margin-bottom: 10px;
             }
         }
     </style>
@@ -527,26 +474,6 @@
                 <button class="nav-tab principal-only class-teacher-only" data-tab="grades">🎓 Grades</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
                 <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
-            </div>
-
-            <!-- Mobile Navigation -->
-            <div class="mobile-nav" id="mobileNav">
-                <button class="mobile-nav-item active" data-tab="attendance">
-                    <span class="mobile-nav-icon">📋</span>
-                    <span>Attendance</span>
-                </button>
-                <button class="mobile-nav-item principal-only class-teacher-only" data-tab="students">
-                    <span class="mobile-nav-icon">👥</span>
-                    <span>Students</span>
-                </button>
-                <button class="mobile-nav-item" data-tab="reports">
-                    <span class="mobile-nav-icon">📊</span>
-                    <span>Reports</span>
-                </button>
-                <button class="mobile-nav-item principal-only" data-tab="dashboard">
-                    <span class="mobile-nav-icon">🎯</span>
-                    <span>Dashboard</span>
-                </button>
             </div>
 
             <!-- Attendance Tab -->
@@ -900,7 +827,10 @@
                                 <option value="">-- Select Grade --</option>
                                 <option value="Grade 6 - A">Grade 6 - A</option>
                                 <option value="Grade 7 - A">Grade 7 - A</option>
-                                <option value="Grade 10 - A 1">Grade 10 - A 1</option>
+                                <option value="Grade 8 - A">Grade 8 - A</option>
+                                <option value="Grade 9 - A">Grade 9 - A</option>
+                                <option value="Grade 10 - A">Grade 10 - A</option>
+                                <option value="Grade 11 - A">Grade 11 - A</option>
                                 <option value="Grade 12 - A">Grade 12 - A</option>
                                 <option value="Grade 13 - T2">Grade 13 - T2</option>
                             </select>
@@ -986,47 +916,25 @@
             'subjectTeacher': 'Subject Teacher'
         };
 
+        // Grade order mapping
+        const gradeOrder = [
+            'Grade 6 - A',
+            'Grade 7 - A', 
+            'Grade 8 - A',
+            'Grade 9 - A',
+            'Grade 10 - A',
+            'Grade 11 - A',
+            'Grade 12 - A',
+            'Grade 13 - T2'
+        ];
+
         // Initialize the application
         window.onload = function() {
             setupEventListeners();
             setTodayDate();
             checkAuthState();
             setupRegistrationRestrictions();
-            setupMobileNavigation();
-            setupPWA();
         };
-
-        function setupPWA() {
-            // Register service worker for PWA functionality
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => console.log('SW registered'))
-                    .catch(error => console.log('SW registration failed'));
-            }
-            
-            // Add to home screen prompt
-            let deferredPrompt;
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                // Show install button if needed
-            });
-        }
-
-        function setupMobileNavigation() {
-            // Add event listeners for mobile navigation
-            document.querySelectorAll('.mobile-nav-item').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    showTab(this.getAttribute('data-tab'));
-                    
-                    // Update active state
-                    document.querySelectorAll('.mobile-nav-item').forEach(item => {
-                        item.classList.remove('active');
-                    });
-                    this.classList.add('active');
-                });
-            });
-        }
 
         function setupRegistrationRestrictions() {
             // Disable restricted options in registration dropdown
@@ -1473,22 +1381,6 @@
                 });
             }
             
-            // Update mobile navigation visibility
-            document.querySelectorAll('.mobile-nav-item').forEach(item => {
-                const tabName = item.getAttribute('data-tab');
-                const allowedTabs = ['attendance', 'students', 'reports', 'dashboard'];
-                
-                if (role === 'principal') {
-                    item.style.display = allowedTabs.includes(tabName) ? 'flex' : 'none';
-                } else if (role === 'classTeacher') {
-                    const classTeacherTabs = ['attendance', 'students', 'reports'];
-                    item.style.display = classTeacherTabs.includes(tabName) ? 'flex' : 'none';
-                } else if (role === 'subjectTeacher') {
-                    const subjectTeacherTabs = ['attendance', 'reports'];
-                    item.style.display = subjectTeacherTabs.includes(tabName) ? 'flex' : 'none';
-                }
-            });
-            
             // Ensure at least one tab is active
             const activeTabs = document.querySelectorAll('.nav-tab.active');
             if (activeTabs.length === 0) {
@@ -1591,9 +1483,7 @@
             try {
                 const { data: grades, error } = await supabase
                     .from('grades')
-                    .select('*')
-                    .order('grade')
-                    .order('class_name');
+                    .select('*');
 
                 const classSelect = document.getElementById('selectClass');
                 const reportClassSelect = document.getElementById('reportClass');
@@ -1618,7 +1508,14 @@
                     return;
                 }
                 
-                grades.forEach(grade => {
+                // Sort grades according to the predefined order
+                const sortedGrades = grades.sort((a, b) => {
+                    const indexA = gradeOrder.indexOf(a.grade);
+                    const indexB = gradeOrder.indexOf(b.grade);
+                    return indexA - indexB;
+                });
+                
+                sortedGrades.forEach(grade => {
                     const displayText = `${grade.grade} - ${grade.class_name}`;
                     
                     // Create option for main dropdowns
@@ -2261,9 +2158,7 @@
             try {
                 const { data: grades, error } = await supabase
                     .from('grades')
-                    .select('*')
-                    .order('grade')
-                    .order('class_name');
+                    .select('*');
 
                 if (error) throw error;
                 
@@ -2274,8 +2169,15 @@
                     return;
                 }
                 
+                // Sort grades according to the predefined order
+                const sortedGrades = grades.sort((a, b) => {
+                    const indexA = gradeOrder.indexOf(a.grade);
+                    const indexB = gradeOrder.indexOf(b.grade);
+                    return indexA - indexB;
+                });
+                
                 let html = '';
-                grades.forEach((grade, index) => {
+                sortedGrades.forEach((grade, index) => {
                     html += `
                         <div class="grade-item">
                             <div class="serial-number">${index + 1}</div>
@@ -2809,7 +2711,14 @@
                 // Update class-wise table
                 let classTableHtml = '';
                 if (grades) {
-                    for (const grade of grades) {
+                    // Sort grades according to the predefined order
+                    const sortedGrades = grades.sort((a, b) => {
+                        const indexA = gradeOrder.indexOf(a.grade);
+                        const indexB = gradeOrder.indexOf(b.grade);
+                        return indexA - indexB;
+                    });
+                    
+                    for (const grade of sortedGrades) {
                         // Get students in this class
                         const { data: classStudents } = await supabase
                             .from('students')
@@ -3159,267 +3068,15 @@
                 .subscribe();
         }
 
-        // CHART FUNCTIONS (Fixed)
+        // CHART FUNCTIONS (Simplified)
         async function loadCharts(date, classFilter, subjectFilter) {
-            try {
-                // Get attendance data for charts
-                let query = supabase
-                    .from('attendance')
-                    .select('*')
-                    .eq('date', date);
-                
-                if (classFilter) {
-                    const { data: classStudents } = await supabase
-                        .from('students')
-                        .select('student_id')
-                        .eq('grade_id', classFilter);
-                    
-                    if (classStudents && classStudents.length > 0) {
-                        const studentIds = classStudents.map(s => s.student_id);
-                        query = query.in('student_id', studentIds);
-                    }
-                }
-                
-                if (subjectFilter) {
-                    query = query.eq('subject_id', subjectFilter);
-                }
-                
-                const { data: attendance, error } = await query;
-                
-                if (error) throw error;
-                
-                // Get classes for chart
-                const { data: grades, error: gradesError } = await supabase
-                    .from('grades')
-                    .select('*');
-                
-                if (gradesError) throw gradesError;
-                
-                // Prepare data for charts
-                const classData = {};
-                const subjectData = {};
-                const genderData = { male: 0, female: 0 };
-                
-                // Initialize class data
-                if (grades) {
-                    grades.forEach(grade => {
-                        classData[`${grade.grade} - ${grade.class_name}`] = { present: 0, total: 0 };
-                    });
-                }
-                
-                // Initialize subject data
-                const { data: subjects, error: subjectsError } = await supabase
-                    .from('subjects')
-                    .select('*');
-                
-                if (!subjectsError && subjects) {
-                    subjects.forEach(subject => {
-                        subjectData[subject.name] = { present: 0, total: 0 };
-                    });
-                }
-                
-                // Process attendance data
-                if (attendance) {
-                    // Get student details for gender data
-                    const studentIds = [...new Set(attendance.map(a => a.student_id))];
-                    const { data: students, error: studentsError } = await supabase
-                        .from('students')
-                        .select('student_id, gender, grade_id')
-                        .in('student_id', studentIds);
-                    
-                    if (!studentsError && students) {
-                        // Create student map for quick lookup
-                        const studentMap = {};
-                        students.forEach(student => {
-                            studentMap[student.student_id] = student;
-                        });
-                        
-                        // Count attendance by class and subject
-                        attendance.forEach(record => {
-                            const student = studentMap[record.student_id];
-                            if (student) {
-                                // Get class name
-                                const grade = grades?.find(g => g.id === student.grade_id);
-                                if (grade) {
-                                    const className = `${grade.grade} - ${grade.class_name}`;
-                                    classData[className].total++;
-                                    if (record.status === 'present') {
-                                        classData[className].present++;
-                                    }
-                                }
-                                
-                                // Count gender
-                                if (student.gender === 'Male') {
-                                    genderData.male++;
-                                } else if (student.gender === 'Female') {
-                                    genderData.female++;
-                                }
-                            }
-                            
-                            // Count by subject
-                            const subject = subjects?.find(s => s.id === record.subject_id);
-                            if (subject) {
-                                subjectData[subject.name].total++;
-                                if (record.status === 'present') {
-                                    subjectData[subject.name].present++;
-                                }
-                            }
-                        });
-                    }
-                }
-                
-                // Render charts
-                renderClassChart(classData);
-                renderSubjectChart(subjectData);
-                renderGenderChart(genderData);
-                
-            } catch (error) {
-                console.error("Error loading charts:", error);
-                // Show placeholder messages if charts fail to load
-                document.getElementById('attendanceByClassChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
-                document.getElementById('attendanceBySubjectChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
-                document.getElementById('genderDistributionChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
-            }
-        }
-
-        function renderClassChart(classData) {
-            const ctx = document.getElementById('attendanceByClassChart').getContext('2d');
+            // This would initialize Chart.js charts with attendance data
+            console.log('Loading charts for:', { date, classFilter, subjectFilter });
             
-            // Destroy existing chart if it exists
-            if (appData.dashboardCharts.classChart) {
-                appData.dashboardCharts.classChart.destroy();
-            }
-            
-            const labels = Object.keys(classData);
-            const presentData = labels.map(label => classData[label].present);
-            const absentData = labels.map(label => classData[label].total - classData[label].present);
-            
-            appData.dashboardCharts.classChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Present',
-                            data: presentData,
-                            backgroundColor: '#4CAF50',
-                        },
-                        {
-                            label: 'Absent',
-                            data: absentData,
-                            backgroundColor: '#f44336',
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Attendance by Class'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            stacked: true,
-                        },
-                        y: {
-                            stacked: true,
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderSubjectChart(subjectData) {
-            const ctx = document.getElementById('attendanceBySubjectChart').getContext('2d');
-            
-            // Destroy existing chart if it exists
-            if (appData.dashboardCharts.subjectChart) {
-                appData.dashboardCharts.subjectChart.destroy();
-            }
-            
-            const labels = Object.keys(subjectData);
-            const presentData = labels.map(label => subjectData[label].present);
-            const rates = labels.map(label => {
-                const total = subjectData[label].total;
-                return total > 0 ? Math.round((subjectData[label].present / total) * 100) : 0;
-            });
-            
-            appData.dashboardCharts.subjectChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Attendance Rate (%)',
-                        data: rates,
-                        backgroundColor: '#2196F3',
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Attendance Rate by Subject'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderGenderChart(genderData) {
-            const ctx = document.getElementById('genderDistributionChart').getContext('2d');
-            
-            // Destroy existing chart if it exists
-            if (appData.dashboardCharts.genderChart) {
-                appData.dashboardCharts.genderChart.destroy();
-            }
-            
-            appData.dashboardCharts.genderChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Male', 'Female'],
-                    datasets: [{
-                        data: [genderData.male, genderData.female],
-                        backgroundColor: [
-                            '#2196F3',
-                            '#E91E63'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Gender Distribution - Today\'s Attendance'
-                        }
-                    }
-                }
-            });
+            // For now, we'll just display placeholder messages
+            document.getElementById('attendanceByClassChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
+            document.getElementById('attendanceBySubjectChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
+            document.getElementById('genderDistributionChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
         }
     </script>
 </body>
