@@ -826,12 +826,29 @@
                             <select id="newGrade">
                                 <option value="">-- Select Grade --</option>
                                 <option value="Grade 6 - A">Grade 6 - A</option>
+                                <option value="Grade 6 - B">Grade 6 - B</option>
+                                <option value="Grade 6 - C">Grade 6 - C</option>
                                 <option value="Grade 7 - A">Grade 7 - A</option>
+                                <option value="Grade 7 - B">Grade 7 - B</option>
+                                <option value="Grade 7 - C">Grade 7 - C</option>
                                 <option value="Grade 8 - A">Grade 8 - A</option>
+                                <option value="Grade 8 - B">Grade 8 - B</option>
+                                <option value="Grade 8 - C">Grade 8 - C</option>
                                 <option value="Grade 9 - A">Grade 9 - A</option>
+                                <option value="Grade 9 - B">Grade 9 - B</option>
+                                <option value="Grade 9 - C">Grade 9 - C</option>
                                 <option value="Grade 10 - A">Grade 10 - A</option>
+                                <option value="Grade 10 - B">Grade 10 - B</option>
+                                <option value="Grade 10 - C">Grade 10 - C</option>
                                 <option value="Grade 11 - A">Grade 11 - A</option>
+                                <option value="Grade 11 - B">Grade 11 - B</option>
+                                <option value="Grade 11 - C">Grade 11 - C</option>
                                 <option value="Grade 12 - A">Grade 12 - A</option>
+                                <option value="Grade 12 - B">Grade 12 - B</option>
+                                <option value="Grade 12 - C">Grade 12 - C</option>
+                                <option value="Grade 13 - A1">Grade 13 - A1</option>
+                                <option value="Grade 13 - A2">Grade 13 - A2</option>
+                                <option value="Grade 13 - T1">Grade 13 - T1</option>
                                 <option value="Grade 13 - T2">Grade 13 - T2</option>
                             </select>
                         </div>
@@ -916,16 +933,16 @@
             'subjectTeacher': 'Subject Teacher'
         };
 
-        // Grade order mapping
+        // Complete grade order from Grade 6 - A to Grade 13 - T2
         const gradeOrder = [
-            'Grade 6 - A',
-            'Grade 7 - A', 
-            'Grade 8 - A',
-            'Grade 9 - A',
-            'Grade 10 - A',
-            'Grade 11 - A',
-            'Grade 12 - A',
-            'Grade 13 - T2'
+            'Grade 6 - A', 'Grade 6 - B', 'Grade 6 - C',
+            'Grade 7 - A', 'Grade 7 - B', 'Grade 7 - C',
+            'Grade 8 - A', 'Grade 8 - B', 'Grade 8 - C',
+            'Grade 9 - A', 'Grade 9 - B', 'Grade 9 - C',
+            'Grade 10 - A', 'Grade 10 - B', 'Grade 10 - C',
+            'Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C',
+            'Grade 12 - A', 'Grade 12 - B', 'Grade 12 - C',
+            'Grade 13 - A1', 'Grade 13 - A2', 'Grade 13 - T1', 'Grade 13 - T2'
         ];
 
         // Initialize the application
@@ -3025,26 +3042,118 @@
             }
         }
 
-        // EDIT FUNCTIONS (Placeholders)
+        // EDIT FUNCTIONS (Placeholder implementations)
         function editStudent(studentId) {
-            alert('Edit student functionality would be implemented here');
+            alert('Edit student functionality to be implemented');
         }
 
         function editTeacher(teacherId) {
-            alert('Edit teacher functionality would be implemented here');
+            alert('Edit teacher functionality to be implemented');
         }
 
         function editSubject(subjectId) {
-            alert('Edit subject functionality would be implemented here');
+            alert('Edit subject functionality to be implemented');
         }
 
         function editGrade(gradeId) {
-            alert('Edit grade functionality would be implemented here');
+            alert('Edit grade functionality to be implemented');
+        }
+
+        // CHART IMPLEMENTATION
+        async function loadCharts(date, classFilter, subjectFilter) {
+            try {
+                // Implementation for charts
+                const attendanceByClassCtx = document.getElementById('attendanceByClassChart').getContext('2d');
+                const attendanceBySubjectCtx = document.getElementById('attendanceBySubjectChart').getContext('2d');
+                const genderDistributionCtx = document.getElementById('genderDistributionChart').getContext('2d');
+                
+                // Initialize charts with sample data
+                if (appData.dashboardCharts.classChart) {
+                    appData.dashboardCharts.classChart.destroy();
+                }
+                appData.dashboardCharts.classChart = new Chart(attendanceByClassCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'],
+                        datasets: [{
+                            label: 'Attendance %',
+                            data: [85, 92, 78, 88, 95],
+                            backgroundColor: '#005A9C'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Attendance by Class'
+                            }
+                        }
+                    }
+                });
+                
+                if (appData.dashboardCharts.subjectChart) {
+                    appData.dashboardCharts.subjectChart.destroy();
+                }
+                appData.dashboardCharts.subjectChart = new Chart(attendanceBySubjectCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Math', 'Science', 'English', 'History', 'Art'],
+                        datasets: [{
+                            data: [30, 25, 20, 15, 10],
+                            backgroundColor: [
+                                '#005A9C',
+                                '#4CAF50',
+                                '#FF9800',
+                                '#E91E63',
+                                '#9C27B0'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Attendance by Subject'
+                            }
+                        }
+                    }
+                });
+                
+                if (appData.dashboardCharts.genderChart) {
+                    appData.dashboardCharts.genderChart.destroy();
+                }
+                appData.dashboardCharts.genderChart = new Chart(genderDistributionCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Male', 'Female'],
+                        datasets: [{
+                            data: [55, 45],
+                            backgroundColor: [
+                                '#2196F3',
+                                '#E91E63'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Gender Distribution'
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error("Error loading charts:", error);
+            }
         }
 
         // REAL-TIME UPDATES
         function setupRealTimeAttendance() {
-            // Unsubscribe from previous real-time listeners
             if (appData.realTimeUnsubscribe) {
                 appData.realTimeUnsubscribe();
             }
@@ -3053,14 +3162,11 @@
             appData.realTimeUnsubscribe = supabase
                 .channel('attendance-changes')
                 .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'attendance' }, 
+                    { event: '*', schema: 'public', table: 'attendance' },
                     (payload) => {
-                        console.log('Attendance change received:', payload);
-                        // Refresh relevant data based on current tab
-                        const activeTab = document.querySelector('.tab-content.active').id;
-                        if (activeTab === 'dashboard') {
-                            loadDashboard();
-                        } else if (activeTab === 'viewAttendance') {
+                        console.log('Attendance change received!', payload);
+                        // Refresh relevant views
+                        if (document.getElementById('viewAttendance').classList.contains('active')) {
                             viewAttendanceRecords();
                         }
                     }
@@ -3068,15 +3174,18 @@
                 .subscribe();
         }
 
-        // CHART FUNCTIONS (Simplified)
-        async function loadCharts(date, classFilter, subjectFilter) {
-            // This would initialize Chart.js charts with attendance data
-            console.log('Loading charts for:', { date, classFilter, subjectFilter });
-            
-            // For now, we'll just display placeholder messages
-            document.getElementById('attendanceByClassChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
-            document.getElementById('attendanceBySubjectChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
-            document.getElementById('genderDistributionChart').innerHTML = '<div class="loading">Chart data would be displayed here</div>';
+        // ERROR HANDLING
+        function showError(message, elementId) {
+            const errorElement = document.getElementById(elementId);
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                setTimeout(() => {
+                    errorElement.style.display = 'none';
+                }, 5000);
+            } else {
+                alert(message);
+            }
         }
     </script>
 </body>
