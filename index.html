@@ -15,14 +15,6 @@
     <!-- Chart.js for dashboard charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#005A9C">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Attendance Tracker">
-    <link rel="apple-touch-icon" href="icon-192x192.png">
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -2802,13 +2794,20 @@
                     attendance.forEach(record => {
                         if (record.status === 'present') {
                             presentStudents.add(record.student_id);
-                            presentCount++;
                         }
                     });
                     
-                    // Count gender-wise present (this is simplified - in a real app you'd need to join with students table)
-                    malePresent = Math.round(presentCount * (maleTotal / totalStudents));
-                    femalePresent = presentCount - malePresent;
+                    presentCount = presentStudents.size;
+                    
+                    // Count gender-wise present
+                    if (allStudents) {
+                        allStudents.forEach(student => {
+                            if (presentStudents.has(student.student_id)) {
+                                if (student.gender === 'Male') malePresent++;
+                                else if (student.gender === 'Female') femalePresent++;
+                            }
+                        });
+                    }
                 }
                 
                 const attendanceRate = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
@@ -2890,7 +2889,13 @@
                         
                         let presentCount = 0;
                         if (classAttendance) {
-                            presentCount = classAttendance.filter(a => a.status === 'present').length;
+                            const presentStudents = new Set();
+                            classAttendance.forEach(record => {
+                                if (record.status === 'present') {
+                                    presentStudents.add(record.student_id);
+                                }
+                            });
+                            presentCount = presentStudents.size;
                         }
                         
                         const totalStudents = classStudents.length;
@@ -2912,7 +2917,7 @@
                 document.getElementById('classAttendanceTable').innerHTML = classTableHtml || 
                     '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">No data available</td></tr>';
                 
-                // Update subject-wise table (simplified)
+                // Update subject-wise table (FIXED - counts unique students per subject)
                 const { data: subjects, error: subjectsError } = await supabase
                     .from('subjects')
                     .select('*');
@@ -2950,8 +2955,18 @@
                         let totalStudents = 0;
                         
                         if (subjectAttendance) {
-                            presentCount = subjectAttendance.filter(a => a.status === 'present').length;
-                            totalStudents = new Set(subjectAttendance.map(a => a.student_id)).size;
+                            const presentStudents = new Set();
+                            const allStudents = new Set();
+                            
+                            subjectAttendance.forEach(record => {
+                                allStudents.add(record.student_id);
+                                if (record.status === 'present') {
+                                    presentStudents.add(record.student_id);
+                                }
+                            });
+                            
+                            presentCount = presentStudents.size;
+                            totalStudents = allStudents.size;
                         }
                         
                         const absentCount = totalStudents - presentCount;
@@ -3020,20 +3035,7 @@
                     
                 if (classError) throw classError;
                 
-                // Get attendance records
-                const { data: attendance, error: attendanceError } = await supabase
-                    .from('attendance')
-                    .select(`
-                        *,
-                        students (name, student_id)
-                    `)
-                    .eq('date', date)
-                    .eq('subject_id', subjectId)
-                    .eq('teacher_id', teacherId);
-                    
-                if (attendanceError) throw attendanceError;
-                
-                // Get all students for the class to show absentees
+                // Get all students for the class
                 const { data: allStudents, error: studentsError } = await supabase
                     .from('students')
                     .select('*')
@@ -3046,6 +3048,16 @@
                     output.innerHTML = '<div class="info-box">No students found for the selected class.</div>';
                     return;
                 }
+                
+                // Get attendance records
+                const { data: attendance, error: attendanceError } = await supabase
+                    .from('attendance')
+                    .select('*')
+                    .eq('date', date)
+                    .eq('subject_id', subjectId)
+                    .eq('teacher_id', teacherId);
+                    
+                if (attendanceError) throw attendanceError;
                 
                 // Create attendance map for quick lookup
                 const attendanceMap = {};
@@ -3162,10 +3174,6 @@
         // EDIT AND DELETE FUNCTIONS
         async function editStudent(studentId) {
             alert('Edit student functionality would go here for student: ' + studentId);
-            // Implementation would involve:
-            // 1. Fetching student data
-            // 2. Showing edit form
-            // 3. Updating in Supabase
         }
 
         async function deleteStudent(studentId) {
@@ -3365,13 +3373,13 @@
                     
                     let presentCount = 0;
                     if (classAttendance) {
-                        const uniqueStudents = new Set();
+                        const presentStudents = new Set();
                         classAttendance.forEach(record => {
                             if (record.status === 'present') {
-                                uniqueStudents.add(record.student_id);
+                                presentStudents.add(record.student_id);
                             }
                         });
-                        presentCount = uniqueStudents.size;
+                        presentCount = presentStudents.size;
                     }
                     
                     const totalStudents = classStudents.length;
@@ -3476,14 +3484,18 @@
                     let totalStudents = 0;
                     
                     if (subjectAttendance) {
-                        const uniqueStudents = new Set();
+                        const presentStudents = new Set();
+                        const allStudents = new Set();
+                        
                         subjectAttendance.forEach(record => {
-                            uniqueStudents.add(record.student_id);
+                            allStudents.add(record.student_id);
                             if (record.status === 'present') {
-                                presentCount++;
+                                presentStudents.add(record.student_id);
                             }
                         });
-                        totalStudents = uniqueStudents.size;
+                        
+                        presentCount = presentStudents.size;
+                        totalStudents = allStudents.size;
                     }
                     
                     const rate = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
