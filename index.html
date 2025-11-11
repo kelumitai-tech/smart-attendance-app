@@ -825,14 +825,28 @@
                             <label>Grade</label>
                             <select id="newGrade">
                                 <option value="">-- Select Grade --</option>
-                                <option value="Grade 6">Grade 6</option>
-                                <option value="Grade 7">Grade 7</option>
-                                <option value="Grade 8">Grade 8</option>
-                                <option value="Grade 9">Grade 9</option>
-                                <option value="Grade 10">Grade 10</option>
-                                <option value="Grade 11">Grade 11</option>
-                                <option value="Grade 12">Grade 12</option>
-                                <option value="Grade 13">Grade 13</option>
+                                <option value="Grade 6 - A">Grade 6 - A</option>
+                                <option value="Grade 6 - B">Grade 6 - B</option>
+                                <option value="Grade 6 - C">Grade 6 - C</option>
+                                <option value="Grade 7 - A">Grade 7 - A</option>
+                                <option value="Grade 7 - B">Grade 7 - B</option>
+                                <option value="Grade 7 - C">Grade 7 - C</option>
+                                <option value="Grade 8 - A">Grade 8 - A</option>
+                                <option value="Grade 8 - B">Grade 8 - B</option>
+                                <option value="Grade 8 - C">Grade 8 - C</option>
+                                <option value="Grade 9 - A">Grade 9 - A</option>
+                                <option value="Grade 9 - B">Grade 9 - B</option>
+                                <option value="Grade 9 - C">Grade 9 - C</option>
+                                <option value="Grade 10 - A">Grade 10 - A</option>
+                                <option value="Grade 10 - B">Grade 10 - B</option>
+                                <option value="Grade 10 - C">Grade 10 - C</option>
+                                <option value="Grade 11 - A">Grade 11 - A</option>
+                                <option value="Grade 11 - B">Grade 11 - B</option>
+                                <option value="Grade 11 - C">Grade 11 - C</option>
+                                <option value="Grade 12 - T1">Grade 12 - T1</option>
+                                <option value="Grade 12 - T2">Grade 12 - T2</option>
+                                <option value="Grade 13 - T1">Grade 13 - T1</option>
+                                <option value="Grade 13 - T2">Grade 13 - T2</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -2354,6 +2368,193 @@
             }
         }
 
+        // ENHANCED PDF GENERATION FUNCTION
+        async function generatePdfReport() {
+            const classId = document.getElementById('reportClass').value;
+            const subjectId = document.getElementById('reportSubject').value;
+            const month = document.getElementById('reportMonth').value;
+            
+            if (!classId || !subjectId || !month) {
+                alert('Please select class, subject, and month');
+                return;
+            }
+            
+            try {
+                // Show loading state
+                const originalText = document.getElementById('generatePdfBtn').textContent;
+                document.getElementById('generatePdfBtn').textContent = 'Generating PDF...';
+                document.getElementById('generatePdfBtn').disabled = true;
+                
+                // Get real-time data for PDF
+                const startDate = month + '-01';
+                const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0).toISOString().split('T')[0];
+                
+                // Get students for the selected class
+                const { data: students, error: studentsError } = await supabase
+                    .from('students')
+                    .select('student_id, name')
+                    .eq('grade_id', classId);
+                
+                if (studentsError) throw studentsError;
+                
+                if (!students || students.length === 0) {
+                    alert('No students found for the selected class');
+                    return;
+                }
+                
+                // Get class and subject info
+                const { data: gradeData } = await supabase
+                    .from('grades')
+                    .select('grade, class_name')
+                    .eq('id', classId)
+                    .single();
+                
+                const { data: subjectData } = await supabase
+                    .from('subjects')
+                    .select('name')
+                    .eq('id', subjectId)
+                    .single();
+                
+                // Get attendance data for the month
+                const { data: attendance, error } = await supabase
+                    .from('attendance')
+                    .select('*')
+                    .eq('subject_id', subjectId)
+                    .gte('date', startDate)
+                    .lte('date', endDate);
+                    
+                if (error) throw error;
+                
+                // Calculate working days
+                let workingDays = 0;
+                let currentDate = new Date(startDate);
+                const endDateObj = new Date(endDate);
+                
+                while (currentDate <= endDateObj) {
+                    const dayOfWeek = currentDate.getDay();
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                        workingDays++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                // Group attendance by student
+                const studentStats = {};
+                students.forEach(student => {
+                    studentStats[student.student_id] = {
+                        name: student.name,
+                        present: 0,
+                        total: 0
+                    };
+                });
+                
+                if (attendance) {
+                    attendance.forEach(record => {
+                        if (studentStats[record.student_id]) {
+                            studentStats[record.student_id].total++;
+                            if (record.status === 'present') {
+                                studentStats[record.student_id].present++;
+                            }
+                        }
+                    });
+                }
+                
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add header
+                doc.setFontSize(20);
+                doc.setTextColor(0, 90, 156);
+                doc.text('Smart Attendance Tracker - Monthly Report', 105, 15, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Class: ${gradeData?.grade || 'N/A'} - ${gradeData?.class_name || 'N/A'}`, 20, 25);
+                doc.text(`Subject: ${subjectData?.name || 'N/A'}`, 20, 32);
+                doc.text(`Period: ${month} (${workingDays} working days)`, 20, 39);
+                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 46);
+                
+                // Prepare table data
+                const tableData = [];
+                let totalPresent = 0;
+                let totalClasses = 0;
+                
+                Object.keys(studentStats).forEach(studentId => {
+                    const stats = studentStats[studentId];
+                    const absent = stats.total - stats.present;
+                    const percentage = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+                    
+                    tableData.push([
+                        studentId,
+                        stats.name,
+                        stats.present.toString(),
+                        absent.toString(),
+                        stats.total.toString(),
+                        percentage + '%'
+                    ]);
+                    
+                    totalPresent += stats.present;
+                    totalClasses += stats.total;
+                });
+                
+                // Add summary
+                const overallPercentage = totalClasses > 0 ? Math.round((totalPresent / totalClasses) * 100) : 0;
+                doc.text(`Overall Attendance: ${totalPresent}/${totalClasses} (${overallPercentage}%)`, 20, 55);
+                
+                // Add table
+                doc.autoTable({
+                    startY: 60,
+                    head: [['Student ID', 'Name', 'Present', 'Absent', 'Total', 'Percentage']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [0, 90, 156],
+                        textColor: 255,
+                        fontStyle: 'bold'
+                    },
+                    alternateRowStyles: {
+                        fillColor: [240, 240, 240]
+                    },
+                    styles: {
+                        fontSize: 9,
+                        cellPadding: 3
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 25 },
+                        1: { cellWidth: 45 },
+                        2: { cellWidth: 20 },
+                        3: { cellWidth: 20 },
+                        4: { cellWidth: 20 },
+                        5: { cellWidth: 25 }
+                    }
+                });
+                
+                // Add footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(10);
+                    doc.setTextColor(150, 150, 150);
+                    doc.text(`Page ${i} of ${pageCount}`, 105, doc.internal.pageSize.height - 10, { align: 'center' });
+                    doc.text('SmartSoft - The Mobile Apps Developer', 105, doc.internal.pageSize.height - 5, { align: 'center' });
+                }
+                
+                // Save PDF
+                doc.save(`Attendance_Report_${month}_${gradeData?.grade || 'Class'}_${subjectData?.name || 'Subject'}.pdf`);
+                
+                alert('PDF report generated successfully!');
+                
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert('Error generating PDF: ' + error.message);
+            } finally {
+                // Restore button state
+                document.getElementById('generatePdfBtn').textContent = originalText;
+                document.getElementById('generatePdfBtn').disabled = false;
+            }
+        }
+
         // FIXED DASHBOARD FUNCTION
         async function loadDashboard() {
             try {
@@ -2824,11 +3025,6 @@
 
         function editGrade(gradeId) {
             alert('Edit grade functionality would be implemented here');
-        }
-
-        // PDF GENERATION
-        function generatePdfReport() {
-            alert('PDF generation would be implemented here using jsPDF');
         }
 
         // REAL-TIME UPDATES
