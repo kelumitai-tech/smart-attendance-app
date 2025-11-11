@@ -301,6 +301,13 @@
             gap: 15px;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
         }
         .chart-container {
             background: white;
@@ -335,6 +342,9 @@
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
+            position: sticky;
+            top: 130px;
+            z-index: 90;
         }
         .summary-grid {
             display: grid;
@@ -374,6 +384,28 @@
             }
             .dashboard-controls {
                 flex-direction: column;
+                position: sticky;
+                top: 0;
+                background: white;
+                padding: 15px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                z-index: 100;
+            }
+            .daily-summary {
+                position: sticky;
+                top: 180px;
+                z-index: 90;
+            }
+            .stats-card {
+                position: sticky;
+                top: 320px;
+                z-index: 80;
+            }
+            .chart-container {
+                position: sticky;
+                top: 450px;
+                z-index: 70;
             }
         }
     </style>
@@ -916,7 +948,7 @@
             'subjectTeacher': 'Subject Teacher'
         };
 
-        // Complete grade order from Grade 6 - A to Grade 13 - T2
+        // Fixed grade order from Grade 6 - A to Grade 13 - T2
         const gradeOrder = [
             'Grade 6 - A', 'Grade 6 - B', 'Grade 6 - C',
             'Grade 7 - A', 'Grade 7 - B', 'Grade 7 - C',
@@ -1510,9 +1542,23 @@
                 
                 // Sort grades according to the predefined order
                 const sortedGrades = grades.sort((a, b) => {
-                    const indexA = gradeOrder.indexOf(a.grade + ' - ' + a.class_name);
-                    const indexB = gradeOrder.indexOf(b.grade + ' - ' + b.class_name);
-                    return indexA - indexB;
+                    const fullNameA = `${a.grade} - ${a.class_name}`;
+                    const fullNameB = `${b.grade} - ${b.class_name}`;
+                    
+                    const indexA = gradeOrder.indexOf(fullNameA);
+                    const indexB = gradeOrder.indexOf(fullNameB);
+                    
+                    // If both are in the predefined order, sort by that
+                    if (indexA !== -1 && indexB !== -1) {
+                        return indexA - indexB;
+                    }
+                    
+                    // If only one is in the predefined order, prioritize it
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    
+                    // If neither is in the predefined order, sort alphabetically
+                    return fullNameA.localeCompare(fullNameB);
                 });
                 
                 sortedGrades.forEach(grade => {
@@ -2171,9 +2217,23 @@
                 
                 // Sort grades according to the predefined order
                 const sortedGrades = grades.sort((a, b) => {
-                    const indexA = gradeOrder.indexOf(a.grade + ' - ' + a.class_name);
-                    const indexB = gradeOrder.indexOf(b.grade + ' - ' + b.class_name);
-                    return indexA - indexB;
+                    const fullNameA = `${a.grade} - ${a.class_name}`;
+                    const fullNameB = `${b.grade} - ${b.class_name}`;
+                    
+                    const indexA = gradeOrder.indexOf(fullNameA);
+                    const indexB = gradeOrder.indexOf(fullNameB);
+                    
+                    // If both are in the predefined order, sort by that
+                    if (indexA !== -1 && indexB !== -1) {
+                        return indexA - indexB;
+                    }
+                    
+                    // If only one is in the predefined order, prioritize it
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    
+                    // If neither is in the predefined order, sort alphabetically
+                    return fullNameA.localeCompare(fullNameB);
                 });
                 
                 let html = '';
@@ -2713,9 +2773,23 @@
                 if (grades) {
                     // Sort grades according to the predefined order
                     const sortedGrades = grades.sort((a, b) => {
-                        const indexA = gradeOrder.indexOf(a.grade + ' - ' + a.class_name);
-                        const indexB = gradeOrder.indexOf(b.grade + ' - ' + b.class_name);
-                        return indexA - indexB;
+                        const fullNameA = `${a.grade} - ${a.class_name}`;
+                        const fullNameB = `${b.grade} - ${b.class_name}`;
+                        
+                        const indexA = gradeOrder.indexOf(fullNameA);
+                        const indexB = gradeOrder.indexOf(fullNameB);
+                        
+                        // If both are in the predefined order, sort by that
+                        if (indexA !== -1 && indexB !== -1) {
+                            return indexA - indexB;
+                        }
+                        
+                        // If only one is in the predefined order, prioritize it
+                        if (indexA !== -1) return -1;
+                        if (indexB !== -1) return 1;
+                        
+                        // If neither is in the predefined order, sort alphabetically
+                        return fullNameA.localeCompare(fullNameB);
                     });
                     
                     for (const grade of sortedGrades) {
