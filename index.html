@@ -825,36 +825,19 @@
                             <label>Grade</label>
                             <select id="newGrade">
                                 <option value="">-- Select Grade --</option>
-                                <option value="Grade 6 - A">Grade 6 - A</option>
-                                <option value="Grade 6 - B">Grade 6 - B</option>
-                                <option value="Grade 6 - C">Grade 6 - C</option>
-                                <option value="Grade 7 - A">Grade 7 - A</option>
-                                <option value="Grade 7 - B">Grade 7 - B</option>
-                                <option value="Grade 7 - C">Grade 7 - C</option>
-                                <option value="Grade 8 - A">Grade 8 - A</option>
-                                <option value="Grade 8 - B">Grade 8 - B</option>
-                                <option value="Grade 8 - C">Grade 8 - C</option>
-                                <option value="Grade 9 - A">Grade 9 - A</option>
-                                <option value="Grade 9 - B">Grade 9 - B</option>
-                                <option value="Grade 9 - C">Grade 9 - C</option>
-                                <option value="Grade 10 - A">Grade 10 - A</option>
-                                <option value="Grade 10 - B">Grade 10 - B</option>
-                                <option value="Grade 10 - C">Grade 10 - C</option>
-                                <option value="Grade 11 - A">Grade 11 - A</option>
-                                <option value="Grade 11 - B">Grade 11 - B</option>
-                                <option value="Grade 11 - C">Grade 11 - C</option>
-                                <option value="Grade 12 - A">Grade 12 - A</option>
-                                <option value="Grade 12 - B">Grade 12 - B</option>
-                                <option value="Grade 12 - C">Grade 12 - C</option>
-                                <option value="Grade 13 - A1">Grade 13 - A1</option>
-                                <option value="Grade 13 - A2">Grade 13 - A2</option>
-                                <option value="Grade 13 - T1">Grade 13 - T1</option>
-                                <option value="Grade 13 - T2">Grade 13 - T2</option>
+                                <option value="Grade 6">Grade 6</option>
+                                <option value="Grade 7">Grade 7</option>
+                                <option value="Grade 8">Grade 8</option>
+                                <option value="Grade 9">Grade 9</option>
+                                <option value="Grade 10">Grade 10</option>
+                                <option value="Grade 11">Grade 11</option>
+                                <option value="Grade 12">Grade 12</option>
+                                <option value="Grade 13">Grade 13</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Class Name</label>
-                            <input type="text" id="className" placeholder="e.g., A, B, C">
+                            <input type="text" id="className" placeholder="e.g., A, B, C, A1, A2, T1, T2">
                         </div>
                     </div>
                     <button class="btn btn-primary btn-full" id="addClassBtn">Add Grade & Class</button>
@@ -1527,8 +1510,8 @@
                 
                 // Sort grades according to the predefined order
                 const sortedGrades = grades.sort((a, b) => {
-                    const indexA = gradeOrder.indexOf(a.grade);
-                    const indexB = gradeOrder.indexOf(b.grade);
+                    const indexA = gradeOrder.indexOf(a.grade + ' - ' + a.class_name);
+                    const indexB = gradeOrder.indexOf(b.grade + ' - ' + b.class_name);
                     return indexA - indexB;
                 });
                 
@@ -2188,8 +2171,8 @@
                 
                 // Sort grades according to the predefined order
                 const sortedGrades = grades.sort((a, b) => {
-                    const indexA = gradeOrder.indexOf(a.grade);
-                    const indexB = gradeOrder.indexOf(b.grade);
+                    const indexA = gradeOrder.indexOf(a.grade + ' - ' + a.class_name);
+                    const indexB = gradeOrder.indexOf(b.grade + ' - ' + b.class_name);
                     return indexA - indexB;
                 });
                 
@@ -2730,8 +2713,8 @@
                 if (grades) {
                     // Sort grades according to the predefined order
                     const sortedGrades = grades.sort((a, b) => {
-                        const indexA = gradeOrder.indexOf(a.grade);
-                        const indexB = gradeOrder.indexOf(b.grade);
+                        const indexA = gradeOrder.indexOf(a.grade + ' - ' + a.class_name);
+                        const indexB = gradeOrder.indexOf(b.grade + ' - ' + b.class_name);
                         return indexA - indexB;
                     });
                     
