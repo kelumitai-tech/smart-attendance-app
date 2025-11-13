@@ -730,6 +730,12 @@
                     </div>
                 </div>
 
+                <!-- Teacher Daily Summary -->
+                <div class="card">
+                    <h3>👨‍🏫 Teacher Daily Summary</h3>
+                    <div id="teacherDailySummary" class="loading">Loading teacher summary...</div>
+                </div>
+
                 <!-- Overall Stats Cards -->
                 <div class="grid-3">
                     <div class="stats-card">
@@ -2071,14 +2077,14 @@
             });
         }
 
-        // TEACHER MANAGEMENT
+        // TEACHER MANAGEMENT - FIXED
         async function loadTeachers() {
             try {
                 const { data: teachers, error } = await supabase
                     .from('teachers')
                     .select(`
                         *,
-                        subjects (name)
+                        subjects!inner(name)
                     `)
                     .order('name');
 
@@ -2093,6 +2099,7 @@
                 
                 let html = '';
                 teachers.forEach((teacher, index) => {
+                    // Fixed: Now correctly accessing subject name from the joined table
                     const subjectName = teacher.subjects ? teacher.subjects.name : 'No Subject';
                     const roleDisplay = teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher';
                     
@@ -2700,6 +2707,9 @@
                 // Load daily attendance summary
                 await loadDailySummary(selectedDate, classFilter, subjectFilter);
                 
+                // Load teacher daily summary
+                await loadTeacherDailySummary(selectedDate, classFilter, subjectFilter);
+                
                 // Load charts
                 await loadCharts(selectedDate, classFilter, subjectFilter);
                 
@@ -2731,6 +2741,112 @@
                 
             } catch (error) {
                 console.error("Error loading overall stats:", error);
+            }
+        }
+
+        // NEW FUNCTION: Teacher Daily Summary
+        async function loadTeacherDailySummary(date, classFilter, subjectFilter) {
+            try {
+                const summaryContainer = document.getElementById('teacherDailySummary');
+                summaryContainer.innerHTML = '<div class="loading">Loading teacher summary...</div>';
+                
+                // Get all teachers with their subjects
+                const { data: teachers, error: teachersError } = await supabase
+                    .from('teachers')
+                    .select(`
+                        *,
+                        subjects!inner(name)
+                    `)
+                    .order('name');
+                
+                if (teachersError) throw teachersError;
+                
+                if (!teachers || teachers.length === 0) {
+                    summaryContainer.innerHTML = '<div class="info-box">No teachers found.</div>';
+                    return;
+                }
+                
+                let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Teacher</th><th>Subject</th><th>Classes Taught</th><th>Students Present</th><th>Attendance Rate</th></tr></thead><tbody>';
+                
+                for (const teacher of teachers) {
+                    // Get attendance records for this teacher on the selected date
+                    let attendanceQuery = supabase
+                        .from('attendance')
+                        .select('*')
+                        .eq('date', date)
+                        .eq('teacher_id', teacher.id);
+                    
+                    if (subjectFilter) {
+                        attendanceQuery = attendanceQuery.eq('subject_id', subjectFilter);
+                    }
+                    
+                    if (classFilter) {
+                        // Get students in the selected class
+                        const { data: classStudents } = await supabase
+                            .from('students')
+                            .select('student_id')
+                            .eq('grade_id', classFilter);
+                        
+                        if (classStudents && classStudents.length > 0) {
+                            const studentIds = classStudents.map(s => s.student_id);
+                            attendanceQuery = attendanceQuery.in('student_id', studentIds);
+                        }
+                    }
+                    
+                    const { data: teacherAttendance, error: attendanceError } = await attendanceQuery;
+                    
+                    if (attendanceError) {
+                        console.error(`Error fetching attendance for teacher ${teacher.name}:`, attendanceError);
+                        continue;
+                    }
+                    
+                    // Calculate statistics
+                    let classesTaught = 0;
+                    let studentsPresent = 0;
+                    let totalStudents = 0;
+                    
+                    if (teacherAttendance && teacherAttendance.length > 0) {
+                        // Group by subject and class to count unique classes
+                        const uniqueClasses = new Set();
+                        const presentStudents = new Set();
+                        const allStudents = new Set();
+                        
+                        teacherAttendance.forEach(record => {
+                            const classKey = `${record.subject_id}_${record.teacher_id}`;
+                            uniqueClasses.add(classKey);
+                            allStudents.add(record.student_id);
+                            
+                            if (record.status === 'present') {
+                                presentStudents.add(record.student_id);
+                            }
+                        });
+                        
+                        classesTaught = uniqueClasses.size;
+                        studentsPresent = presentStudents.size;
+                        totalStudents = allStudents.size;
+                    }
+                    
+                    const attendanceRate = totalStudents > 0 ? Math.round((studentsPresent / totalStudents) * 100) : 0;
+                    const rateClass = attendanceRate >= 80 ? 'percentage-good' : 
+                                    attendanceRate >= 60 ? 'percentage-average' : 'percentage-poor';
+                    
+                    html += `
+                        <tr>
+                            <td>${teacher.name} (${teacher.teacher_id})</td>
+                            <td>${teacher.subjects ? teacher.subjects.name : 'No Subject'}</td>
+                            <td>${classesTaught}</td>
+                            <td class="present">${studentsPresent}</td>
+                            <td class="${rateClass}">${attendanceRate}%</td>
+                        </tr>
+                    `;
+                }
+                
+                html += '</tbody></table></div>';
+                summaryContainer.innerHTML = html;
+                
+            } catch (error) {
+                console.error("Error loading teacher daily summary:", error);
+                document.getElementById('teacherDailySummary').innerHTML = '<div class="error-msg">Error loading teacher summary: ' + error.message + '</div>';
             }
         }
 
@@ -3659,4 +3775,3 @@
     </script>
 </body>
 </html>
-
