@@ -1053,8 +1053,12 @@
                                 <option value="G">G</option>
                                 <option value="A1">A1</option>
                                 <option value="A2">A2</option>
+                                <option value="C1">C1</option>
+                                <option value="C2">C2</option>
                                 <option value="T1">T1</option>
                                 <option value="T2">T2</option>
+                                <option value="S1">S1</option>
+                                <option value="S2">S2</option>
                             </select>
                         </div>
                     </div>
@@ -1125,7 +1129,8 @@
             editingItem: null,
             realTimeUnsubscribe: null,
             dashboardCharts: {},
-            deferredPrompt: null
+            deferredPrompt: null,
+            currentReportData: null
         };
 
         // Role display mapping
@@ -2891,6 +2896,16 @@
                 html += `</tbody></table></div></div>`;
                 reportOutput.innerHTML = html;
                 
+                // Store report data for PDF generation
+                appData.currentReportData = {
+                    type: 'monthly',
+                    classId,
+                    subjectId,
+                    month,
+                    studentStats,
+                    workingDays
+                };
+                
             } catch (error) {
                 console.error("Error generating report:", error);
                 reportOutput.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
@@ -2899,37 +2914,19 @@
 
         // ENHANCED PDF GENERATION FUNCTION
         async function generatePdfReport() {
-            const classId = document.getElementById('reportClass').value;
-            const subjectId = document.getElementById('reportSubject').value;
-            const month = document.getElementById('reportMonth').value;
-            
-            if (!classId || !subjectId || !month) {
-                alert('Please select class, subject, and month');
+            // Use stored report data or generate new data
+            if (!appData.currentReportData) {
+                alert('Please generate a report first before creating PDF');
                 return;
             }
+            
+            const { classId, subjectId, month, studentStats, workingDays, type } = appData.currentReportData;
             
             try {
                 // Show loading state
                 const originalText = document.getElementById('generatePdfBtn').textContent;
                 document.getElementById('generatePdfBtn').textContent = 'Generating PDF...';
                 document.getElementById('generatePdfBtn').disabled = true;
-                
-                // Get real-time data for PDF
-                const startDate = month + '-01';
-                const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0).toISOString().split('T')[0];
-                
-                // Get students for the selected class
-                const { data: students, error: studentsError } = await supabase
-                    .from('students')
-                    .select('student_id, name')
-                    .eq('grade_id', classId);
-                
-                if (studentsError) throw studentsError;
-                
-                if (!students || students.length === 0) {
-                    alert('No students found for the selected class');
-                    return;
-                }
                 
                 // Get class and subject info
                 const { data: gradeData } = await supabase
@@ -2943,50 +2940,6 @@
                     .select('name')
                     .eq('id', subjectId)
                     .single();
-                
-                // Get attendance data for the month
-                const { data: attendance, error } = await supabase
-                    .from('attendance')
-                    .select('*')
-                    .eq('subject_id', subjectId)
-                    .gte('date', startDate)
-                    .lte('date', endDate);
-                    
-                if (error) throw error;
-                
-                // Calculate working days
-                let workingDays = 0;
-                let currentDate = new Date(startDate);
-                const endDateObj = new Date(endDate);
-                
-                while (currentDate <= endDateObj) {
-                    const dayOfWeek = currentDate.getDay();
-                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                        workingDays++;
-                    }
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-                
-                // Group attendance by student
-                const studentStats = {};
-                students.forEach(student => {
-                    studentStats[student.student_id] = {
-                        name: student.name,
-                        present: 0,
-                        total: 0
-                    };
-                });
-                
-                if (attendance) {
-                    attendance.forEach(record => {
-                        if (studentStats[record.student_id]) {
-                            studentStats[record.student_id].total++;
-                            if (record.status === 'present') {
-                                studentStats[record.student_id].present++;
-                            }
-                        }
-                    });
-                }
                 
                 // Create PDF
                 const { jsPDF } = window.jspdf;
@@ -3838,6 +3791,20 @@
                 html += `</tbody></table></div></div>`;
                 output.innerHTML = html;
                 
+                // Store report data for PDF generation
+                appData.currentReportData = {
+                    type: 'daily',
+                    date,
+                    classId,
+                    subjectId,
+                    teacherId,
+                    attendance,
+                    classBreakdown,
+                    totalRecords,
+                    presentRecords,
+                    attendanceRate
+                };
+                
             } catch (error) {
                 console.error("Error generating daily report:", error);
                 output.innerHTML = '<div class="error-msg">Error generating daily report: ' + error.message + '</div>';
@@ -4004,6 +3971,20 @@
                 html += `</tbody></table></div></div>`;
                 output.innerHTML = html;
                 
+                // Store report data for PDF generation
+                appData.currentReportData = {
+                    type: 'monthly',
+                    month,
+                    classId,
+                    subjectId,
+                    teacherId,
+                    studentStats,
+                    workingDays,
+                    totalRecords,
+                    presentRecords,
+                    attendanceRate
+                };
+                
             } catch (error) {
                 console.error("Error generating monthly report:", error);
                 output.innerHTML = '<div class="error-msg">Error generating monthly report: ' + error.message + '</div>';
@@ -4013,28 +3994,19 @@
         // COMPLETED PDF REPORT FUNCTIONS
 
         async function generateDailyPdfReport() {
+            // Use stored report data or generate new data
+            if (!appData.currentReportData || appData.currentReportData.type !== 'daily') {
+                alert('Please generate a daily report first before creating PDF');
+                return;
+            }
+            
+            const { date, classBreakdown, totalRecords, presentRecords, attendanceRate } = appData.currentReportData;
+            
             try {
-                const date = document.getElementById('dailyReportDate').value;
-                
-                if (!date) {
-                    alert('Please select a date first');
-                    return;
-                }
-                
                 // Show loading state
                 const originalText = document.getElementById('generateDailyPdfBtn').textContent;
                 document.getElementById('generateDailyPdfBtn').textContent = 'Generating PDF...';
                 document.getElementById('generateDailyPdfBtn').disabled = true;
-                
-                // Get the current report data from the DOM
-                const reportContent = document.getElementById('dailyReportOutput').innerHTML;
-                
-                if (reportContent.includes('No attendance records') || reportContent.includes('loading')) {
-                    alert('Please generate the daily report first before creating PDF');
-                    document.getElementById('generateDailyPdfBtn').textContent = originalText;
-                    document.getElementById('generateDailyPdfBtn').disabled = false;
-                    return;
-                }
                 
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
@@ -4049,12 +4021,36 @@
                 doc.setTextColor(0, 0, 0);
                 doc.text(`Date: ${date}`, 20, 30);
                 
-                // Add summary section (you would extract this from your actual data)
+                // Add summary section
                 doc.text('Summary:', 20, 45);
-                doc.text('• Total Records: [Extract from data]', 25, 55);
-                doc.text('• Present: [Extract from data]', 25, 65);
-                doc.text('• Absent: [Extract from data]', 25, 75);
-                doc.text('• Attendance Rate: [Extract from data]%', 25, 85);
+                doc.text(`• Total Records: ${totalRecords}`, 25, 55);
+                doc.text(`• Present: ${presentRecords}`, 25, 65);
+                doc.text(`• Absent: ${totalRecords - presentRecords}`, 25, 75);
+                doc.text(`• Attendance Rate: ${attendanceRate}%`, 25, 85);
+                
+                // Add class breakdown table
+                const tableData = [];
+                Object.keys(classBreakdown).forEach(className => {
+                    const stats = classBreakdown[className];
+                    const absent = stats.total - stats.present;
+                    const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+                    
+                    tableData.push([
+                        className,
+                        stats.total.toString(),
+                        stats.present.toString(),
+                        absent.toString(),
+                        rate + '%'
+                    ]);
+                });
+                
+                doc.autoTable({
+                    startY: 95,
+                    head: [['Class', 'Total', 'Present', 'Absent', 'Rate']],
+                    body: tableData,
+                    styles: { fontSize: 10 },
+                    headStyles: { fillColor: [0, 90, 156] }
+                });
                 
                 // Save PDF
                 doc.save(`daily_attendance_report_${date}.pdf`);
@@ -4070,28 +4066,19 @@
         }
 
         async function generateMonthlyPdfReport() {
+            // Use stored report data or generate new data
+            if (!appData.currentReportData || appData.currentReportData.type !== 'monthly') {
+                alert('Please generate a monthly report first before creating PDF');
+                return;
+            }
+            
+            const { month, studentStats, workingDays, totalRecords, presentRecords, attendanceRate } = appData.currentReportData;
+            
             try {
-                const month = document.getElementById('monthlyReportMonth').value;
-                
-                if (!month) {
-                    alert('Please select a month first');
-                    return;
-                }
-                
                 // Show loading state
                 const originalText = document.getElementById('generateMonthlyPdfBtn').textContent;
                 document.getElementById('generateMonthlyPdfBtn').textContent = 'Generating PDF...';
                 document.getElementById('generateMonthlyPdfBtn').disabled = true;
-                
-                // Get the current report data from the DOM
-                const reportContent = document.getElementById('monthlyReportOutput').innerHTML;
-                
-                if (reportContent.includes('No attendance records') || reportContent.includes('loading')) {
-                    alert('Please generate the monthly report first before creating PDF');
-                    document.getElementById('generateMonthlyPdfBtn').textContent = originalText;
-                    document.getElementById('generateMonthlyPdfBtn').disabled = false;
-                    return;
-                }
                 
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
@@ -4108,10 +4095,34 @@
                 
                 // Add summary section
                 doc.text('Summary:', 20, 45);
-                doc.text('• Working Days: [Extract from data]', 25, 55);
-                doc.text('• Total Records: [Extract from data]', 25, 65);
-                doc.text('• Present: [Extract from data]', 25, 75);
-                doc.text('• Attendance Rate: [Extract from data]%', 25, 85);
+                doc.text(`• Working Days: ${workingDays}`, 25, 55);
+                doc.text(`• Total Records: ${totalRecords}`, 25, 65);
+                doc.text(`• Present: ${presentRecords}`, 25, 75);
+                doc.text(`• Attendance Rate: ${attendanceRate}%`, 25, 85);
+                
+                // Add student performance table
+                const tableData = [];
+                Object.keys(studentStats).forEach(studentId => {
+                    const stats = studentStats[studentId];
+                    const percentage = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+                    
+                    tableData.push([
+                        studentId,
+                        stats.name,
+                        stats.className,
+                        stats.present.toString(),
+                        stats.total.toString(),
+                        percentage + '%'
+                    ]);
+                });
+                
+                doc.autoTable({
+                    startY: 95,
+                    head: [['Student ID', 'Name', 'Class', 'Present', 'Total', 'Percentage']],
+                    body: tableData,
+                    styles: { fontSize: 9 },
+                    headStyles: { fillColor: [0, 90, 156] }
+                });
                 
                 // Save PDF
                 doc.save(`monthly_attendance_report_${month}.pdf`);
@@ -4344,4 +4355,3 @@
     </script>
 </body>
 </html>
-
