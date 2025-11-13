@@ -2077,14 +2077,14 @@
             });
         }
 
-        // TEACHER MANAGEMENT - FIXED
+        // FIXED TEACHER MANAGEMENT
         async function loadTeachers() {
             try {
                 const { data: teachers, error } = await supabase
                     .from('teachers')
                     .select(`
                         *,
-                        subjects!inner(name)
+                        subjects (name)
                     `)
                     .order('name');
 
@@ -2139,6 +2139,18 @@
             }
             
             try {
+                // First check if teacher ID already exists
+                const { data: existingTeacher, error: checkError } = await supabase
+                    .from('teachers')
+                    .select('teacher_id')
+                    .eq('teacher_id', teacherId)
+                    .single();
+                    
+                if (existingTeacher) {
+                    alert('Teacher ID already exists. Please use a different ID.');
+                    return;
+                }
+                
                 const { data, error } = await supabase
                     .from('teachers')
                     .insert([{
@@ -2168,6 +2180,172 @@
             } catch (error) {
                 console.error("Error adding teacher:", error);
                 alert('Error adding teacher: ' + error.message);
+            }
+        }
+
+        // FIXED EDIT TEACHER FUNCTION
+        async function editTeacher(teacherId) {
+            try {
+                // Get teacher data
+                const { data: teacher, error } = await supabase
+                    .from('teachers')
+                    .select(`
+                        *,
+                        subjects (name)
+                    `)
+                    .eq('id', teacherId)
+                    .single();
+
+                if (error) throw error;
+                
+                if (!teacher) {
+                    alert('Teacher not found');
+                    return;
+                }
+                
+                // Create edit form
+                const editForm = `
+                    <div class="card" id="editTeacherForm">
+                        <h3>Edit Teacher</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Teacher ID</label>
+                                <input type="text" id="editTeacherId" value="${teacher.teacher_id}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Teacher Name</label>
+                                <input type="text" id="editTeacherName" value="${teacher.name}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <select id="editTeacherSubject">
+                                <option value="">Loading subjects...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="editTeacherRole">
+                                <option value="classTeacher" ${teacher.role === 'classTeacher' ? 'selected' : ''}>Class Teacher</option>
+                                <option value="subjectTeacher" ${teacher.role === 'subjectTeacher' ? 'selected' : ''}>Subject Teacher</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display: flex; gap: 10px;">
+                            <button class="btn btn-primary" onclick="updateTeacher('${teacherId}')">Update Teacher</button>
+                            <button class="btn btn-secondary" onclick="cancelEditTeacher()">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Replace teacher list with edit form
+                document.getElementById('teachersList').innerHTML = editForm;
+                
+                // Load subjects dropdown
+                await loadEditTeacherSubjects(teacher.subject_id);
+                
+            } catch (error) {
+                console.error("Error loading teacher for edit:", error);
+                alert('Error loading teacher: ' + error.message);
+            }
+        }
+
+        async function loadEditTeacherSubjects(currentSubjectId) {
+            try {
+                const { data: subjects, error } = await supabase
+                    .from('subjects')
+                    .select('*')
+                    .order('name');
+
+                const subjectSelect = document.getElementById('editTeacherSubject');
+                subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+                
+                if (error) throw error;
+                
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject.id;
+                    option.textContent = subject.name;
+                    if (subject.id === currentSubjectId) {
+                        option.selected = true;
+                    }
+                    subjectSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error("Error loading subjects for edit:", error);
+            }
+        }
+
+        async function updateTeacher(teacherId) {
+            const teacherName = document.getElementById('editTeacherName').value.trim();
+            const subjectId = document.getElementById('editTeacherSubject').value;
+            const role = document.getElementById('editTeacherRole').value;
+            
+            if (!teacherName || !subjectId) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            try {
+                const { error } = await supabase
+                    .from('teachers')
+                    .update({
+                        name: teacherName,
+                        subject_id: subjectId,
+                        role: role
+                    })
+                    .eq('id', teacherId);
+                    
+                if (error) throw error;
+                
+                alert('Teacher updated successfully!');
+                
+                // Reload teachers list
+                loadTeachers();
+                loadTeacherDropdowns();
+                
+            } catch (error) {
+                console.error("Error updating teacher:", error);
+                alert('Error updating teacher: ' + error.message);
+            }
+        }
+
+        function cancelEditTeacher() {
+            loadTeachers();
+        }
+
+        // FIXED DELETE TEACHER FUNCTION
+        async function deleteTeacher(teacherId) {
+            if (confirm('Are you sure you want to delete this teacher?')) {
+                try {
+                    // Check if teacher has any attendance records
+                    const { data: attendanceRecords, error: checkError } = await supabase
+                        .from('attendance')
+                        .select('id')
+                        .eq('teacher_id', teacherId)
+                        .limit(1);
+                        
+                    if (checkError) throw checkError;
+                    
+                    if (attendanceRecords && attendanceRecords.length > 0) {
+                        alert('Cannot delete this teacher because they have attendance records. Please reassign or delete the attendance records first.');
+                        return;
+                    }
+                    
+                    const { error } = await supabase
+                        .from('teachers')
+                        .delete()
+                        .eq('id', teacherId);
+                        
+                    if (error) throw error;
+                    
+                    alert('Teacher deleted successfully');
+                    loadTeachers();
+                    loadTeacherDropdowns();
+                } catch (error) {
+                    console.error("Error deleting teacher:", error);
+                    alert('Error deleting teacher: ' + error.message);
+                }
             }
         }
 
@@ -2755,7 +2933,7 @@
                     .from('teachers')
                     .select(`
                         *,
-                        subjects!inner(name)
+                        subjects (name)
                     `)
                     .order('name');
                 
@@ -3287,7 +3465,7 @@
             };
         }
 
-        // EDIT AND DELETE FUNCTIONS
+        // EDIT AND DELETE FUNCTIONS FOR OTHER ENTITIES
         async function editStudent(studentId) {
             alert('Edit student functionality would go here for student: ' + studentId);
         }
@@ -3311,29 +3489,6 @@
             }
         }
 
-        async function editTeacher(teacherId) {
-            alert('Edit teacher functionality would go here for teacher: ' + teacherId);
-        }
-
-        async function deleteTeacher(teacherId) {
-            if (confirm('Are you sure you want to delete this teacher?')) {
-                try {
-                    const { error } = await supabase
-                        .from('teachers')
-                        .delete()
-                        .eq('id', teacherId);
-                        
-                    if (error) throw error;
-                    
-                    alert('Teacher deleted successfully');
-                    loadTeachers();
-                } catch (error) {
-                    console.error("Error deleting teacher:", error);
-                    alert('Error deleting teacher: ' + error.message);
-                }
-            }
-        }
-
         async function editSubject(subjectId) {
             alert('Edit subject functionality would go here for subject: ' + subjectId);
         }
@@ -3341,6 +3496,20 @@
         async function deleteSubject(subjectId) {
             if (confirm('Are you sure you want to delete this subject?')) {
                 try {
+                    // Check if subject is assigned to any teacher
+                    const { data: teachers, error: checkError } = await supabase
+                        .from('teachers')
+                        .select('id')
+                        .eq('subject_id', subjectId)
+                        .limit(1);
+                        
+                    if (checkError) throw checkError;
+                    
+                    if (teachers && teachers.length > 0) {
+                        alert('Cannot delete this subject because it is assigned to one or more teachers. Please reassign or delete the teachers first.');
+                        return;
+                    }
+                    
                     const { error } = await supabase
                         .from('subjects')
                         .delete()
