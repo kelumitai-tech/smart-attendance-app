@@ -1909,11 +1909,15 @@
             }
         }
 
+        // FIXED: Teacher dropdowns now properly display subject names
         async function loadTeacherDropdowns() {
             try {
                 const { data: teachers, error } = await supabase
                     .from('teachers')
-                    .select('*')
+                    .select(`
+                        *,
+                        subjects!inner (name)
+                    `)
                     .order('name');
 
                 const selectTeacher = document.getElementById('selectTeacher');
@@ -1940,9 +1944,11 @@
                 }
                 
                 teachers.forEach(teacher => {
+                    // FIXED: Properly access the subject name from the joined table
+                    const subjectName = teacher.subjects ? teacher.subjects.name : 'No Subject';
                     const option = document.createElement('option');
                     option.value = teacher.id;
-                    option.textContent = `${teacher.name} (${teacher.teacher_id}) - ${teacher.subject_name || 'No Subject'}`;
+                    option.textContent = `${teacher.name} (${teacher.teacher_id}) - ${subjectName}`;
                     
                     dropdowns.forEach(select => {
                         select.appendChild(option.cloneNode(true));
@@ -2305,7 +2311,7 @@
                 
                 let html = '';
                 teachers.forEach((teacher, index) => {
-                    // Fixed: Now correctly accessing subject name from the joined table
+                    // FIXED: Now correctly accessing subject name from the joined table
                     const subjectName = teacher.subjects ? teacher.subjects.name : 'No Subject';
                     const roleDisplay = teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher';
                     
