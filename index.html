@@ -1568,7 +1568,7 @@
             // Dashboard
             document.getElementById('refreshDashboardBtn').addEventListener('click', loadDashboard);
             
-            // Dashboard Reports
+            // Dashboard Reports - ADDED MISSING EVENT LISTENERS
             document.getElementById('dashboardGenerateDailyReportBtn').addEventListener('click', generateDashboardDailyReport);
             document.getElementById('dashboardGenerateDailyPdfBtn').addEventListener('click', generateDashboardDailyPdfReport);
             document.getElementById('dashboardGenerateMonthlyReportBtn').addEventListener('click', generateDashboardMonthlyReport);
@@ -2970,8 +2970,12 @@
 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    appData.currentReportData = null;
                     return;
                 }
+
+                // Store data for PDF generation
+                appData.currentReportData = attendance;
 
                 // Calculate summary
                 const total = attendance.length;
@@ -2989,7 +2993,8 @@
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th>Student</th>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
                                     <th>Class</th>
                                     <th>Subject</th>
                                     <th>Teacher</th>
@@ -3008,7 +3013,8 @@
                     html += `
                         <tr>
                             <td>${record.date}</td>
-                            <td>${student.student_id} - ${student.name}</td>
+                            <td>${student.student_id}</td>
+                            <td>${student.name}</td>
                             <td>${grade ? grade.grade + ' - ' + grade.class_name : 'N/A'}</td>
                             <td>${subject ? subject.name : 'N/A'}</td>
                             <td>${teacher ? teacher.teacher_id + ' - ' + teacher.name : 'N/A'}</td>
@@ -3020,11 +3026,11 @@
                 html += '</tbody></table></div>';
 
                 output.innerHTML = html;
-                appData.currentReportData = attendance;
                 
             } catch (error) {
                 console.error("Error generating daily report:", error);
                 output.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+                appData.currentReportData = null;
             }
         }
 
@@ -3069,6 +3075,7 @@
 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    appData.currentReportData = null;
                     return;
                 }
 
@@ -3089,6 +3096,9 @@
                         studentAttendance[studentId].present++;
                     }
                 });
+
+                // Store data for PDF generation
+                appData.currentReportData = Object.values(studentAttendance);
 
                 let html = `
                     <div class="attendance-summary">
@@ -3135,11 +3145,228 @@
                 html += '</tbody></table></div>';
 
                 output.innerHTML = html;
-                appData.currentReportData = Object.values(studentAttendance);
                 
             } catch (error) {
                 console.error("Error generating monthly report:", error);
                 output.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+                appData.currentReportData = null;
+            }
+        }
+
+        // FIXED PDF GENERATION FUNCTIONS
+
+        async function generateDailyPdfReport() {
+            const date = document.getElementById('dailyReportDate').value;
+            
+            if (!date) {
+                alert('Please select a date first');
+                return;
+            }
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Add title
+                doc.setFontSize(16);
+                doc.text('Daily Attendance Report', 105, 15, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.text(`Date: ${date}`, 105, 25, { align: 'center' });
+
+                // Get the data for PDF
+                const classId = document.getElementById('dailyReportClass').value;
+                const subjectId = document.getElementById('dailyReportSubject').value;
+                const teacherId = document.getElementById('dailyReportTeacher').value;
+
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (student_id, name, grade_id),
+                        grades (grade, class_name),
+                        subjects (name),
+                        teachers (teacher_id, name)
+                    `)
+                    .eq('date', date);
+
+                // Apply filters if provided
+                if (classId) query = query.eq('students.grade_id', classId);
+                if (subjectId) query = query.eq('subject_id', subjectId);
+                if (teacherId) query = query.eq('teacher_id', teacherId);
+
+                const { data: attendance, error } = await query;
+
+                if (error) throw error;
+
+                if (!attendance || attendance.length === 0) {
+                    alert('No attendance records found for the selected criteria');
+                    return;
+                }
+
+                // Calculate summary
+                const total = attendance.length;
+                const present = attendance.filter(a => a.status === 'present').length;
+                const absent = total - present;
+                const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+                // Add summary
+                doc.setFontSize(10);
+                doc.text(`Total Records: ${total} | Present: ${present} | Absent: ${absent} | Attendance Rate: ${percentage}%`, 105, 35, { align: 'center' });
+
+                // Prepare table data
+                const tableData = attendance.map(record => [
+                    record.date,
+                    `${record.students.student_id} - ${record.students.name}`,
+                    record.grades ? `${record.grades.grade} - ${record.grades.class_name}` : 'N/A',
+                    record.subjects ? record.subjects.name : 'N/A',
+                    record.teachers ? `${record.teachers.teacher_id} - ${record.teachers.name}` : 'N/A',
+                    record.status === 'present' ? 'Present' : 'Absent'
+                ]);
+
+                // Add table
+                doc.autoTable({
+                    head: [['Date', 'Student', 'Class', 'Subject', 'Teacher', 'Status']],
+                    body: tableData,
+                    startY: 45,
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    headStyles: { fillColor: [0, 90, 156] },
+                    columnStyles: {
+                        0: { cellWidth: 25 },
+                        1: { cellWidth: 40 },
+                        2: { cellWidth: 25 },
+                        3: { cellWidth: 25 },
+                        4: { cellWidth: 35 },
+                        5: { cellWidth: 20 }
+                    }
+                });
+
+                // Save the PDF
+                doc.save(`daily_attendance_report_${date}.pdf`);
+                
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+
+        async function generateMonthlyPdfReport() {
+            const month = document.getElementById('reportMonth').value;
+            
+            if (!month) {
+                alert('Please select a month first');
+                return;
+            }
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Add title
+                doc.setFontSize(16);
+                doc.text('Monthly Attendance Report', 105, 15, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.text(`Month: ${month}`, 105, 25, { align: 'center' });
+
+                // Get the data for PDF
+                const classId = document.getElementById('reportClass').value;
+                const subjectId = document.getElementById('reportSubject').value;
+
+                // Calculate start and end dates for the selected month
+                const startDate = month + '-01';
+                const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0)
+                    .toISOString().split('T')[0];
+
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (student_id, name, grade_id),
+                        grades (grade, class_name),
+                        subjects (name),
+                        teachers (teacher_id, name)
+                    `)
+                    .gte('date', startDate)
+                    .lte('date', endDate);
+
+                // Apply filters if provided
+                if (classId) query = query.eq('students.grade_id', classId);
+                if (subjectId) query = query.eq('subject_id', subjectId);
+
+                const { data: attendance, error } = await query;
+
+                if (error) throw error;
+
+                if (!attendance || attendance.length === 0) {
+                    alert('No attendance records found for the selected criteria');
+                    return;
+                }
+
+                // Group by student and calculate attendance percentage
+                const studentAttendance = {};
+                attendance.forEach(record => {
+                    const studentId = record.student_id;
+                    if (!studentAttendance[studentId]) {
+                        studentAttendance[studentId] = {
+                            student: record.students,
+                            grade: record.grades,
+                            total: 0,
+                            present: 0
+                        };
+                    }
+                    studentAttendance[studentId].total++;
+                    if (record.status === 'present') {
+                        studentAttendance[studentId].present++;
+                    }
+                });
+
+                const studentsData = Object.values(studentAttendance);
+                
+                // Add summary
+                doc.setFontSize(10);
+                doc.text(`Total Students: ${studentsData.length} | Total Records: ${attendance.length}`, 105, 35, { align: 'center' });
+
+                // Prepare table data
+                const tableData = studentsData.map(data => {
+                    const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+                    const absent = data.total - data.present;
+                    
+                    return [
+                        data.student.student_id,
+                        data.student.name,
+                        data.grade ? `${data.grade.grade} - ${data.grade.class_name}` : 'N/A',
+                        data.total.toString(),
+                        data.present.toString(),
+                        absent.toString(),
+                        `${percentage}%`
+                    ];
+                });
+
+                // Add table
+                doc.autoTable({
+                    head: [['Student ID', 'Name', 'Class', 'Total Days', 'Present', 'Absent', 'Attendance %']],
+                    body: tableData,
+                    startY: 45,
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    headStyles: { fillColor: [0, 90, 156] },
+                    columnStyles: {
+                        0: { cellWidth: 20 },
+                        1: { cellWidth: 35 },
+                        2: { cellWidth: 25 },
+                        3: { cellWidth: 15 },
+                        4: { cellWidth: 15 },
+                        5: { cellWidth: 15 },
+                        6: { cellWidth: 20 }
+                    }
+                });
+
+                // Save the PDF
+                doc.save(`monthly_attendance_report_${month}.pdf`);
+                
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert('Error generating PDF: ' + error.message);
             }
         }
 
@@ -3228,89 +3455,6 @@
                 console.error("Error viewing attendance:", error);
                 output.innerHTML = '<div class="error-msg">Error loading attendance: ' + error.message + '</div>';
             }
-        }
-
-        // PDF GENERATION FUNCTIONS
-
-        async function generateDailyPdfReport() {
-            if (!appData.currentReportData) {
-                alert('Please generate a report first before creating PDF');
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // Add title
-            doc.setFontSize(16);
-            doc.text('Daily Attendance Report', 105, 15, { align: 'center' });
-            
-            const date = document.getElementById('dailyReportDate').value;
-            doc.setFontSize(12);
-            doc.text(`Date: ${date}`, 105, 25, { align: 'center' });
-
-            // Prepare table data
-            const tableData = appData.currentReportData.map(record => [
-                record.date,
-                `${record.students.student_id} - ${record.students.name}`,
-                record.grades ? `${record.grades.grade} - ${record.grades.class_name}` : 'N/A',
-                record.subjects ? record.subjects.name : 'N/A',
-                record.teachers ? `${record.teachers.teacher_id} - ${record.teachers.name}` : 'N/A',
-                record.status === 'present' ? 'Present' : 'Absent'
-            ]);
-
-            // Add table
-            doc.autoTable({
-                head: [['Date', 'Student', 'Class', 'Subject', 'Teacher', 'Status']],
-                body: tableData,
-                startY: 35,
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [0, 90, 156] }
-            });
-
-            // Save the PDF
-            doc.save(`daily_attendance_report_${date}.pdf`);
-        }
-
-        async function generateMonthlyPdfReport() {
-            if (!appData.currentReportData) {
-                alert('Please generate a report first before creating PDF');
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // Add title
-            doc.setFontSize(16);
-            doc.text('Monthly Attendance Report', 105, 15, { align: 'center' });
-            
-            const month = document.getElementById('reportMonth').value;
-            doc.setFontSize(12);
-            doc.text(`Month: ${month}`, 105, 25, { align: 'center' });
-
-            // Prepare table data
-            const tableData = appData.currentReportData.map(data => [
-                data.student.student_id,
-                data.student.name,
-                data.grade ? `${data.grade.grade} - ${data.grade.class_name}` : 'N/A',
-                data.total,
-                data.present,
-                data.total - data.present,
-                `${Math.round((data.present / data.total) * 100)}%`
-            ]);
-
-            // Add table
-            doc.autoTable({
-                head: [['Student ID', 'Name', 'Class', 'Total Days', 'Present', 'Absent', 'Attendance %']],
-                body: tableData,
-                startY: 35,
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [0, 90, 156] }
-            });
-
-            // Save the PDF
-            doc.save(`monthly_attendance_report_${month}.pdf`);
         }
 
         // DASHBOARD FUNCTIONS
@@ -3442,8 +3586,12 @@
 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    appData.currentReportData = null;
                     return;
                 }
+
+                // Store data for PDF generation
+                appData.currentReportData = attendance;
 
                 // Calculate summary
                 const total = attendance.length;
@@ -3492,11 +3640,11 @@
                 html += '</tbody></table></div>';
 
                 output.innerHTML = html;
-                appData.currentReportData = attendance;
                 
             } catch (error) {
                 console.error("Error generating daily report:", error);
                 output.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+                appData.currentReportData = null;
             }
         }
 
@@ -3543,6 +3691,7 @@
 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    appData.currentReportData = null;
                     return;
                 }
 
@@ -3563,6 +3712,9 @@
                         studentAttendance[studentId].present++;
                     }
                 });
+
+                // Store data for PDF generation
+                appData.currentReportData = Object.values(studentAttendance);
 
                 let html = `
                     <div class="attendance-summary">
@@ -3609,11 +3761,11 @@
                 html += '</tbody></table></div>';
 
                 output.innerHTML = html;
-                appData.currentReportData = Object.values(studentAttendance);
                 
             } catch (error) {
                 console.error("Error generating monthly report:", error);
                 output.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+                appData.currentReportData = null;
             }
         }
 
