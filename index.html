@@ -3356,6 +3356,15 @@
                 const classTableData = {};
                 const subjectTableData = {};
                 
+                if (attendance && attendance.length === 0) {
+                    // If no data, show empty state
+                    document.getElementById('classAttendanceTable').innerHTML = 
+                        '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">No attendance data available for selected date</td></tr>';
+                    document.getElementById('subjectAttendanceTable').innerHTML = 
+                        '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">No attendance data available for selected date</td></tr>';
+                    return;
+                }
+                
                 if (attendance && attendance.length > 0) {
                     attendance.forEach(record => {
                         const classInfo = record.grades ? `${record.grades.grade} - ${record.grades.class_name}` : 'Unknown Class';
@@ -4355,4 +4364,3 @@
     </script>
 </body>
 </html>
-
