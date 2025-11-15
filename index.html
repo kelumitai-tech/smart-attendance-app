@@ -1557,7 +1557,7 @@
             document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
             document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
-            // Reports
+            // Reports - FIXED: Added all missing event listeners
             document.getElementById('generateReportBtn').addEventListener('click', generateMonthlyReport);
             document.getElementById('generatePdfBtn').addEventListener('click', generateMonthlyPdfReport);
             
@@ -1568,7 +1568,7 @@
             // Dashboard
             document.getElementById('refreshDashboardBtn').addEventListener('click', loadDashboard);
             
-            // Dashboard Reports - ADDED MISSING EVENT LISTENERS
+            // Dashboard Reports - FIXED: Added missing event listeners
             document.getElementById('dashboardGenerateDailyReportBtn').addEventListener('click', generateDashboardDailyReport);
             document.getElementById('dashboardGenerateDailyPdfBtn').addEventListener('click', generateDashboardDailyPdfReport);
             document.getElementById('dashboardGenerateMonthlyReportBtn').addEventListener('click', generateDashboardMonthlyReport);
@@ -2931,7 +2931,7 @@
             });
         }
 
-        // REPORTS AND VIEW ATTENDANCE
+        // REPORTS AND VIEW ATTENDANCE - FIXED FUNCTIONS
 
         async function generateDailyReport() {
             const date = document.getElementById('dailyReportDate').value;
@@ -2948,14 +2948,15 @@
             output.innerHTML = '<div class="loading">Generating daily report...</div>';
 
             try {
+                // Build the query for daily report
                 let query = supabase
                     .from('attendance')
                     .select(`
                         *,
-                        students (student_id, name, grade_id),
-                        grades (grade, class_name),
-                        subjects (name),
-                        teachers (teacher_id, name)
+                        students!inner(student_id, name, grade_id),
+                        grades!inner(grade, class_name),
+                        subjects!inner(name),
+                        teachers!inner(teacher_id, name)
                     `)
                     .eq('date', date);
 
@@ -2966,13 +2967,18 @@
 
                 const { data: attendance, error } = await query;
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Supabase error:", error);
+                    throw error;
+                }
 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
                     appData.currentReportData = null;
                     return;
                 }
+
+                console.log("Daily report data:", attendance);
 
                 // Store data for PDF generation
                 appData.currentReportData = attendance;
@@ -3005,19 +3011,23 @@
                 `;
 
                 attendance.forEach(record => {
-                    const student = record.students;
-                    const grade = record.grades;
-                    const subject = record.subjects;
-                    const teacher = record.teachers;
+                    // Use safe access with null checks
+                    const studentId = record.students?.student_id || 'N/A';
+                    const studentName = record.students?.name || 'N/A';
+                    const grade = record.grades?.grade || 'N/A';
+                    const className = record.grades?.class_name || 'N/A';
+                    const subjectName = record.subjects?.name || 'N/A';
+                    const teacherId = record.teachers?.teacher_id || 'N/A';
+                    const teacherName = record.teachers?.name || 'N/A';
 
                     html += `
                         <tr>
                             <td>${record.date}</td>
-                            <td>${student.student_id}</td>
-                            <td>${student.name}</td>
-                            <td>${grade ? grade.grade + ' - ' + grade.class_name : 'N/A'}</td>
-                            <td>${subject ? subject.name : 'N/A'}</td>
-                            <td>${teacher ? teacher.teacher_id + ' - ' + teacher.name : 'N/A'}</td>
+                            <td>${studentId}</td>
+                            <td>${studentName}</td>
+                            <td>${grade} - ${className}</td>
+                            <td>${subjectName}</td>
+                            <td>${teacherId} - ${teacherName}</td>
                             <td class="${record.status === 'present' ? 'present' : 'absent'}">${record.status === 'present' ? 'Present' : 'Absent'}</td>
                         </tr>
                     `;
@@ -3053,14 +3063,14 @@
                 const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0)
                     .toISOString().split('T')[0];
 
+                // Build the query for monthly report
                 let query = supabase
                     .from('attendance')
                     .select(`
                         *,
-                        students (student_id, name, grade_id),
-                        grades (grade, class_name),
-                        subjects (name),
-                        teachers (teacher_id, name)
+                        students!inner(student_id, name, grade_id),
+                        grades!inner(grade, class_name),
+                        subjects!inner(name)
                     `)
                     .gte('date', startDate)
                     .lte('date', endDate);
@@ -3071,13 +3081,18 @@
 
                 const { data: attendance, error } = await query;
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Supabase error:", error);
+                    throw error;
+                }
 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
                     appData.currentReportData = null;
                     return;
                 }
+
+                console.log("Monthly report data:", attendance);
 
                 // Group by student and calculate attendance percentage
                 const studentAttendance = {};
@@ -3129,11 +3144,17 @@
                     if (percentage >= 80) percentageClass = 'percentage-good';
                     else if (percentage >= 60) percentageClass = 'percentage-average';
 
+                    // Safe access with null checks
+                    const studentId = data.student?.student_id || 'N/A';
+                    const studentName = data.student?.name || 'N/A';
+                    const grade = data.grade?.grade || 'N/A';
+                    const className = data.grade?.class_name || 'N/A';
+
                     html += `
                         <tr>
-                            <td>${data.student.student_id}</td>
-                            <td>${data.student.name}</td>
-                            <td>${data.grade ? data.grade.grade + ' - ' + data.grade.class_name : 'N/A'}</td>
+                            <td>${studentId}</td>
+                            <td>${studentName}</td>
+                            <td>${grade} - ${className}</td>
                             <td>${data.total}</td>
                             <td class="present">${data.present}</td>
                             <td class="absent">${absent}</td>
@@ -3183,10 +3204,10 @@
                     .from('attendance')
                     .select(`
                         *,
-                        students (student_id, name, grade_id),
-                        grades (grade, class_name),
-                        subjects (name),
-                        teachers (teacher_id, name)
+                        students!inner(student_id, name, grade_id),
+                        grades!inner(grade, class_name),
+                        subjects!inner(name),
+                        teachers!inner(teacher_id, name)
                     `)
                     .eq('date', date);
 
@@ -3215,14 +3236,25 @@
                 doc.text(`Total Records: ${total} | Present: ${present} | Absent: ${absent} | Attendance Rate: ${percentage}%`, 105, 35, { align: 'center' });
 
                 // Prepare table data
-                const tableData = attendance.map(record => [
-                    record.date,
-                    `${record.students.student_id} - ${record.students.name}`,
-                    record.grades ? `${record.grades.grade} - ${record.grades.class_name}` : 'N/A',
-                    record.subjects ? record.subjects.name : 'N/A',
-                    record.teachers ? `${record.teachers.teacher_id} - ${record.teachers.name}` : 'N/A',
-                    record.status === 'present' ? 'Present' : 'Absent'
-                ]);
+                const tableData = attendance.map(record => {
+                    // Safe access with null checks
+                    const studentId = record.students?.student_id || 'N/A';
+                    const studentName = record.students?.name || 'N/A';
+                    const grade = record.grades?.grade || 'N/A';
+                    const className = record.grades?.class_name || 'N/A';
+                    const subjectName = record.subjects?.name || 'N/A';
+                    const teacherId = record.teachers?.teacher_id || 'N/A';
+                    const teacherName = record.teachers?.name || 'N/A';
+
+                    return [
+                        record.date,
+                        `${studentId} - ${studentName}`,
+                        `${grade} - ${className}`,
+                        subjectName,
+                        `${teacherId} - ${teacherName}`,
+                        record.status === 'present' ? 'Present' : 'Absent'
+                    ];
+                });
 
                 // Add table
                 doc.autoTable({
@@ -3282,10 +3314,9 @@
                     .from('attendance')
                     .select(`
                         *,
-                        students (student_id, name, grade_id),
-                        grades (grade, class_name),
-                        subjects (name),
-                        teachers (teacher_id, name)
+                        students!inner(student_id, name, grade_id),
+                        grades!inner(grade, class_name),
+                        subjects!inner(name)
                     `)
                     .gte('date', startDate)
                     .lte('date', endDate);
@@ -3332,10 +3363,16 @@
                     const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
                     const absent = data.total - data.present;
                     
+                    // Safe access with null checks
+                    const studentId = data.student?.student_id || 'N/A';
+                    const studentName = data.student?.name || 'N/A';
+                    const grade = data.grade?.grade || 'N/A';
+                    const className = data.grade?.class_name || 'N/A';
+
                     return [
-                        data.student.student_id,
-                        data.student.name,
-                        data.grade ? `${data.grade.grade} - ${data.grade.class_name}` : 'N/A',
+                        studentId,
+                        studentName,
+                        `${grade} - ${className}`,
                         data.total.toString(),
                         data.present.toString(),
                         absent.toString(),
@@ -3389,10 +3426,10 @@
                     .from('attendance')
                     .select(`
                         *,
-                        students (student_id, name, grade_id),
-                        grades (grade, class_name),
-                        subjects (name),
-                        teachers (teacher_id, name)
+                        students!inner(student_id, name, grade_id),
+                        grades!inner(grade, class_name),
+                        subjects!inner(name),
+                        teachers!inner(teacher_id, name)
                     `)
                     .eq('date', date);
 
@@ -3430,18 +3467,22 @@
                 `;
 
                 attendance.forEach(record => {
-                    const student = record.students;
-                    const grade = record.grades;
-                    const subject = record.subjects;
-                    const teacher = record.teachers;
+                    // Safe access with null checks
+                    const studentId = record.students?.student_id || 'N/A';
+                    const studentName = record.students?.name || 'N/A';
+                    const grade = record.grades?.grade || 'N/A';
+                    const className = record.grades?.class_name || 'N/A';
+                    const subjectName = record.subjects?.name || 'N/A';
+                    const teacherId = record.teachers?.teacher_id || 'N/A';
+                    const teacherName = record.teachers?.name || 'N/A';
 
                     html += `
                         <tr>
                             <td>${record.date}</td>
-                            <td>${student.student_id} - ${student.name}</td>
-                            <td>${grade ? grade.grade + ' - ' + grade.class_name : 'N/A'}</td>
-                            <td>${subject ? subject.name : 'N/A'}</td>
-                            <td>${teacher ? teacher.teacher_id + ' - ' + teacher.name : 'N/A'}</td>
+                            <td>${studentId} - ${studentName}</td>
+                            <td>${grade} - ${className}</td>
+                            <td>${subjectName}</td>
+                            <td>${teacherId} - ${teacherName}</td>
                             <td class="${record.status === 'present' ? 'present' : 'absent'}">${record.status === 'present' ? 'Present' : 'Absent'}</td>
                         </tr>
                     `;
@@ -3508,7 +3549,7 @@
                     .from('attendance')
                     .select(`
                         *,
-                        students (gender, grade_id)
+                        students!inner(gender, grade_id)
                     `)
                     .eq('date', date);
 
@@ -3527,10 +3568,10 @@
                 const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
                 // Gender breakdown
-                const maleStudents = attendance ? attendance.filter(a => a.students.gender === 'Male').length : 0;
-                const femaleStudents = attendance ? attendance.filter(a => a.students.gender === 'Female').length : 0;
-                const malePresent = attendance ? attendance.filter(a => a.students.gender === 'Male' && a.status === 'present').length : 0;
-                const femalePresent = attendance ? attendance.filter(a => a.students.gender === 'Female' && a.status === 'present').length : 0;
+                const maleStudents = attendance ? attendance.filter(a => a.students?.gender === 'Male').length : 0;
+                const femaleStudents = attendance ? attendance.filter(a => a.students?.gender === 'Female').length : 0;
+                const malePresent = attendance ? attendance.filter(a => a.students?.gender === 'Male' && a.status === 'present').length : 0;
+                const femalePresent = attendance ? attendance.filter(a => a.students?.gender === 'Female' && a.status === 'present').length : 0;
 
                 // Update UI
                 document.getElementById('totalStudentsCount').textContent = total;
@@ -3568,10 +3609,10 @@
                     .from('attendance')
                     .select(`
                         *,
-                        students (student_id, name, grade_id),
-                        grades (grade, class_name),
-                        subjects (name),
-                        teachers (teacher_id, name)
+                        students!inner(student_id, name, grade_id),
+                        grades!inner(grade, class_name),
+                        subjects!inner(name),
+                        teachers!inner(teacher_id, name)
                     `)
                     .eq('date', date);
 
@@ -3582,7 +3623,10 @@
 
                 const { data: attendance, error } = await query;
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Supabase error:", error);
+                    throw error;
+                }
 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
@@ -3620,18 +3664,22 @@
                 `;
 
                 attendance.forEach(record => {
-                    const student = record.students;
-                    const grade = record.grades;
-                    const subject = record.subjects;
-                    const teacher = record.teachers;
+                    // Safe access with null checks
+                    const studentId = record.students?.student_id || 'N/A';
+                    const studentName = record.students?.name || 'N/A';
+                    const grade = record.grades?.grade || 'N/A';
+                    const className = record.grades?.class_name || 'N/A';
+                    const subjectName = record.subjects?.name || 'N/A';
+                    const teacherId = record.teachers?.teacher_id || 'N/A';
+                    const teacherName = record.teachers?.name || 'N/A';
 
                     html += `
                         <tr>
                             <td>${record.date}</td>
-                            <td>${student.student_id} - ${student.name}</td>
-                            <td>${grade ? grade.grade + ' - ' + grade.class_name : 'N/A'}</td>
-                            <td>${subject ? subject.name : 'N/A'}</td>
-                            <td>${teacher ? teacher.teacher_id + ' - ' + teacher.name : 'N/A'}</td>
+                            <td>${studentId} - ${studentName}</td>
+                            <td>${grade} - ${className}</td>
+                            <td>${subjectName}</td>
+                            <td>${teacherId} - ${teacherName}</td>
                             <td class="${record.status === 'present' ? 'present' : 'absent'}">${record.status === 'present' ? 'Present' : 'Absent'}</td>
                         </tr>
                     `;
@@ -3672,10 +3720,10 @@
                     .from('attendance')
                     .select(`
                         *,
-                        students (student_id, name, grade_id),
-                        grades (grade, class_name),
-                        subjects (name),
-                        teachers (teacher_id, name)
+                        students!inner(student_id, name, grade_id),
+                        grades!inner(grade, class_name),
+                        subjects!inner(name),
+                        teachers!inner(teacher_id, name)
                     `)
                     .gte('date', startDate)
                     .lte('date', endDate);
@@ -3687,7 +3735,10 @@
 
                 const { data: attendance, error } = await query;
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Supabase error:", error);
+                    throw error;
+                }
 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
@@ -3745,11 +3796,17 @@
                     if (percentage >= 80) percentageClass = 'percentage-good';
                     else if (percentage >= 60) percentageClass = 'percentage-average';
 
+                    // Safe access with null checks
+                    const studentId = data.student?.student_id || 'N/A';
+                    const studentName = data.student?.name || 'N/A';
+                    const grade = data.grade?.grade || 'N/A';
+                    const className = data.grade?.class_name || 'N/A';
+
                     html += `
                         <tr>
-                            <td>${data.student.student_id}</td>
-                            <td>${data.student.name}</td>
-                            <td>${data.grade ? data.grade.grade + ' - ' + data.grade.class_name : 'N/A'}</td>
+                            <td>${studentId}</td>
+                            <td>${studentName}</td>
+                            <td>${grade} - ${className}</td>
                             <td>${data.total}</td>
                             <td class="present">${data.present}</td>
                             <td class="absent">${absent}</td>
