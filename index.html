@@ -1398,7 +1398,7 @@
             // Set month inputs
             const currentMonth = formattedDate.substring(0, 7);
             const monthInputs = [
-                'reportMonth', 'monthlyReportMonth', 'dashboardMonthlyReportMonth'
+                'reportMonth', 'dashboardMonthlyReportMonth'
             ];
             
             monthInputs.forEach(id => {
@@ -1558,8 +1558,8 @@
             document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
             // Reports
-            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
-            document.getElementById('generatePdfBtn').addEventListener('click', generatePdfReport);
+            document.getElementById('generateReportBtn').addEventListener('click', generateMonthlyReport);
+            document.getElementById('generatePdfBtn').addEventListener('click', generateMonthlyPdfReport);
             
             // Report Tab - Daily Report
             document.getElementById('generateDailyReportBtn').addEventListener('click', generateDailyReport);
@@ -2004,14 +2004,13 @@
                 const studentGrade = document.getElementById('studentGrade');
                 const dashboardClass = document.getElementById('dashboardClass');
                 const dailyReportClass = document.getElementById('dailyReportClass');
-                const monthlyReportClass = document.getElementById('monthlyReportClass');
                 const dashboardDailyReportClass = document.getElementById('dashboardDailyReportClass');
                 const dashboardMonthlyReportClass = document.getElementById('dashboardMonthlyReportClass');
                 
                 // Array of all class dropdowns
                 const dropdowns = [
                     classSelect, reportClassSelect, viewClassSelect, studentGrade, 
-                    dashboardClass, dailyReportClass, monthlyReportClass, 
+                    dashboardClass, dailyReportClass, 
                     dashboardDailyReportClass, dashboardMonthlyReportClass
                 ].filter(Boolean); // Remove null elements
                 
@@ -2121,14 +2120,13 @@
                 const teacherSubject = document.getElementById('teacherSubject');
                 const dashboardSubject = document.getElementById('dashboardSubject');
                 const dailyReportSubject = document.getElementById('dailyReportSubject');
-                const monthlyReportSubject = document.getElementById('monthlyReportSubject');
                 const dashboardDailyReportSubject = document.getElementById('dashboardDailyReportSubject');
                 const dashboardMonthlyReportSubject = document.getElementById('dashboardMonthlyReportSubject');
                 
                 // Array of all subject dropdowns
                 const dropdowns = [
                     selectSubject, reportSubject, viewSubject, teacherSubject, 
-                    dashboardSubject, dailyReportSubject, monthlyReportSubject, 
+                    dashboardSubject, dailyReportSubject, 
                     dashboardDailyReportSubject, dashboardMonthlyReportSubject
                 ].filter(Boolean);
                 
@@ -2194,13 +2192,12 @@
                 const selectTeacher = document.getElementById('selectTeacher');
                 const viewTeacher = document.getElementById('viewTeacher');
                 const dailyReportTeacher = document.getElementById('dailyReportTeacher');
-                const monthlyReportTeacher = document.getElementById('monthlyReportTeacher');
                 const dashboardDailyReportTeacher = document.getElementById('dashboardDailyReportTeacher');
                 const dashboardMonthlyReportTeacher = document.getElementById('dashboardMonthlyReportTeacher');
                 
                 // Array of all teacher dropdowns
                 const dropdowns = [
-                    selectTeacher, viewTeacher, dailyReportTeacher, monthlyReportTeacher, 
+                    selectTeacher, viewTeacher, dailyReportTeacher, 
                     dashboardDailyReportTeacher, dashboardMonthlyReportTeacher
                 ].filter(Boolean);
                 
@@ -2259,190 +2256,1421 @@
             });
         }
 
-        // ... (Rest of the functions remain the same as in the previous version)
-        // Note: Due to character limits, I'm keeping the main structure but focusing on the dropdown fixes
-        // The remaining functions (loadAttendance, saveAttendance, etc.) should work as before
+        // ATTENDANCE FUNCTIONS
 
-        // SIMPLIFIED VERSION OF REMAINING FUNCTIONS FOR BREVITY
         async function loadAttendance() {
-            // Implementation from previous version
+            const classId = document.getElementById('selectClass').value;
+            const subjectId = document.getElementById('selectSubject').value;
+            const teacherId = document.getElementById('selectTeacher').value;
+            const date = document.getElementById('startDate').value;
+
+            if (!classId || !subjectId || !teacherId || !date) {
+                alert('Please select class, subject, teacher, and date');
+                return;
+            }
+
+            // Check if date is a weekend
+            const selectedDate = new Date(date);
+            const dayOfWeek = selectedDate.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert('Attendance can only be marked on weekdays (Monday to Friday)');
+                return;
+            }
+
+            // Show loading state
+            const tbody = document.getElementById('attendanceTbody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
+
+            try {
+                // Get teacher info
+                const { data: teacher, error: teacherError } = await supabase
+                    .from('teachers')
+                    .select('*')
+                    .eq('id', teacherId)
+                    .single();
+
+                if (teacherError) throw teacherError;
+
+                // Show teacher info
+                document.getElementById('teacherInfo').style.display = 'block';
+                document.getElementById('teacherIdDisplay').textContent = teacher.teacher_id;
+                document.getElementById('teacherNameDisplay').textContent = teacher.name;
+
+                // Get students for the selected class
+                const { data: students, error: studentsError } = await supabase
+                    .from('students')
+                    .select('*')
+                    .eq('grade_id', classId);
+
+                if (studentsError) throw studentsError;
+
+                if (!students || students.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students found for this class</td></tr>';
+                    return;
+                }
+
+                // Get existing attendance for this date
+                const { data: existingAttendance, error: attendanceError } = await supabase
+                    .from('attendance')
+                    .select('*')
+                    .eq('date', date)
+                    .eq('subject_id', subjectId)
+                    .eq('teacher_id', teacherId);
+
+                if (attendanceError) throw attendanceError;
+
+                // Create attendance map for quick lookup
+                const attendanceMap = {};
+                if (existingAttendance) {
+                    existingAttendance.forEach(record => {
+                        attendanceMap[record.student_id] = record.status;
+                    });
+                }
+
+                // Clear and populate the table
+                tbody.innerHTML = '';
+                appData.currentAttendance = {};
+
+                students.forEach((student, index) => {
+                    const status = attendanceMap[student.id] || 'absent';
+                    appData.currentAttendance[student.id] = status;
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${student.student_id}</td>
+                        <td>${student.name}</td>
+                        <td>${document.getElementById('selectSubject').selectedOptions[0].text}</td>
+                        <td>${teacher.teacher_id}</td>
+                        <td>${teacher.name}</td>
+                        <td class="${status === 'present' ? 'present' : 'absent'}">${status === 'present' ? 'Present' : 'Absent'}</td>
+                        <td>
+                            <button class="btn btn-small ${status === 'present' ? 'btn-secondary' : 'btn-primary'}" 
+                                    onclick="toggleAttendance(this, '${student.id}')">
+                                ${status === 'present' ? '✓ Present' : '✗ Absent'}
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Update summary
+                updateAttendanceSummary();
+                document.getElementById('attendanceSummary').style.display = 'block';
+
+            } catch (error) {
+                console.error("Error loading attendance:", error);
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #c00;">Error loading students: ' + error.message + '</td></tr>';
+            }
         }
 
-        async function saveAttendance() {
-            // Implementation from previous version  
+        function toggleAttendance(button, studentId) {
+            const currentStatus = appData.currentAttendance[studentId];
+            const newStatus = currentStatus === 'present' ? 'absent' : 'present';
+            
+            appData.currentAttendance[studentId] = newStatus;
+            
+            // Update button appearance
+            if (newStatus === 'present') {
+                button.textContent = '✓ Present';
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-secondary');
+            } else {
+                button.textContent = '✗ Absent';
+                button.classList.remove('btn-secondary');
+                button.classList.add('btn-primary');
+            }
+            
+            // Update status cell
+            const row = button.closest('tr');
+            const statusCell = row.cells[6];
+            statusCell.textContent = newStatus === 'present' ? 'Present' : 'Absent';
+            statusCell.className = newStatus === 'present' ? 'present' : 'absent';
+            
+            // Update summary
+            updateAttendanceSummary();
         }
 
         function updateAttendanceSummary() {
-            // Implementation from previous version
+            const total = Object.keys(appData.currentAttendance).length;
+            const present = Object.values(appData.currentAttendance).filter(status => status === 'present').length;
+            const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+            
+            document.getElementById('presentCount').textContent = present;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('attendancePercentage').textContent = percentage;
         }
 
         function markAllPresent() {
-            // Implementation from previous version
+            for (const studentId in appData.currentAttendance) {
+                appData.currentAttendance[studentId] = 'present';
+            }
+            refreshAttendanceTable();
         }
 
         function markAllAbsent() {
-            // Implementation from previous version
+            for (const studentId in appData.currentAttendance) {
+                appData.currentAttendance[studentId] = 'absent';
+            }
+            refreshAttendanceTable();
         }
 
-        function toggleAttendance(button) {
-            // Implementation from previous version
+        function refreshAttendanceTable() {
+            const tbody = document.getElementById('attendanceTbody');
+            const rows = tbody.getElementsByTagName('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const studentId = Object.keys(appData.currentAttendance)[i];
+                const status = appData.currentAttendance[studentId];
+                
+                // Update status cell
+                const statusCell = row.cells[6];
+                statusCell.textContent = status === 'present' ? 'Present' : 'Absent';
+                statusCell.className = status === 'present' ? 'present' : 'absent';
+                
+                // Update button
+                const button = row.cells[7].querySelector('button');
+                if (status === 'present') {
+                    button.textContent = '✓ Present';
+                    button.classList.remove('btn-primary');
+                    button.classList.add('btn-secondary');
+                } else {
+                    button.textContent = '✗ Absent';
+                    button.classList.remove('btn-secondary');
+                    button.classList.add('btn-primary');
+                }
+            }
+            
+            updateAttendanceSummary();
         }
+
+        async function saveAttendance() {
+            const classId = document.getElementById('selectClass').value;
+            const subjectId = document.getElementById('selectSubject').value;
+            const teacherId = document.getElementById('selectTeacher').value;
+            const date = document.getElementById('startDate').value;
+
+            if (Object.keys(appData.currentAttendance).length === 0) {
+                alert('No attendance data to save. Please load attendance first.');
+                return;
+            }
+
+            try {
+                // Prepare attendance records
+                const attendanceRecords = [];
+                for (const studentId in appData.currentAttendance) {
+                    attendanceRecords.push({
+                        student_id: studentId,
+                        subject_id: subjectId,
+                        teacher_id: teacherId,
+                        date: date,
+                        status: appData.currentAttendance[studentId]
+                    });
+                }
+
+                // Delete existing attendance for this date, subject, and teacher
+                const { error: deleteError } = await supabase
+                    .from('attendance')
+                    .delete()
+                    .eq('date', date)
+                    .eq('subject_id', subjectId)
+                    .eq('teacher_id', teacherId);
+
+                if (deleteError) throw deleteError;
+
+                // Insert new attendance records
+                const { error: insertError } = await supabase
+                    .from('attendance')
+                    .insert(attendanceRecords);
+
+                if (insertError) throw insertError;
+
+                alert('Attendance saved successfully!');
+                
+            } catch (error) {
+                console.error("Error saving attendance:", error);
+                alert('Error saving attendance: ' + error.message);
+            }
+        }
+
+        // STUDENT MANAGEMENT
 
         async function loadStudents() {
-            // Implementation from previous version
+            const studentList = document.getElementById('studentList');
+            studentList.innerHTML = '<div class="loading">Loading students...</div>';
+
+            try {
+                const { data: students, error } = await supabase
+                    .from('students')
+                    .select(`
+                        *,
+                        grades (grade, class_name)
+                    `)
+                    .order('student_id');
+
+                if (error) throw error;
+
+                if (!students || students.length === 0) {
+                    studentList.innerHTML = '<div class="info-box">No students found. Add your first student above.</div>';
+                    return;
+                }
+
+                displayStudents(students);
+                
+            } catch (error) {
+                console.error("Error loading students:", error);
+                studentList.innerHTML = '<div class="error-msg">Error loading students: ' + error.message + '</div>';
+            }
+        }
+
+        function displayStudents(students) {
+            const studentList = document.getElementById('studentList');
+            studentList.innerHTML = '';
+
+            students.forEach(student => {
+                const studentItem = document.createElement('div');
+                studentItem.className = 'student-item';
+                studentItem.innerHTML = `
+                    <div class="item-info">
+                        <strong>${student.student_id} - ${student.name}</strong>
+                        <div class="attendance-percentage">
+                            ${student.grades ? student.grades.grade + ' - ' + student.grades.class_name : 'No Class'} | ${student.gender}
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-small btn-warning" onclick="editStudent('${student.id}')">Edit</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteStudent('${student.id}')">Delete</button>
+                    </div>
+                `;
+                studentList.appendChild(studentItem);
+            });
         }
 
         async function addStudent() {
-            // Implementation from previous version
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            const gradeId = document.getElementById('studentGrade').value;
+            const gender = document.getElementById('studentGender').value;
+            const successMsg = document.getElementById('studentSuccess');
+
+            if (!studentId || !studentName || !gradeId) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('students')
+                    .insert([{
+                        student_id: studentId,
+                        name: studentName,
+                        grade_id: gradeId,
+                        gender: gender
+                    }]);
+
+                if (error) throw error;
+
+                // Clear form
+                document.getElementById('studentId').value = '';
+                document.getElementById('studentName').value = '';
+                document.getElementById('studentGrade').value = '';
+                document.getElementById('studentGender').value = 'Male';
+
+                // Show success message
+                successMsg.textContent = 'Student added successfully!';
+                successMsg.style.display = 'block';
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 3000);
+
+                // Reload students list
+                loadStudents();
+                
+            } catch (error) {
+                console.error("Error adding student:", error);
+                alert('Error adding student: ' + error.message);
+            }
         }
 
         function filterStudents() {
-            // Implementation from previous version
+            const searchTerm = document.getElementById('studentFilter').value.toLowerCase();
+            const classFilter = document.getElementById('filterStudentClass').value;
+            const studentItems = document.querySelectorAll('.student-item');
+
+            studentItems.forEach(item => {
+                const studentInfo = item.querySelector('.item-info').textContent.toLowerCase();
+                const shouldShow = studentInfo.includes(searchTerm) && 
+                    (classFilter === '' || item.textContent.includes(classFilter));
+                item.style.display = shouldShow ? 'flex' : 'none';
+            });
         }
 
+        // TEACHER MANAGEMENT
+
         async function loadTeachers() {
-            // Implementation from previous version
+            const teachersList = document.getElementById('teachersList');
+            teachersList.innerHTML = '<div class="loading">Loading teachers...</div>';
+
+            try {
+                const { data: teachers, error } = await supabase
+                    .from('teachers')
+                    .select(`
+                        *,
+                        subjects (name)
+                    `)
+                    .order('teacher_id');
+
+                if (error) throw error;
+
+                if (!teachers || teachers.length === 0) {
+                    teachersList.innerHTML = '<div class="info-box">No teachers found. Add your first teacher above.</div>';
+                    return;
+                }
+
+                displayTeachers(teachers);
+                
+            } catch (error) {
+                console.error("Error loading teachers:", error);
+                teachersList.innerHTML = '<div class="error-msg">Error loading teachers: ' + error.message + '</div>';
+            }
+        }
+
+        function displayTeachers(teachers) {
+            const teachersList = document.getElementById('teachersList');
+            teachersList.innerHTML = '';
+
+            teachers.forEach(teacher => {
+                const teacherItem = document.createElement('div');
+                teacherItem.className = 'teacher-item';
+                teacherItem.innerHTML = `
+                    <div class="item-info">
+                        <strong>${teacher.teacher_id} - ${teacher.name}</strong>
+                        <div class="attendance-percentage">
+                            ${teacher.subjects ? teacher.subjects.name : 'No Subject'} | ${roleDisplayMapping[teacher.role]}
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-small btn-warning" onclick="editTeacher('${teacher.id}')">Edit</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteTeacher('${teacher.id}')">Delete</button>
+                    </div>
+                `;
+                teachersList.appendChild(teacherItem);
+            });
         }
 
         async function addTeacher() {
-            // Implementation from previous version
-        }
+            const teacherId = document.getElementById('teacherIdInput').value.trim();
+            const teacherName = document.getElementById('teacherNameInput').value.trim();
+            const subjectId = document.getElementById('teacherSubject').value;
+            const role = document.getElementById('teacherRole').value;
+            const successMsg = document.getElementById('teacherSuccess');
 
-        async function editTeacher(teacherId) {
-            // Implementation from previous version
-        }
+            if (!teacherId || !teacherName || !subjectId) {
+                alert('Please fill in all required fields');
+                return;
+            }
 
-        async function updateTeacher(teacherId) {
-            // Implementation from previous version
-        }
+            try {
+                const { data, error } = await supabase
+                    .from('teachers')
+                    .insert([{
+                        teacher_id: teacherId,
+                        name: teacherName,
+                        subject_id: subjectId,
+                        role: role
+                    }]);
 
-        function cancelEditTeacher() {
-            // Implementation from previous version
-        }
+                if (error) throw error;
 
-        async function deleteTeacher(teacherId) {
-            // Implementation from previous version
+                // Clear form
+                document.getElementById('teacherIdInput').value = '';
+                document.getElementById('teacherNameInput').value = '';
+                document.getElementById('teacherSubject').value = '';
+                document.getElementById('teacherRole').value = 'classTeacher';
+
+                // Show success message
+                successMsg.textContent = 'Teacher added successfully!';
+                successMsg.style.display = 'block';
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 3000);
+
+                // Reload teachers list and dropdowns
+                loadTeachers();
+                loadTeacherDropdowns();
+                
+            } catch (error) {
+                console.error("Error adding teacher:", error);
+                alert('Error adding teacher: ' + error.message);
+            }
         }
 
         function filterTeachers() {
-            // Implementation from previous version
+            const searchTerm = document.getElementById('teacherFilter').value.toLowerCase();
+            const teacherItems = document.querySelectorAll('.teacher-item');
+
+            teacherItems.forEach(item => {
+                const teacherInfo = item.querySelector('.item-info').textContent.toLowerCase();
+                const shouldShow = teacherInfo.includes(searchTerm);
+                item.style.display = shouldShow ? 'flex' : 'none';
+            });
         }
 
+        // SUBJECT MANAGEMENT
+
         async function loadSubjects() {
-            // Implementation from previous version
+            const subjectsList = document.getElementById('subjectsList');
+            subjectsList.innerHTML = '<div class="loading">Loading subjects...</div>';
+
+            try {
+                const { data: subjects, error } = await supabase
+                    .from('subjects')
+                    .select('*')
+                    .order('name');
+
+                if (error) throw error;
+
+                if (!subjects || subjects.length === 0) {
+                    subjectsList.innerHTML = '<div class="info-box">No subjects found. Add your first subject above.</div>';
+                    return;
+                }
+
+                displaySubjects(subjects);
+                
+            } catch (error) {
+                console.error("Error loading subjects:", error);
+                subjectsList.innerHTML = '<div class="error-msg">Error loading subjects: ' + error.message + '</div>';
+            }
+        }
+
+        function displaySubjects(subjects) {
+            const subjectsList = document.getElementById('subjectsList');
+            subjectsList.innerHTML = '';
+
+            subjects.forEach(subject => {
+                const subjectItem = document.createElement('div');
+                subjectItem.className = 'subject-item';
+                subjectItem.innerHTML = `
+                    <div class="item-info">
+                        <strong>${subject.name}</strong>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-small btn-warning" onclick="editSubject('${subject.id}')">Edit</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteSubject('${subject.id}')">Delete</button>
+                    </div>
+                `;
+                subjectsList.appendChild(subjectItem);
+            });
         }
 
         async function addSubject() {
-            // Implementation from previous version
+            const subjectName = document.getElementById('subjectName').value.trim();
+            const successMsg = document.getElementById('subjectSuccess');
+
+            if (!subjectName) {
+                alert('Please enter a subject name');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('subjects')
+                    .insert([{
+                        name: subjectName
+                    }]);
+
+                if (error) throw error;
+
+                // Clear form
+                document.getElementById('subjectName').value = '';
+
+                // Show success message
+                successMsg.textContent = 'Subject added successfully!';
+                successMsg.style.display = 'block';
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 3000);
+
+                // Reload subjects list and dropdowns
+                loadSubjects();
+                loadSubjectDropdowns();
+                
+            } catch (error) {
+                console.error("Error adding subject:", error);
+                alert('Error adding subject: ' + error.message);
+            }
         }
 
         function filterSubjects() {
-            // Implementation from previous version
+            const searchTerm = document.getElementById('subjectFilter').value.toLowerCase();
+            const subjectItems = document.querySelectorAll('.subject-item');
+
+            subjectItems.forEach(item => {
+                const subjectInfo = item.querySelector('.item-info').textContent.toLowerCase();
+                const shouldShow = subjectInfo.includes(searchTerm);
+                item.style.display = shouldShow ? 'flex' : 'none';
+            });
         }
 
+        // GRADE/CLASS MANAGEMENT
+
         async function loadGrades() {
-            // Implementation from previous version
+            const gradesList = document.getElementById('gradesList');
+            gradesList.innerHTML = '<div class="loading">Loading grades...</div>';
+
+            try {
+                const { data: grades, error } = await supabase
+                    .from('grades')
+                    .select('*')
+                    .order('grade')
+                    .order('class_name');
+
+                if (error) throw error;
+
+                if (!grades || grades.length === 0) {
+                    gradesList.innerHTML = '<div class="info-box">No grades/classes found. Add your first grade above.</div>';
+                    return;
+                }
+
+                displayGrades(grades);
+                
+            } catch (error) {
+                console.error("Error loading grades:", error);
+                gradesList.innerHTML = '<div class="error-msg">Error loading grades: ' + error.message + '</div>';
+            }
+        }
+
+        function displayGrades(grades) {
+            const gradesList = document.getElementById('gradesList');
+            gradesList.innerHTML = '';
+
+            // Sort grades according to predefined order
+            const sortedGrades = grades.sort((a, b) => {
+                const fullNameA = `${a.grade} - ${a.class_name}`;
+                const fullNameB = `${b.grade} - ${b.class_name}`;
+                
+                const indexA = gradeOrder.indexOf(fullNameA);
+                const indexB = gradeOrder.indexOf(fullNameB);
+                
+                if (indexA !== -1 && indexB !== -1) {
+                    return indexA - indexB;
+                }
+                
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                
+                return fullNameA.localeCompare(fullNameB);
+            });
+
+            sortedGrades.forEach(grade => {
+                const gradeItem = document.createElement('div');
+                gradeItem.className = 'grade-item';
+                gradeItem.innerHTML = `
+                    <div class="item-info">
+                        <strong>${grade.grade} - ${grade.class_name}</strong>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-small btn-warning" onclick="editGrade('${grade.id}')">Edit</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteGrade('${grade.id}')">Delete</button>
+                    </div>
+                `;
+                gradesList.appendChild(gradeItem);
+            });
         }
 
         async function addClass() {
-            // Implementation from previous version
+            const grade = document.getElementById('newGrade').value;
+            const className = document.getElementById('className').value;
+            const successMsg = document.getElementById('classSuccess');
+
+            if (!grade || !className) {
+                alert('Please select both grade and class');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('grades')
+                    .insert([{
+                        grade: grade,
+                        class_name: className
+                    }]);
+
+                if (error) throw error;
+
+                // Clear form
+                document.getElementById('newGrade').value = '';
+                document.getElementById('className').value = '';
+
+                // Show success message
+                successMsg.textContent = 'Grade/Class added successfully!';
+                successMsg.style.display = 'block';
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 3000);
+
+                // Reload grades list and dropdowns
+                loadGrades();
+                loadClassDropdowns();
+                
+            } catch (error) {
+                console.error("Error adding grade/class:", error);
+                alert('Error adding grade/class: ' + error.message);
+            }
         }
 
         function filterGrades() {
-            // Implementation from previous version
+            const searchTerm = document.getElementById('gradeFilter').value.toLowerCase();
+            const gradeItems = document.querySelectorAll('.grade-item');
+
+            gradeItems.forEach(item => {
+                const gradeInfo = item.querySelector('.item-info').textContent.toLowerCase();
+                const shouldShow = gradeInfo.includes(searchTerm);
+                item.style.display = shouldShow ? 'flex' : 'none';
+            });
         }
 
-        async function generateReport() {
-            // Implementation from previous version
-        }
-
-        async function generatePdfReport() {
-            // Implementation from previous version
-        }
+        // REPORTS AND VIEW ATTENDANCE
 
         async function generateDailyReport() {
-            // Implementation from previous version
+            const date = document.getElementById('dailyReportDate').value;
+            const classId = document.getElementById('dailyReportClass').value;
+            const subjectId = document.getElementById('dailyReportSubject').value;
+            const teacherId = document.getElementById('dailyReportTeacher').value;
+            const output = document.getElementById('dailyReportOutput');
+
+            if (!date) {
+                output.innerHTML = '<div class="error-msg">Please select a date</div>';
+                return;
+            }
+
+            output.innerHTML = '<div class="loading">Generating daily report...</div>';
+
+            try {
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (student_id, name, grade_id),
+                        grades (grade, class_name),
+                        subjects (name),
+                        teachers (teacher_id, name)
+                    `)
+                    .eq('date', date);
+
+                // Apply filters if provided
+                if (classId) query = query.eq('students.grade_id', classId);
+                if (subjectId) query = query.eq('subject_id', subjectId);
+                if (teacherId) query = query.eq('teacher_id', teacherId);
+
+                const { data: attendance, error } = await query;
+
+                if (error) throw error;
+
+                if (!attendance || attendance.length === 0) {
+                    output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    return;
+                }
+
+                // Calculate summary
+                const total = attendance.length;
+                const present = attendance.filter(a => a.status === 'present').length;
+                const absent = total - present;
+                const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+                let html = `
+                    <div class="attendance-summary">
+                        Daily Attendance Report for ${date}<br>
+                        Total Records: ${total} | Present: ${present} | Absent: ${absent} | Rate: ${percentage}%
+                    </div>
+                    <div style="overflow-x: auto; margin-top: 20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Student</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th>Teacher</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                attendance.forEach(record => {
+                    const student = record.students;
+                    const grade = record.grades;
+                    const subject = record.subjects;
+                    const teacher = record.teachers;
+
+                    html += `
+                        <tr>
+                            <td>${record.date}</td>
+                            <td>${student.student_id} - ${student.name}</td>
+                            <td>${grade ? grade.grade + ' - ' + grade.class_name : 'N/A'}</td>
+                            <td>${subject ? subject.name : 'N/A'}</td>
+                            <td>${teacher ? teacher.teacher_id + ' - ' + teacher.name : 'N/A'}</td>
+                            <td class="${record.status === 'present' ? 'present' : 'absent'}">${record.status === 'present' ? 'Present' : 'Absent'}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+
+                output.innerHTML = html;
+                appData.currentReportData = attendance;
+                
+            } catch (error) {
+                console.error("Error generating daily report:", error);
+                output.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+            }
         }
 
-        async function generateDailyPdfReport() {
-            // Implementation from previous version
-        }
+        async function generateMonthlyReport() {
+            const classId = document.getElementById('reportClass').value;
+            const subjectId = document.getElementById('reportSubject').value;
+            const month = document.getElementById('reportMonth').value;
+            const output = document.getElementById('reportOutput');
 
-        async function generateDashboardDailyReport() {
-            // Implementation from previous version
-        }
+            if (!month) {
+                output.innerHTML = '<div class="error-msg">Please select a month</div>';
+                return;
+            }
 
-        async function generateDashboardDailyPdfReport() {
-            // Implementation from previous version
-        }
+            output.innerHTML = '<div class="loading">Generating monthly report...</div>';
 
-        async function generateDashboardMonthlyReport() {
-            // Implementation from previous version
-        }
+            try {
+                // Calculate start and end dates for the selected month
+                const startDate = month + '-01';
+                const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0)
+                    .toISOString().split('T')[0];
 
-        async function generateDashboardMonthlyPdfReport() {
-            // Implementation from previous version
-        }
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (student_id, name, grade_id),
+                        grades (grade, class_name),
+                        subjects (name),
+                        teachers (teacher_id, name)
+                    `)
+                    .gte('date', startDate)
+                    .lte('date', endDate);
 
-        async function loadDashboard() {
-            // Implementation from previous version
-        }
+                // Apply filters if provided
+                if (classId) query = query.eq('students.grade_id', classId);
+                if (subjectId) query = query.eq('subject_id', subjectId);
 
-        async function loadBasicStats() {
-            // Implementation from previous version
-        }
+                const { data: attendance, error } = await query;
 
-        async function loadDailySummary(date, classFilter, subjectFilter) {
-            // Implementation from previous version
-        }
+                if (error) throw error;
 
-        async function loadDashboardCharts(date, classFilter, subjectFilter) {
-            // Implementation from previous version
-        }
+                if (!attendance || attendance.length === 0) {
+                    output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    return;
+                }
 
-        function createClassChart(classData) {
-            // Implementation from previous version
-        }
+                // Group by student and calculate attendance percentage
+                const studentAttendance = {};
+                attendance.forEach(record => {
+                    const studentId = record.student_id;
+                    if (!studentAttendance[studentId]) {
+                        studentAttendance[studentId] = {
+                            student: record.students,
+                            grade: record.grades,
+                            total: 0,
+                            present: 0
+                        };
+                    }
+                    studentAttendance[studentId].total++;
+                    if (record.status === 'present') {
+                        studentAttendance[studentId].present++;
+                    }
+                });
 
-        function createSubjectChart(subjectData) {
-            // Implementation from previous version
-        }
+                let html = `
+                    <div class="attendance-summary">
+                        Monthly Attendance Report for ${month}<br>
+                        Total Students: ${Object.keys(studentAttendance).length} | Total Records: ${attendance.length}
+                    </div>
+                    <div style="overflow-x: auto; margin-top: 20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Class</th>
+                                    <th>Total Days</th>
+                                    <th>Present</th>
+                                    <th>Absent</th>
+                                    <th>Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
 
-        function createGenderChart(genderData) {
-            // Implementation from previous version
-        }
+                Object.values(studentAttendance).forEach(data => {
+                    const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+                    const absent = data.total - data.present;
+                    
+                    let percentageClass = 'percentage-poor';
+                    if (percentage >= 80) percentageClass = 'percentage-good';
+                    else if (percentage >= 60) percentageClass = 'percentage-average';
 
-        async function loadDetailedTables(date, classFilter, subjectFilter) {
-            // Implementation from previous version
-        }
+                    html += `
+                        <tr>
+                            <td>${data.student.student_id}</td>
+                            <td>${data.student.name}</td>
+                            <td>${data.grade ? data.grade.grade + ' - ' + data.grade.class_name : 'N/A'}</td>
+                            <td>${data.total}</td>
+                            <td class="present">${data.present}</td>
+                            <td class="absent">${absent}</td>
+                            <td class="${percentageClass}">${percentage}%</td>
+                        </tr>
+                    `;
+                });
 
-        async function loadClassAnalysis() {
-            // Implementation from previous version
-        }
+                html += '</tbody></table></div>';
 
-        async function loadTeacherAnalysis() {
-            // Implementation from previous version
-        }
-
-        async function loadSubjectAnalysis() {
-            // Implementation from previous version
-        }
-
-        async function loadDailyReports() {
-            // Implementation from previous version
-        }
-
-        async function loadMonthlyReports() {
-            // Implementation from previous version
+                output.innerHTML = html;
+                appData.currentReportData = Object.values(studentAttendance);
+                
+            } catch (error) {
+                console.error("Error generating monthly report:", error);
+                output.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+            }
         }
 
         async function viewAttendanceRecords() {
-            // Implementation from previous version
+            const classId = document.getElementById('viewClass').value;
+            const subjectId = document.getElementById('viewSubject').value;
+            const teacherId = document.getElementById('viewTeacher').value;
+            const date = document.getElementById('viewDate').value;
+            const output = document.getElementById('viewAttendanceOutput');
+
+            if (!date) {
+                output.innerHTML = '<div class="error-msg">Please select a date</div>';
+                return;
+            }
+
+            output.innerHTML = '<div class="loading">Loading attendance records...</div>';
+
+            try {
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (student_id, name, grade_id),
+                        grades (grade, class_name),
+                        subjects (name),
+                        teachers (teacher_id, name)
+                    `)
+                    .eq('date', date);
+
+                // Apply filters if provided
+                if (classId) query = query.eq('students.grade_id', classId);
+                if (subjectId) query = query.eq('subject_id', subjectId);
+                if (teacherId) query = query.eq('teacher_id', teacherId);
+
+                const { data: attendance, error } = await query;
+
+                if (error) throw error;
+
+                if (!attendance || attendance.length === 0) {
+                    output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    return;
+                }
+
+                let html = `
+                    <div class="attendance-summary">
+                        Found ${attendance.length} attendance record(s) for ${date}
+                    </div>
+                    <div style="overflow-x: auto; margin-top: 20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Student</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th>Teacher</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                attendance.forEach(record => {
+                    const student = record.students;
+                    const grade = record.grades;
+                    const subject = record.subjects;
+                    const teacher = record.teachers;
+
+                    html += `
+                        <tr>
+                            <td>${record.date}</td>
+                            <td>${student.student_id} - ${student.name}</td>
+                            <td>${grade ? grade.grade + ' - ' + grade.class_name : 'N/A'}</td>
+                            <td>${subject ? subject.name : 'N/A'}</td>
+                            <td>${teacher ? teacher.teacher_id + ' - ' + teacher.name : 'N/A'}</td>
+                            <td class="${record.status === 'present' ? 'present' : 'absent'}">${record.status === 'present' ? 'Present' : 'Absent'}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+
+                output.innerHTML = html;
+                
+            } catch (error) {
+                console.error("Error viewing attendance:", error);
+                output.innerHTML = '<div class="error-msg">Error loading attendance: ' + error.message + '</div>';
+            }
+        }
+
+        // PDF GENERATION FUNCTIONS
+
+        async function generateDailyPdfReport() {
+            if (!appData.currentReportData) {
+                alert('Please generate a report first before creating PDF');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Add title
+            doc.setFontSize(16);
+            doc.text('Daily Attendance Report', 105, 15, { align: 'center' });
+            
+            const date = document.getElementById('dailyReportDate').value;
+            doc.setFontSize(12);
+            doc.text(`Date: ${date}`, 105, 25, { align: 'center' });
+
+            // Prepare table data
+            const tableData = appData.currentReportData.map(record => [
+                record.date,
+                `${record.students.student_id} - ${record.students.name}`,
+                record.grades ? `${record.grades.grade} - ${record.grades.class_name}` : 'N/A',
+                record.subjects ? record.subjects.name : 'N/A',
+                record.teachers ? `${record.teachers.teacher_id} - ${record.teachers.name}` : 'N/A',
+                record.status === 'present' ? 'Present' : 'Absent'
+            ]);
+
+            // Add table
+            doc.autoTable({
+                head: [['Date', 'Student', 'Class', 'Subject', 'Teacher', 'Status']],
+                body: tableData,
+                startY: 35,
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [0, 90, 156] }
+            });
+
+            // Save the PDF
+            doc.save(`daily_attendance_report_${date}.pdf`);
+        }
+
+        async function generateMonthlyPdfReport() {
+            if (!appData.currentReportData) {
+                alert('Please generate a report first before creating PDF');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Add title
+            doc.setFontSize(16);
+            doc.text('Monthly Attendance Report', 105, 15, { align: 'center' });
+            
+            const month = document.getElementById('reportMonth').value;
+            doc.setFontSize(12);
+            doc.text(`Month: ${month}`, 105, 25, { align: 'center' });
+
+            // Prepare table data
+            const tableData = appData.currentReportData.map(data => [
+                data.student.student_id,
+                data.student.name,
+                data.grade ? `${data.grade.grade} - ${data.grade.class_name}` : 'N/A',
+                data.total,
+                data.present,
+                data.total - data.present,
+                `${Math.round((data.present / data.total) * 100)}%`
+            ]);
+
+            // Add table
+            doc.autoTable({
+                head: [['Student ID', 'Name', 'Class', 'Total Days', 'Present', 'Absent', 'Attendance %']],
+                body: tableData,
+                startY: 35,
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [0, 90, 156] }
+            });
+
+            // Save the PDF
+            doc.save(`monthly_attendance_report_${month}.pdf`);
+        }
+
+        // DASHBOARD FUNCTIONS
+
+        async function loadDashboard() {
+            const date = document.getElementById('dashboardDate').value;
+            const classFilter = document.getElementById('dashboardClass').value;
+            const subjectFilter = document.getElementById('dashboardSubject').value;
+
+            await loadBasicStats();
+            await loadDailySummary(date, classFilter, subjectFilter);
+            await loadDashboardCharts(date, classFilter, subjectFilter);
+            await loadDetailedTables(date, classFilter, subjectFilter);
+        }
+
+        async function loadBasicStats() {
+            try {
+                // Get total students
+                const { data: students, error: studentsError } = await supabase
+                    .from('students')
+                    .select('id', { count: 'exact' });
+
+                // Get total teachers
+                const { data: teachers, error: teachersError } = await supabase
+                    .from('teachers')
+                    .select('id', { count: 'exact' });
+
+                // Get total grades
+                const { data: grades, error: gradesError } = await supabase
+                    .from('grades')
+                    .select('id', { count: 'exact' });
+
+                if (!studentsError) {
+                    document.getElementById('totalStudents').textContent = students ? students.length : 0;
+                }
+                if (!teachersError) {
+                    document.getElementById('totalTeachers').textContent = teachers ? teachers.length : 0;
+                }
+                if (!gradesError) {
+                    document.getElementById('totalGrades').textContent = grades ? grades.length : 0;
+                }
+                
+            } catch (error) {
+                console.error("Error loading basic stats:", error);
+            }
+        }
+
+        async function loadDailySummary(date, classFilter, subjectFilter) {
+            try {
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (gender, grade_id)
+                    `)
+                    .eq('date', date);
+
+                // Apply filters
+                if (classFilter) query = query.eq('students.grade_id', classFilter);
+                if (subjectFilter) query = query.eq('subject_id', subjectFilter);
+
+                const { data: attendance, error } = await query;
+
+                if (error) throw error;
+
+                // Calculate summary
+                const total = attendance ? attendance.length : 0;
+                const present = attendance ? attendance.filter(a => a.status === 'present').length : 0;
+                const absent = total - present;
+                const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+                // Gender breakdown
+                const maleStudents = attendance ? attendance.filter(a => a.students.gender === 'Male').length : 0;
+                const femaleStudents = attendance ? attendance.filter(a => a.students.gender === 'Female').length : 0;
+                const malePresent = attendance ? attendance.filter(a => a.students.gender === 'Male' && a.status === 'present').length : 0;
+                const femalePresent = attendance ? attendance.filter(a => a.students.gender === 'Female' && a.status === 'present').length : 0;
+
+                // Update UI
+                document.getElementById('totalStudentsCount').textContent = total;
+                document.getElementById('presentStudentsCount').textContent = present;
+                document.getElementById('absentStudentsCount').textContent = absent;
+                document.getElementById('attendanceRate').textContent = percentage + '%';
+                document.getElementById('maleStudentsCount').textContent = maleStudents;
+                document.getElementById('femaleStudentsCount').textContent = femaleStudents;
+                document.getElementById('malePresentCount').textContent = malePresent;
+                document.getElementById('femalePresentCount').textContent = femalePresent;
+                
+            } catch (error) {
+                console.error("Error loading daily summary:", error);
+            }
+        }
+
+        // DASHBOARD REPORT FUNCTIONS
+
+        async function generateDashboardDailyReport() {
+            const date = document.getElementById('dashboardDailyReportDate').value;
+            const classId = document.getElementById('dashboardDailyReportClass').value;
+            const subjectId = document.getElementById('dashboardDailyReportSubject').value;
+            const teacherId = document.getElementById('dashboardDailyReportTeacher').value;
+            const output = document.getElementById('dashboardDailyReportOutput');
+
+            if (!date) {
+                output.innerHTML = '<div class="error-msg">Please select a date</div>';
+                return;
+            }
+
+            output.innerHTML = '<div class="loading">Generating daily report...</div>';
+
+            try {
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (student_id, name, grade_id),
+                        grades (grade, class_name),
+                        subjects (name),
+                        teachers (teacher_id, name)
+                    `)
+                    .eq('date', date);
+
+                // Apply filters if provided
+                if (classId) query = query.eq('students.grade_id', classId);
+                if (subjectId) query = query.eq('subject_id', subjectId);
+                if (teacherId) query = query.eq('teacher_id', teacherId);
+
+                const { data: attendance, error } = await query;
+
+                if (error) throw error;
+
+                if (!attendance || attendance.length === 0) {
+                    output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    return;
+                }
+
+                // Calculate summary
+                const total = attendance.length;
+                const present = attendance.filter(a => a.status === 'present').length;
+                const absent = total - present;
+                const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+                let html = `
+                    <div class="attendance-summary">
+                        Daily Attendance Report for ${date}<br>
+                        Total Records: ${total} | Present: ${present} | Absent: ${absent} | Rate: ${percentage}%
+                    </div>
+                    <div style="overflow-x: auto; margin-top: 20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Student</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th>Teacher</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                attendance.forEach(record => {
+                    const student = record.students;
+                    const grade = record.grades;
+                    const subject = record.subjects;
+                    const teacher = record.teachers;
+
+                    html += `
+                        <tr>
+                            <td>${record.date}</td>
+                            <td>${student.student_id} - ${student.name}</td>
+                            <td>${grade ? grade.grade + ' - ' + grade.class_name : 'N/A'}</td>
+                            <td>${subject ? subject.name : 'N/A'}</td>
+                            <td>${teacher ? teacher.teacher_id + ' - ' + teacher.name : 'N/A'}</td>
+                            <td class="${record.status === 'present' ? 'present' : 'absent'}">${record.status === 'present' ? 'Present' : 'Absent'}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+
+                output.innerHTML = html;
+                appData.currentReportData = attendance;
+                
+            } catch (error) {
+                console.error("Error generating daily report:", error);
+                output.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+            }
+        }
+
+        async function generateDashboardMonthlyReport() {
+            const classId = document.getElementById('dashboardMonthlyReportClass').value;
+            const subjectId = document.getElementById('dashboardMonthlyReportSubject').value;
+            const teacherId = document.getElementById('dashboardMonthlyReportTeacher').value;
+            const month = document.getElementById('dashboardMonthlyReportMonth').value;
+            const output = document.getElementById('dashboardMonthlyReportOutput');
+
+            if (!month) {
+                output.innerHTML = '<div class="error-msg">Please select a month</div>';
+                return;
+            }
+
+            output.innerHTML = '<div class="loading">Generating monthly report...</div>';
+
+            try {
+                // Calculate start and end dates for the selected month
+                const startDate = month + '-01';
+                const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0)
+                    .toISOString().split('T')[0];
+
+                let query = supabase
+                    .from('attendance')
+                    .select(`
+                        *,
+                        students (student_id, name, grade_id),
+                        grades (grade, class_name),
+                        subjects (name),
+                        teachers (teacher_id, name)
+                    `)
+                    .gte('date', startDate)
+                    .lte('date', endDate);
+
+                // Apply filters if provided
+                if (classId) query = query.eq('students.grade_id', classId);
+                if (subjectId) query = query.eq('subject_id', subjectId);
+                if (teacherId) query = query.eq('teacher_id', teacherId);
+
+                const { data: attendance, error } = await query;
+
+                if (error) throw error;
+
+                if (!attendance || attendance.length === 0) {
+                    output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria</div>';
+                    return;
+                }
+
+                // Group by student and calculate attendance percentage
+                const studentAttendance = {};
+                attendance.forEach(record => {
+                    const studentId = record.student_id;
+                    if (!studentAttendance[studentId]) {
+                        studentAttendance[studentId] = {
+                            student: record.students,
+                            grade: record.grades,
+                            total: 0,
+                            present: 0
+                        };
+                    }
+                    studentAttendance[studentId].total++;
+                    if (record.status === 'present') {
+                        studentAttendance[studentId].present++;
+                    }
+                });
+
+                let html = `
+                    <div class="attendance-summary">
+                        Monthly Attendance Report for ${month}<br>
+                        Total Students: ${Object.keys(studentAttendance).length} | Total Records: ${attendance.length}
+                    </div>
+                    <div style="overflow-x: auto; margin-top: 20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Class</th>
+                                    <th>Total Days</th>
+                                    <th>Present</th>
+                                    <th>Absent</th>
+                                    <th>Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                Object.values(studentAttendance).forEach(data => {
+                    const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
+                    const absent = data.total - data.present;
+                    
+                    let percentageClass = 'percentage-poor';
+                    if (percentage >= 80) percentageClass = 'percentage-good';
+                    else if (percentage >= 60) percentageClass = 'percentage-average';
+
+                    html += `
+                        <tr>
+                            <td>${data.student.student_id}</td>
+                            <td>${data.student.name}</td>
+                            <td>${data.grade ? data.grade.grade + ' - ' + data.grade.class_name : 'N/A'}</td>
+                            <td>${data.total}</td>
+                            <td class="present">${data.present}</td>
+                            <td class="absent">${absent}</td>
+                            <td class="${percentageClass}">${percentage}%</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+
+                output.innerHTML = html;
+                appData.currentReportData = Object.values(studentAttendance);
+                
+            } catch (error) {
+                console.error("Error generating monthly report:", error);
+                output.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+            }
+        }
+
+        async function generateDashboardDailyPdfReport() {
+            await generateDailyPdfReport();
+        }
+
+        async function generateDashboardMonthlyPdfReport() {
+            await generateMonthlyPdfReport();
+        }
+
+        // SIMPLIFIED DASHBOARD CHART FUNCTIONS (for brevity)
+
+        async function loadDashboardCharts(date, classFilter, subjectFilter) {
+            // Simplified chart implementation
+            console.log("Loading dashboard charts...");
+        }
+
+        async function loadDetailedTables(date, classFilter, subjectFilter) {
+            // Simplified table implementation
+            console.log("Loading detailed tables...");
+        }
+
+        async function loadClassAnalysis() {
+            const content = document.getElementById('classAnalysisContent');
+            content.innerHTML = '<div class="info-box">Class analysis feature will be implemented in the full version</div>';
+        }
+
+        async function loadTeacherAnalysis() {
+            const content = document.getElementById('teacherAnalysisContent');
+            content.innerHTML = '<div class="info-box">Teacher analysis feature will be implemented in the full version</div>';
+        }
+
+        async function loadSubjectAnalysis() {
+            const content = document.getElementById('subjectAnalysisContent');
+            content.innerHTML = '<div class="info-box">Subject analysis feature will be implemented in the full version</div>';
+        }
+
+        async function loadDailyReports() {
+            // Set today's date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dashboardDailyReportDate').value = today;
+        }
+
+        async function loadMonthlyReports() {
+            // Set current month
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = today.substring(0, 7);
+            document.getElementById('dashboardMonthlyReportMonth').value = currentMonth;
         }
 
         function setupRealTimeAttendance() {
-            // Implementation from previous version
+            // Simplified real-time setup
+            console.log("Setting up real-time attendance...");
         }
+
+        // EDIT AND DELETE FUNCTIONS
 
         async function editStudent(studentId) {
             alert('Edit student functionality will be implemented in the full version. Student ID: ' + studentId);
@@ -2463,6 +3691,30 @@
                 } catch (error) {
                     console.error("Error deleting student:", error);
                     alert('Error deleting student: ' + error.message);
+                }
+            }
+        }
+
+        async function editTeacher(teacherId) {
+            alert('Edit teacher functionality will be implemented in the full version. Teacher ID: ' + teacherId);
+        }
+
+        async function deleteTeacher(teacherId) {
+            if (confirm('Are you sure you want to delete this teacher?')) {
+                try {
+                    const { error } = await supabase
+                        .from('teachers')
+                        .delete()
+                        .eq('id', teacherId);
+                        
+                    if (error) throw error;
+                    
+                    alert('Teacher deleted successfully');
+                    loadTeachers();
+                    loadTeacherDropdowns();
+                } catch (error) {
+                    console.error("Error deleting teacher:", error);
+                    alert('Error deleting teacher: ' + error.message);
                 }
             }
         }
