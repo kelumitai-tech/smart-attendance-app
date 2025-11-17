@@ -1377,7 +1377,7 @@
             // Dashboard
             document.getElementById('refreshDashboardBtn').addEventListener('click', loadDashboard);
             
-            // Dashboard Reports - FIXED: Added proper event listeners
+            // Dashboard Reports
             document.getElementById('generateDailyReportBtn').addEventListener('click', generateDailyReport);
             document.getElementById('generateDailyPdfBtn').addEventListener('click', generateDailyPdfReport);
             document.getElementById('generateMonthlyReportBtn').addEventListener('click', generateMonthlyReport);
@@ -1919,10 +1919,7 @@
             try {
                 const { data: teachers, error } = await supabase
                     .from('teachers')
-                    .select(`
-                        *,
-                        subjects!inner (name)
-                    `)
+                    .select(`*, subjects!inner (name)`)
                     .order('name');
 
                 const selectTeacher = document.getElementById('selectTeacher');
@@ -2197,10 +2194,7 @@
             try {
                 const { data: students, error } = await supabase
                     .from('students')
-                    .select(`
-                        *,
-                        grades (grade, class_name)
-                    `)
+                    .select(`*, grades (grade, class_name)`)
                     .order('student_id');
 
                 if (error) throw error;
@@ -2299,10 +2293,7 @@
             try {
                 const { data: teachers, error } = await supabase
                     .from('teachers')
-                    .select(`
-                        *,
-                        subjects (name)
-                    `)
+                    .select(`*, subjects (name)`)
                     .order('name');
 
                 if (error) throw error;
@@ -2406,10 +2397,7 @@
                 // Get teacher data
                 const { data: teacher, error } = await supabase
                     .from('teachers')
-                    .select(`
-                        *,
-                        subjects (name)
-                    `)
+                    .select(`*, subjects (name)`)
                     .eq('id', teacherId)
                     .single();
 
@@ -3154,12 +3142,7 @@
                 // Get data for charts
                 const { data: attendance, error } = await supabase
                     .from('attendance')
-                    .select(`
-                        *,
-                        students (grade_id, gender),
-                        grades (grade, class_name),
-                        subjects (name)
-                    `)
+                    .select(`*, students (grade_id, gender), grades (grade, class_name), subjects (name)`)
                     .eq('date', date);
                 
                 if (error) throw error;
@@ -3342,12 +3325,7 @@
                 // Get attendance data with joins
                 const { data: attendance, error } = await supabase
                     .from('attendance')
-                    .select(`
-                        *,
-                        students (grade_id, gender),
-                        grades (grade, class_name),
-                        subjects (name)
-                    `)
+                    .select(`*, students (grade_id, gender), grades (grade, class_name), subjects (name)`)
                     .eq('date', date);
                 
                 if (error) throw error;
@@ -3505,10 +3483,7 @@
                 // Get all teachers and their attendance data
                 const { data: teachers, error: teachersError } = await supabase
                     .from('teachers')
-                    .select(`
-                        *,
-                        subjects (name)
-                    `);
+                    .select(`*, subjects (name)`);
                 
                 if (teachersError) throw teachersError;
                 
@@ -3642,12 +3617,7 @@
                 // Build query based on filters
                 let query = supabase
                     .from('attendance')
-                    .select(`
-                        *,
-                        students (name, student_id, grades (grade, class_name)),
-                        subjects (name),
-                        teachers (name, teacher_id)
-                    `)
+                    .select(`*, students (name, student_id, grades (grade, class_name)), subjects (name), teachers (name, teacher_id)`)
                     .eq('date', date);
                 
                 if (classId) {
@@ -3833,12 +3803,7 @@
                 // Build query based on filters
                 let query = supabase
                     .from('attendance')
-                    .select(`
-                        *,
-                        students (name, student_id, grades (grade, class_name)),
-                        subjects (name),
-                        teachers (name, teacher_id)
-                    `)
+                    .select(`*, students (name, student_id, grades (grade, class_name)), subjects (name), teachers (name, teacher_id)`)
                     .gte('date', startDate)
                     .lte('date', endDate);
                 
@@ -4177,12 +4142,7 @@
                 // Get attendance records
                 const { data: attendance, error } = await supabase
                     .from('attendance')
-                    .select(`
-                        *,
-                        students (name, student_id),
-                        subjects (name),
-                        teachers (name, teacher_id)
-                    `)
+                    .select(`*, students (name, student_id), subjects (name), teachers (name, teacher_id)`)
                     .eq('date', date)
                     .eq('subject_id', subjectId)
                     .eq('teacher_id', teacherId);
@@ -4355,4 +4315,3 @@
     </script>
 </body>
 </html>
-
