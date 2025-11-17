@@ -3597,8 +3597,7 @@
             }
         }
 
-        // FIXED DAILY AND MONTHLY REPORTS
-
+        // FIXED DAILY REPORTS - COMPLETELY REWRITTEN
         async function generateDailyReport() {
             try {
                 const date = document.getElementById('dailyReportDate').value;
@@ -3614,31 +3613,15 @@
                 
                 output.innerHTML = '<div class="loading">Generating daily report...</div>';
                 
-                // Build query based on filters
+                // Build base query
                 let query = supabase
                     .from('attendance')
-                    .select(`
-                        *,
-                        students (
-                            name,
-                            student_id,
-                            grades (
-                                grade,
-                                class_name
-                            )
-                        ),
-                        subjects (
-                            name
-                        ),
-                        teachers (
-                            name,
-                            teacher_id
-                        )
-                    `)
+                    .select('*')
                     .eq('date', date);
                 
+                // Apply filters
                 if (classId) {
-                    // Get students from the selected class
+                    // Get students from selected class
                     const { data: students } = await supabase
                         .from('students')
                         .select('student_id')
@@ -3647,6 +3630,9 @@
                     if (students && students.length > 0) {
                         const studentIds = students.map(s => s.student_id);
                         query = query.in('student_id', studentIds);
+                    } else {
+                        output.innerHTML = '<div class="info-box">No students found for the selected class.</div>';
+                        return;
                     }
                 }
                 
@@ -3670,16 +3656,78 @@
                     return;
                 }
                 
+                // Get additional data for display
+                const studentIds = [...new Set(attendance.map(a => a.student_id))];
+                const subjectIds = [...new Set(attendance.map(a => a.subject_id))];
+                const teacherIds = [...new Set(attendance.map(a => a.teacher_id))];
+                
+                // Get student details
+                const { data: students } = await supabase
+                    .from('students')
+                    .select('student_id, name, grade_id, gender')
+                    .in('student_id', studentIds);
+                
+                // Get subject details
+                const { data: subjects } = await supabase
+                    .from('subjects')
+                    .select('id, name')
+                    .in('id', subjectIds);
+                
+                // Get teacher details
+                const { data: teachers } = await supabase
+                    .from('teachers')
+                    .select('id, name, teacher_id')
+                    .in('id', teacherIds);
+                
+                // Get grade details
+                const gradeIds = students ? [...new Set(students.map(s => s.grade_id))] : [];
+                const { data: grades } = await supabase
+                    .from('grades')
+                    .select('id, grade, class_name')
+                    .in('id', gradeIds);
+                
+                // Create lookup objects
+                const studentsLookup = {};
+                if (students) {
+                    students.forEach(student => {
+                        studentsLookup[student.student_id] = student;
+                    });
+                }
+                
+                const subjectsLookup = {};
+                if (subjects) {
+                    subjects.forEach(subject => {
+                        subjectsLookup[subject.id] = subject;
+                    });
+                }
+                
+                const teachersLookup = {};
+                if (teachers) {
+                    teachers.forEach(teacher => {
+                        teachersLookup[teacher.id] = teacher;
+                    });
+                }
+                
+                const gradesLookup = {};
+                if (grades) {
+                    grades.forEach(grade => {
+                        gradesLookup[grade.id] = grade;
+                    });
+                }
+                
                 // Calculate summary
                 const totalRecords = attendance.length;
                 const presentRecords = attendance.filter(a => a.status === 'present').length;
                 const attendanceRate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0;
                 
-                // Group by class for detailed breakdown
+                // Group by class for breakdown
                 const classBreakdown = {};
                 attendance.forEach(record => {
-                    const className = record.students && record.students.grades ? 
-                        `${record.students.grades.grade} - ${record.students.grades.class_name}` : 'Unknown Class';
+                    const student = studentsLookup[record.student_id];
+                    if (!student) return;
+                    
+                    const grade = gradesLookup[student.grade_id];
+                    const className = grade ? `${grade.grade} - ${grade.class_name}` : 'Unknown Class';
                     
                     if (!classBreakdown[className]) {
                         classBreakdown[className] = { present: 0, total: 0 };
@@ -3691,6 +3739,7 @@
                     }
                 });
                 
+                // Generate report HTML
                 let html = `<div class="card">
                     <h3>Daily Attendance Report - ${date}</h3>
                     <div class="summary-grid">
@@ -3712,8 +3761,8 @@
                         </div>
                     </div>`;
                 
-                // Add class-wise breakdown if we have multiple classes
-                if (Object.keys(classBreakdown).length > 1) {
+                // Add class-wise breakdown
+                if (Object.keys(classBreakdown).length > 0) {
                     html += `<h4 style="margin-top: 20px;">Class-wise Breakdown</h4>
                     <div style="overflow-x: auto;">
                         <table>
@@ -3747,6 +3796,7 @@
                     html += `</tbody></table></div>`;
                 }
                 
+                // Add detailed records
                 html += `<h4 style="margin-top: 20px;">Detailed Records</h4>
                     <div style="overflow-x: auto;">
                         <table>
@@ -3763,16 +3813,21 @@
                             <tbody>`;
                 
                 attendance.forEach(record => {
-                    const className = record.students && record.students.grades ? 
-                        `${record.students.grades.grade} - ${record.students.grades.class_name}` : 'Unknown Class';
-                    const subjectName = record.subjects ? record.subjects.name : 'Unknown Subject';
-                    const teacherName = record.teachers ? `${record.teachers.name} (${record.teachers.teacher_id})` : 'Unknown Teacher';
+                    const student = studentsLookup[record.student_id];
+                    const subject = subjectsLookup[record.subject_id];
+                    const teacher = teachersLookup[record.teacher_id];
+                    const grade = student && gradesLookup[student.grade_id];
+                    
+                    const studentName = student ? student.name : 'Unknown Student';
+                    const className = grade ? `${grade.grade} - ${grade.class_name}` : 'Unknown Class';
+                    const subjectName = subject ? subject.name : 'Unknown Subject';
+                    const teacherName = teacher ? `${teacher.name} (${teacher.teacher_id})` : 'Unknown Teacher';
                     const statusClass = record.status === 'present' ? 'present' : 'absent';
                     
                     html += `
                         <tr>
-                            <td>${record.students ? record.students.student_id : 'N/A'}</td>
-                            <td>${record.students ? record.students.name : 'N/A'}</td>
+                            <td>${record.student_id}</td>
+                            <td>${studentName}</td>
                             <td>${className}</td>
                             <td>${subjectName}</td>
                             <td>${teacherName}</td>
@@ -3792,6 +3847,10 @@
                     subjectId,
                     teacherId,
                     attendance,
+                    studentsLookup,
+                    subjectsLookup,
+                    teachersLookup,
+                    gradesLookup,
                     classBreakdown,
                     totalRecords,
                     presentRecords,
@@ -3823,32 +3882,16 @@
                 const startDate = month + '-01';
                 const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0).toISOString().split('T')[0];
                 
-                // Build query based on filters
+                // Build base query
                 let query = supabase
                     .from('attendance')
-                    .select(`
-                        *,
-                        students (
-                            name,
-                            student_id,
-                            grades (
-                                grade,
-                                class_name
-                            )
-                        ),
-                        subjects (
-                            name
-                        ),
-                        teachers (
-                            name,
-                            teacher_id
-                        )
-                    `)
+                    .select('*')
                     .gte('date', startDate)
                     .lte('date', endDate);
                 
+                // Apply filters
                 if (classId) {
-                    // Get students from the selected class
+                    // Get students from selected class
                     const { data: students } = await supabase
                         .from('students')
                         .select('student_id')
@@ -3857,6 +3900,9 @@
                     if (students && students.length > 0) {
                         const studentIds = students.map(s => s.student_id);
                         query = query.in('student_id', studentIds);
+                    } else {
+                        output.innerHTML = '<div class="info-box">No students found for the selected class.</div>';
+                        return;
                     }
                 }
                 
@@ -3880,6 +3926,35 @@
                     return;
                 }
                 
+                // Get student details
+                const studentIds = [...new Set(attendance.map(a => a.student_id))];
+                const { data: students } = await supabase
+                    .from('students')
+                    .select('student_id, name, grade_id')
+                    .in('student_id', studentIds);
+                
+                // Get grade details
+                const gradeIds = students ? [...new Set(students.map(s => s.grade_id))] : [];
+                const { data: grades } = await supabase
+                    .from('grades')
+                    .select('id, grade, class_name')
+                    .in('id', gradeIds);
+                
+                // Create lookup objects
+                const studentsLookup = {};
+                if (students) {
+                    students.forEach(student => {
+                        studentsLookup[student.student_id] = student;
+                    });
+                }
+                
+                const gradesLookup = {};
+                if (grades) {
+                    grades.forEach(grade => {
+                        gradesLookup[grade.id] = grade;
+                    });
+                }
+                
                 // Calculate working days
                 let workingDays = 0;
                 let currentDate = new Date(startDate);
@@ -3901,14 +3976,15 @@
                 // Group by student for individual performance
                 const studentStats = {};
                 attendance.forEach(record => {
-                    if (!record.students) return;
-                    
-                    const studentId = record.students.student_id;
+                    const studentId = record.student_id;
                     if (!studentStats[studentId]) {
+                        const student = studentsLookup[studentId];
+                        const grade = student && gradesLookup[student.grade_id];
+                        const className = grade ? `${grade.grade} - ${grade.class_name}` : 'Unknown Class';
+                        
                         studentStats[studentId] = {
-                            name: record.students.name,
-                            className: record.students.grades ? 
-                                `${record.students.grades.grade} - ${record.students.grades.class_name}` : 'Unknown Class',
+                            name: student ? student.name : 'Unknown Student',
+                            className: className,
                             present: 0,
                             total: 0
                         };
@@ -4002,10 +4078,8 @@
             }
         }
 
-        // COMPLETED PDF REPORT FUNCTIONS
-
+        // FIXED PDF REPORT FUNCTIONS
         async function generateDailyPdfReport() {
-            // Use stored report data or generate new data
             if (!appData.currentReportData || appData.currentReportData.type !== 'daily') {
                 alert('Please generate a daily report first before creating PDF');
                 return;
@@ -4073,13 +4147,12 @@
                 alert('Error generating daily PDF: ' + error.message);
             } finally {
                 // Restore button state
-                document.getElementById('generateDailyPdfBtn').textContent = '📄 Generate PDF Report';
+                document.getElementById('generateDailyPdfBtn').textContent = originalText;
                 document.getElementById('generateDailyPdfBtn').disabled = false;
             }
         }
 
         async function generateMonthlyPdfReport() {
-            // Use stored report data or generate new data
             if (!appData.currentReportData || appData.currentReportData.type !== 'monthly') {
                 alert('Please generate a monthly report first before creating PDF');
                 return;
@@ -4145,7 +4218,7 @@
                 alert('Error generating monthly PDF: ' + error.message);
             } finally {
                 // Restore button state
-                document.getElementById('generateMonthlyPdfBtn').textContent = '📄 Generate PDF Report';
+                document.getElementById('generateMonthlyPdfBtn').textContent = originalText;
                 document.getElementById('generateMonthlyPdfBtn').disabled = false;
             }
         }
