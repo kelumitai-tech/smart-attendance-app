@@ -674,23 +674,78 @@
             <!-- Reports Tab -->
             <div class="tab-content" id="reports">
                 <div class="card">
-                    <h3>Generate Monthly Report</h3>
+                    <h3>Generate Reports</h3>
+                    <div class="info-box">Generate daily or monthly reports with teacher filter</div>
+                    
+                    <!-- Report Type Selection -->
                     <div class="form-group">
-                        <label>Select Class</label>
-                        <select id="reportClass">
-                            <option value="">Loading classes...</option>
+                        <label>Report Type</label>
+                        <select id="reportType">
+                            <option value="daily">Daily Report</option>
+                            <option value="monthly">Monthly Report</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Select Subject</label>
-                        <select id="reportSubject">
-                            <option value="">Loading subjects...</option>
-                        </select>
+                    
+                    <!-- Daily Report Fields -->
+                    <div id="dailyReportFields">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Select Class</label>
+                                <select id="reportClass">
+                                    <option value="">Loading classes...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Select Subject</label>
+                                <select id="reportSubject">
+                                    <option value="">Loading subjects...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Select Teacher</label>
+                                <select id="reportTeacher">
+                                    <option value="">Loading teachers...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="reportDate">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Month</label>
-                        <input type="month" id="reportMonth">
+                    
+                    <!-- Monthly Report Fields -->
+                    <div id="monthlyReportFields" style="display: none;">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Select Class</label>
+                                <select id="monthlyReportClass">
+                                    <option value="">Loading classes...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Select Subject</label>
+                                <select id="monthlyReportSubject">
+                                    <option value="">Loading subjects...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Select Teacher</label>
+                                <select id="monthlyReportTeacher">
+                                    <option value="">Loading teachers...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Month</label>
+                                <input type="month" id="reportMonth">
+                            </div>
+                        </div>
                     </div>
+                    
                     <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
                     <button class="pdf-btn" id="generatePdfBtn">📄 Generate PDF Report</button>
                     <div id="reportOutput" style="margin-top: 20px;"></div>
@@ -1218,6 +1273,7 @@
             document.getElementById('viewDate').value = formattedDate;
             document.getElementById('dashboardDate').value = formattedDate;
             document.getElementById('dailyReportDate').value = formattedDate;
+            document.getElementById('reportDate').value = formattedDate;
             
             const currentMonth = formattedDate.substring(0, 7);
             document.getElementById('reportMonth').value = currentMonth;
@@ -1370,7 +1426,8 @@
             document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
             document.getElementById('clearAllBtn').addEventListener('click', markAllAbsent);
             
-            // Reports
+            // Reports - Updated event listeners
+            document.getElementById('reportType').addEventListener('change', toggleReportType);
             document.getElementById('generateReportBtn').addEventListener('click', generateReport);
             document.getElementById('generatePdfBtn').addEventListener('click', generatePdfReport);
             
@@ -1391,6 +1448,21 @@
             document.getElementById('subjectFilter').addEventListener('keyup', filterSubjects);
             document.getElementById('gradeFilter').addEventListener('keyup', filterGrades);
             document.getElementById('viewAttendanceBtn').addEventListener('click', viewAttendanceRecords);
+        }
+
+        // NEW FUNCTION: Toggle report type
+        function toggleReportType() {
+            const reportType = document.getElementById('reportType').value;
+            const dailyFields = document.getElementById('dailyReportFields');
+            const monthlyFields = document.getElementById('monthlyReportFields');
+            
+            if (reportType === 'daily') {
+                dailyFields.style.display = 'block';
+                monthlyFields.style.display = 'none';
+            } else {
+                dailyFields.style.display = 'none';
+                monthlyFields.style.display = 'block';
+            }
         }
 
         function showLoginForm() {
@@ -1717,6 +1789,9 @@
                 loadDashboard();
             } else if (tabName === 'viewAttendance') {
                 setupRealTimeAttendance();
+            } else if (tabName === 'reports') {
+                // Initialize report type
+                toggleReportType();
             }
         }
 
@@ -1780,6 +1855,8 @@
                     loadDashboard();
                 } else if (tabName === 'viewAttendance') {
                     setupRealTimeAttendance();
+                } else if (tabName === 'reports') {
+                    toggleReportType();
                 }
             }
         }
@@ -1794,6 +1871,7 @@
 
                 const classSelect = document.getElementById('selectClass');
                 const reportClassSelect = document.getElementById('reportClass');
+                const monthlyReportClassSelect = document.getElementById('monthlyReportClass');
                 const viewClassSelect = document.getElementById('viewClass');
                 const filterStudentClass = document.getElementById('filterStudentClass');
                 const studentGrade = document.getElementById('studentGrade');
@@ -1802,7 +1880,7 @@
                 const monthlyReportClass = document.getElementById('monthlyReportClass');
                 
                 // Clear existing options
-                const dropdowns = [classSelect, reportClassSelect, viewClassSelect, studentGrade, dashboardClass, dailyReportClass, monthlyReportClass];
+                const dropdowns = [classSelect, reportClassSelect, monthlyReportClassSelect, viewClassSelect, studentGrade, dashboardClass, dailyReportClass, monthlyReportClass];
                 dropdowns.forEach(select => {
                     select.innerHTML = '<option value="">Select Class</option>';
                 });
@@ -1860,7 +1938,7 @@
             } catch (error) {
                 console.error("Error loading classes:", error);
                 const errorOption = '<option value="" disabled>Error loading classes</option>';
-                document.querySelectorAll('#selectClass, #reportClass, #viewClass, #studentGrade, #filterStudentClass, #dashboardClass, #dailyReportClass, #monthlyReportClass').forEach(select => {
+                document.querySelectorAll('#selectClass, #reportClass, #monthlyReportClass, #viewClass, #studentGrade, #filterStudentClass, #dashboardClass, #dailyReportClass, #monthlyReportClass').forEach(select => {
                     select.innerHTML = errorOption;
                 });
             }
@@ -1875,14 +1953,15 @@
 
                 const selectSubject = document.getElementById('selectSubject');
                 const reportSubject = document.getElementById('reportSubject');
+                const monthlyReportSubject = document.getElementById('monthlyReportSubject');
                 const viewSubject = document.getElementById('viewSubject');
                 const teacherSubject = document.getElementById('teacherSubject');
                 const dashboardSubject = document.getElementById('dashboardSubject');
                 const dailyReportSubject = document.getElementById('dailyReportSubject');
-                const monthlyReportSubject = document.getElementById('monthlyReportSubject');
+                const monthlyReportSubjectEl = document.getElementById('monthlyReportSubject');
                 
                 // Clear existing options
-                const dropdowns = [selectSubject, reportSubject, viewSubject, teacherSubject, dashboardSubject, dailyReportSubject, monthlyReportSubject];
+                const dropdowns = [selectSubject, reportSubject, monthlyReportSubject, viewSubject, teacherSubject, dashboardSubject, dailyReportSubject, monthlyReportSubjectEl];
                 dropdowns.forEach(select => {
                     select.innerHTML = '<option value="">Select Subject</option>';
                 });
@@ -1908,7 +1987,7 @@
             } catch (error) {
                 console.error("Error loading subjects:", error);
                 const errorOption = '<option value="" disabled>Error loading subjects</option>';
-                document.querySelectorAll('#selectSubject, #reportSubject, #viewSubject, #teacherSubject, #dashboardSubject, #dailyReportSubject, #monthlyReportSubject').forEach(select => {
+                document.querySelectorAll('#selectSubject, #reportSubject, #monthlyReportSubject, #viewSubject, #teacherSubject, #dashboardSubject, #dailyReportSubject, #monthlyReportSubject').forEach(select => {
                     select.innerHTML = errorOption;
                 });
             }
@@ -1924,11 +2003,13 @@
 
                 const selectTeacher = document.getElementById('selectTeacher');
                 const viewTeacher = document.getElementById('viewTeacher');
-                const dailyReportTeacher = document.getElementById('dailyReportTeacher');
+                const reportTeacher = document.getElementById('reportTeacher');
                 const monthlyReportTeacher = document.getElementById('monthlyReportTeacher');
+                const dailyReportTeacher = document.getElementById('dailyReportTeacher');
+                const monthlyReportTeacherEl = document.getElementById('monthlyReportTeacher');
                 
                 // Clear existing options
-                const dropdowns = [selectTeacher, viewTeacher, dailyReportTeacher, monthlyReportTeacher];
+                const dropdowns = [selectTeacher, viewTeacher, reportTeacher, monthlyReportTeacher, dailyReportTeacher, monthlyReportTeacherEl];
                 dropdowns.forEach(select => {
                     select.innerHTML = '<option value="">Select Teacher</option>';
                 });
@@ -1960,7 +2041,7 @@
             } catch (error) {
                 console.error("Error loading teachers:", error);
                 const errorOption = '<option value="" disabled>Error loading teachers</option>';
-                document.querySelectorAll('#selectTeacher, #viewTeacher, #dailyReportTeacher, #monthlyReportTeacher').forEach(select => {
+                document.querySelectorAll('#selectTeacher, #viewTeacher, #reportTeacher, #monthlyReportTeacher, #dailyReportTeacher, #monthlyReportTeacher').forEach(select => {
                     select.innerHTML = errorOption;
                 });
             }
@@ -2765,20 +2846,144 @@
             });
         }
 
-        // FIXED REPORTS FUNCTION
+        // FIXED REPORTS FUNCTION - Now includes teacher dropdown and daily/monthly reports
         async function generateReport() {
-            const classId = document.getElementById('reportClass').value;
-            const subjectId = document.getElementById('reportSubject').value;
-            const month = document.getElementById('reportMonth').value;
+            const reportType = document.getElementById('reportType').value;
             const reportOutput = document.getElementById('reportOutput');
             
-            if (!classId || !subjectId || !month) {
-                alert('Please select class, subject, and month');
+            if (reportType === 'daily') {
+                await generateDailyReport();
+            } else {
+                await generateMonthlyReport();
+            }
+        }
+
+        async function generateDailyReport() {
+            const classId = document.getElementById('reportClass').value;
+            const subjectId = document.getElementById('reportSubject').value;
+            const teacherId = document.getElementById('reportTeacher').value;
+            const date = document.getElementById('reportDate').value;
+            const reportOutput = document.getElementById('reportOutput');
+            
+            if (!classId || !subjectId || !teacherId || !date) {
+                alert('Please select all required fields for daily report');
                 return;
             }
             
             try {
-                reportOutput.innerHTML = '<div class="loading">Generating report...</div>';
+                reportOutput.innerHTML = '<div class="loading">Generating daily report...</div>';
+                
+                // Get attendance data for the selected day
+                const { data: attendance, error } = await supabase
+                    .from('attendance')
+                    .select(`*, students (name, student_id, grades (grade, class_name)), subjects (name), teachers (name, teacher_id)`)
+                    .eq('date', date)
+                    .eq('subject_id', subjectId)
+                    .eq('teacher_id', teacherId);
+                
+                if (error) throw error;
+                
+                if (!attendance || attendance.length === 0) {
+                    reportOutput.innerHTML = '<div class="info-box">No attendance records found for the selected criteria.</div>';
+                    return;
+                }
+                
+                // Calculate summary
+                const totalRecords = attendance.length;
+                const presentRecords = attendance.filter(a => a.status === 'present').length;
+                const attendanceRate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0;
+                
+                // Get class info
+                const { data: gradeData } = await supabase
+                    .from('grades')
+                    .select('grade, class_name')
+                    .eq('id', classId)
+                    .single();
+                
+                let html = `<div class="card">
+                    <h3>Daily Attendance Report - ${date}</h3>
+                    <p><strong>Class:</strong> ${gradeData.grade} - ${gradeData.class_name}</p>
+                    <p><strong>Subject:</strong> ${attendance[0].subjects.name}</p>
+                    <p><strong>Teacher:</strong> ${attendance[0].teachers.name} (${attendance[0].teachers.teacher_id})</p>
+                    
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <div class="summary-label">Total Records</div>
+                            <div class="summary-value">${totalRecords}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Present</div>
+                            <div class="summary-value present">${presentRecords}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Absent</div>
+                            <div class="summary-value absent">${totalRecords - presentRecords}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Attendance Rate</div>
+                            <div class="summary-value">${attendanceRate}%</div>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin-top: 20px;">Detailed Records</h4>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                attendance.forEach(record => {
+                    const statusClass = record.status === 'present' ? 'present' : 'absent';
+                    html += `
+                        <tr>
+                            <td>${record.students.student_id}</td>
+                            <td>${record.students.name}</td>
+                            <td class="${statusClass}">${record.status.toUpperCase()}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `</tbody></table></div></div>`;
+                reportOutput.innerHTML = html;
+                
+                // Store report data for PDF generation
+                appData.currentReportData = {
+                    type: 'daily',
+                    date,
+                    classId,
+                    subjectId,
+                    teacherId,
+                    attendance,
+                    totalRecords,
+                    presentRecords,
+                    attendanceRate
+                };
+                
+            } catch (error) {
+                console.error("Error generating daily report:", error);
+                reportOutput.innerHTML = '<div class="error-msg">Error generating daily report: ' + error.message + '</div>';
+            }
+        }
+
+        async function generateMonthlyReport() {
+            const classId = document.getElementById('monthlyReportClass').value;
+            const subjectId = document.getElementById('monthlyReportSubject').value;
+            const teacherId = document.getElementById('monthlyReportTeacher').value;
+            const month = document.getElementById('reportMonth').value;
+            const reportOutput = document.getElementById('reportOutput');
+            
+            if (!classId || !subjectId || !teacherId || !month) {
+                alert('Please select all required fields for monthly report');
+                return;
+            }
+            
+            try {
+                reportOutput.innerHTML = '<div class="loading">Generating monthly report...</div>';
                 
                 // Get date range for the month
                 const startDate = month + '-01';
@@ -2802,6 +3007,7 @@
                     .from('attendance')
                     .select('*')
                     .eq('subject_id', subjectId)
+                    .eq('teacher_id', teacherId)
                     .gte('date', startDate)
                     .lte('date', endDate);
                     
@@ -2844,9 +3050,31 @@
                     });
                 }
                 
+                // Get class and subject info
+                const { data: gradeData } = await supabase
+                    .from('grades')
+                    .select('grade, class_name')
+                    .eq('id', classId)
+                    .single();
+                
+                const { data: subjectData } = await supabase
+                    .from('subjects')
+                    .select('name')
+                    .eq('id', subjectId)
+                    .single();
+                
+                const { data: teacherData } = await supabase
+                    .from('teachers')
+                    .select('name, teacher_id')
+                    .eq('id', teacherId)
+                    .single();
+                
                 // Generate report HTML
                 let html = `<div class="card">
-                    <h3>Monthly Attendance Report</h3>
+                    <h3>Monthly Attendance Report - ${month}</h3>
+                    <p><strong>Class:</strong> ${gradeData.grade} - ${gradeData.class_name}</p>
+                    <p><strong>Subject:</strong> ${subjectData.name}</p>
+                    <p><strong>Teacher:</strong> ${teacherData.name} (${teacherData.teacher_id})</p>
                     <p><strong>Period:</strong> ${month} | <strong>Working Days:</strong> ${workingDays}</p>
                     <div style="overflow-x: auto;">
                         <table>
@@ -2889,14 +3117,15 @@
                     type: 'monthly',
                     classId,
                     subjectId,
+                    teacherId,
                     month,
                     studentStats,
                     workingDays
                 };
                 
             } catch (error) {
-                console.error("Error generating report:", error);
-                reportOutput.innerHTML = '<div class="error-msg">Error generating report: ' + error.message + '</div>';
+                console.error("Error generating monthly report:", error);
+                reportOutput.innerHTML = '<div class="error-msg">Error generating monthly report: ' + error.message + '</div>';
             }
         }
 
@@ -2908,7 +3137,22 @@
                 return;
             }
             
-            const { classId, subjectId, month, studentStats, workingDays, type } = appData.currentReportData;
+            const { type } = appData.currentReportData;
+            
+            if (type === 'daily') {
+                await generateDailyPdfReport();
+            } else {
+                await generateMonthlyPdfReport();
+            }
+        }
+
+        async function generateDailyPdfReport() {
+            if (!appData.currentReportData || appData.currentReportData.type !== 'daily') {
+                alert('Please generate a daily report first before creating PDF');
+                return;
+            }
+            
+            const { date, attendance, totalRecords, presentRecords, attendanceRate } = appData.currentReportData;
             
             try {
                 // Show loading state
@@ -2916,20 +3160,71 @@
                 document.getElementById('generatePdfBtn').textContent = 'Generating PDF...';
                 document.getElementById('generatePdfBtn').disabled = true;
                 
-                // Get class and subject info
-                const { data: gradeData } = await supabase
-                    .from('grades')
-                    .select('grade, class_name')
-                    .eq('id', classId)
-                    .single();
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
                 
-                const { data: subjectData } = await supabase
-                    .from('subjects')
-                    .select('name')
-                    .eq('id', subjectId)
-                    .single();
+                // Add header
+                doc.setFontSize(20);
+                doc.setTextColor(0, 90, 156);
+                doc.text('Daily Attendance Report', 105, 15, { align: 'center' });
                 
-                // Create PDF
+                // Add date
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Date: ${date}`, 20, 30);
+                
+                // Add summary section
+                doc.text('Summary:', 20, 45);
+                doc.text(`• Total Records: ${totalRecords}`, 25, 55);
+                doc.text(`• Present: ${presentRecords}`, 25, 65);
+                doc.text(`• Absent: ${totalRecords - presentRecords}`, 25, 75);
+                doc.text(`• Attendance Rate: ${attendanceRate}%`, 25, 85);
+                
+                // Add attendance records table
+                const tableData = [];
+                attendance.forEach(record => {
+                    tableData.push([
+                        record.students.student_id,
+                        record.students.name,
+                        record.status.toUpperCase()
+                    ]);
+                });
+                
+                doc.autoTable({
+                    startY: 95,
+                    head: [['Student ID', 'Name', 'Status']],
+                    body: tableData,
+                    styles: { fontSize: 10 },
+                    headStyles: { fillColor: [0, 90, 156] }
+                });
+                
+                // Save PDF
+                doc.save(`daily_attendance_report_${date}.pdf`);
+                
+            } catch (error) {
+                console.error("Error generating daily PDF:", error);
+                alert('Error generating daily PDF: ' + error.message);
+            } finally {
+                // Restore button state
+                document.getElementById('generatePdfBtn').textContent = originalText;
+                document.getElementById('generatePdfBtn').disabled = false;
+            }
+        }
+
+        async function generateMonthlyPdfReport() {
+            if (!appData.currentReportData || appData.currentReportData.type !== 'monthly') {
+                alert('Please generate a monthly report first before creating PDF');
+                return;
+            }
+            
+            const { month, studentStats, workingDays } = appData.currentReportData;
+            
+            try {
+                // Show loading state
+                const originalText = document.getElementById('generatePdfBtn').textContent;
+                document.getElementById('generatePdfBtn').textContent = 'Generating PDF...';
+                document.getElementById('generatePdfBtn').disabled = true;
+                
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
@@ -2938,46 +3233,42 @@
                 doc.setTextColor(0, 90, 156);
                 doc.text('Monthly Attendance Report', 105, 15, { align: 'center' });
                 
-                // Add report details
+                // Add month
                 doc.setFontSize(12);
                 doc.setTextColor(0, 0, 0);
-                doc.text(`Class: ${gradeData.grade} - ${gradeData.class_name}`, 20, 30);
-                doc.text(`Subject: ${subjectData.name}`, 20, 40);
-                doc.text(`Month: ${month}`, 20, 50);
-                doc.text(`Working Days: ${workingDays}`, 20, 60);
+                doc.text(`Month: ${month}`, 20, 30);
+                doc.text(`Working Days: ${workingDays}`, 20, 40);
                 
-                // Prepare table data
+                // Add student performance table
                 const tableData = [];
                 Object.keys(studentStats).forEach(studentId => {
                     const stats = studentStats[studentId];
-                    const absent = stats.total - stats.present;
                     const percentage = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
                     
                     tableData.push([
                         studentId,
                         stats.name,
                         stats.present.toString(),
-                        absent.toString(),
+                        (stats.total - stats.present).toString(),
                         stats.total.toString(),
                         percentage + '%'
                     ]);
                 });
                 
-                // Add table
                 doc.autoTable({
-                    startY: 70,
+                    startY: 50,
                     head: [['Student ID', 'Name', 'Present', 'Absent', 'Total', 'Percentage']],
                     body: tableData,
-                    styles: { fontSize: 10 },
+                    styles: { fontSize: 9 },
                     headStyles: { fillColor: [0, 90, 156] }
                 });
                 
                 // Save PDF
-                doc.save(`attendance_report_${month}_${gradeData.grade}_${subjectData.name}.pdf`);
+                doc.save(`monthly_attendance_report_${month}.pdf`);
                 
             } catch (error) {
-                console.error("Error generating PDF:", error);
-                alert('Error generating PDF: ' + error.message);
+                console.error("Error generating monthly PDF:", error);
+                alert('Error generating monthly PDF: ' + error.message);
             } finally {
                 // Restore button state
                 document.getElementById('generatePdfBtn').textContent = originalText;
@@ -4074,7 +4365,6 @@
                     tableData.push([
                         studentId,
                         stats.name,
-                        stats.className,
                         stats.present.toString(),
                         stats.total.toString(),
                         percentage + '%'
@@ -4083,7 +4373,7 @@
                 
                 doc.autoTable({
                     startY: 95,
-                    head: [['Student ID', 'Name', 'Class', 'Present', 'Total', 'Percentage']],
+                    head: [['Student ID', 'Name', 'Present', 'Total', 'Percentage']],
                     body: tableData,
                     styles: { fontSize: 9 },
                     headStyles: { fillColor: [0, 90, 156] }
