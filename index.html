@@ -1447,10 +1447,10 @@
             document.getElementById('refreshDashboardBtn').addEventListener('click', loadDashboard);
             
             // Dashboard Reports
-            document.getElementById('generateDailyReportBtn').addEventListener('click', generateDailyReport);
-            document.getElementById('generateDailyPdfBtn').addEventListener('click', generateDailyPdfReport);
-            document.getElementById('generateMonthlyReportBtn').addEventListener('click', generateMonthlyReport);
-            document.getElementById('generateMonthlyPdfBtn').addEventListener('click', generateMonthlyPdfReport);
+            document.getElementById('generateDailyReportBtn').addEventListener('click', generateDailyReportForDashboard);
+            document.getElementById('generateDailyPdfBtn').addEventListener('click', generateDailyPdfReportForDashboard);
+            document.getElementById('generateMonthlyReportBtn').addEventListener('click', generateMonthlyReportForDashboard);
+            document.getElementById('generateMonthlyPdfBtn').addEventListener('click', generateMonthlyPdfReportForDashboard);
             
             // Principal-only features
             document.getElementById('addTeacherBtn').addEventListener('click', addTeacher);
@@ -1566,11 +1566,10 @@
                 } else {
                     appData.userRole = userData.role;
                     
-                    // Verify role match
-                    if (userData.role !== selectedRole) {
-                        await supabase.auth.signOut();
-                        throw new Error(`Your account is registered as ${roleDisplayMapping[userData.role]}, but you are trying to login as ${roleDisplayMapping[selectedRole]}. Please select the correct role.`);
-                    }
+                    // FIXED: Remove role verification to allow users to login with any role selection
+                    // The role selection in login form is now just for UI purposes
+                    // The actual permissions are determined by the stored role in the database
+                    console.log(`User logged in with stored role: ${userData.role}, selected role: ${selectedRole}`);
                 }
 
                 showApp(appData.userRole);
