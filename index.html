@@ -1946,7 +1946,7 @@
                 }
                 
                 teachers.forEach(teacher => {
-                    // FIXED: Properly access the subject name from the joined table
+                    // FIXED: Now correctly accessing subject name from the joined table
                     const subjectName = teacher.subjects ? teacher.subjects.name : 'No Subject';
                     const option = document.createElement('option');
                     option.value = teacher.id;
@@ -3597,7 +3597,7 @@
             }
         }
 
-        // COMPLETED DAILY AND MONTHLY REPORTS
+        // FIXED DAILY AND MONTHLY REPORTS
 
         async function generateDailyReport() {
             try {
@@ -3617,7 +3617,24 @@
                 // Build query based on filters
                 let query = supabase
                     .from('attendance')
-                    .select(`*, students (name, student_id, grades (grade, class_name)), subjects (name), teachers (name, teacher_id)`)
+                    .select(`
+                        *,
+                        students (
+                            name,
+                            student_id,
+                            grades (
+                                grade,
+                                class_name
+                            )
+                        ),
+                        subjects (
+                            name
+                        ),
+                        teachers (
+                            name,
+                            teacher_id
+                        )
+                    `)
                     .eq('date', date);
                 
                 if (classId) {
@@ -3643,7 +3660,10 @@
                 
                 const { data: attendance, error } = await query;
                 
-                if (error) throw error;
+                if (error) {
+                    console.error("Error fetching attendance:", error);
+                    throw error;
+                }
                 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria.</div>';
@@ -3658,7 +3678,7 @@
                 // Group by class for detailed breakdown
                 const classBreakdown = {};
                 attendance.forEach(record => {
-                    const className = record.students.grades ? 
+                    const className = record.students && record.students.grades ? 
                         `${record.students.grades.grade} - ${record.students.grades.class_name}` : 'Unknown Class';
                     
                     if (!classBreakdown[className]) {
@@ -3690,9 +3710,11 @@
                             <div class="summary-label">Attendance Rate</div>
                             <div class="summary-value">${attendanceRate}%</div>
                         </div>
-                    </div>
-                    
-                    <h4 style="margin-top: 20px;">Class-wise Breakdown</h4>
+                    </div>`;
+                
+                // Add class-wise breakdown if we have multiple classes
+                if (Object.keys(classBreakdown).length > 1) {
+                    html += `<h4 style="margin-top: 20px;">Class-wise Breakdown</h4>
                     <div style="overflow-x: auto;">
                         <table>
                             <thead>
@@ -3705,26 +3727,27 @@
                                 </tr>
                             </thead>
                             <tbody>`;
-                
-                Object.keys(classBreakdown).forEach(className => {
-                    const stats = classBreakdown[className];
-                    const absent = stats.total - stats.present;
-                    const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
                     
-                    html += `
-                        <tr>
-                            <td>${className}</td>
-                            <td>${stats.total}</td>
-                            <td class="present">${stats.present}</td>
-                            <td class="absent">${absent}</td>
-                            <td>${rate}%</td>
-                        </tr>
-                    `;
-                });
-                
-                html += `</tbody></table></div>
+                    Object.keys(classBreakdown).forEach(className => {
+                        const stats = classBreakdown[className];
+                        const absent = stats.total - stats.present;
+                        const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+                        
+                        html += `
+                            <tr>
+                                <td>${className}</td>
+                                <td>${stats.total}</td>
+                                <td class="present">${stats.present}</td>
+                                <td class="absent">${absent}</td>
+                                <td>${rate}%</td>
+                            </tr>
+                        `;
+                    });
                     
-                    <h4 style="margin-top: 20px;">Detailed Records</h4>
+                    html += `</tbody></table></div>`;
+                }
+                
+                html += `<h4 style="margin-top: 20px;">Detailed Records</h4>
                     <div style="overflow-x: auto;">
                         <table>
                             <thead>
@@ -3740,7 +3763,7 @@
                             <tbody>`;
                 
                 attendance.forEach(record => {
-                    const className = record.students.grades ? 
+                    const className = record.students && record.students.grades ? 
                         `${record.students.grades.grade} - ${record.students.grades.class_name}` : 'Unknown Class';
                     const subjectName = record.subjects ? record.subjects.name : 'Unknown Subject';
                     const teacherName = record.teachers ? `${record.teachers.name} (${record.teachers.teacher_id})` : 'Unknown Teacher';
@@ -3748,8 +3771,8 @@
                     
                     html += `
                         <tr>
-                            <td>${record.students.student_id}</td>
-                            <td>${record.students.name}</td>
+                            <td>${record.students ? record.students.student_id : 'N/A'}</td>
+                            <td>${record.students ? record.students.name : 'N/A'}</td>
                             <td>${className}</td>
                             <td>${subjectName}</td>
                             <td>${teacherName}</td>
@@ -3803,7 +3826,24 @@
                 // Build query based on filters
                 let query = supabase
                     .from('attendance')
-                    .select(`*, students (name, student_id, grades (grade, class_name)), subjects (name), teachers (name, teacher_id)`)
+                    .select(`
+                        *,
+                        students (
+                            name,
+                            student_id,
+                            grades (
+                                grade,
+                                class_name
+                            )
+                        ),
+                        subjects (
+                            name
+                        ),
+                        teachers (
+                            name,
+                            teacher_id
+                        )
+                    `)
                     .gte('date', startDate)
                     .lte('date', endDate);
                 
@@ -3830,7 +3870,10 @@
                 
                 const { data: attendance, error } = await query;
                 
-                if (error) throw error;
+                if (error) {
+                    console.error("Error fetching attendance:", error);
+                    throw error;
+                }
                 
                 if (!attendance || attendance.length === 0) {
                     output.innerHTML = '<div class="info-box">No attendance records found for the selected criteria.</div>';
@@ -3858,6 +3901,8 @@
                 // Group by student for individual performance
                 const studentStats = {};
                 attendance.forEach(record => {
+                    if (!record.students) return;
+                    
                     const studentId = record.students.student_id;
                     if (!studentStats[studentId]) {
                         studentStats[studentId] = {
@@ -3894,9 +3939,10 @@
                             <div class="summary-label">Attendance Rate</div>
                             <div class="summary-value">${attendanceRate}%</div>
                         </div>
-                    </div>
-                    
-                    <h4 style="margin-top: 20px;">Student Performance Summary</h4>
+                    </div>`;
+                
+                // Add student performance summary
+                html += `<h4 style="margin-top: 20px;">Student Performance Summary</h4>
                     <div style="overflow-x: auto;">
                         <table>
                             <thead>
@@ -3993,29 +4039,31 @@
                 doc.text(`• Absent: ${totalRecords - presentRecords}`, 25, 75);
                 doc.text(`• Attendance Rate: ${attendanceRate}%`, 25, 85);
                 
-                // Add class breakdown table
-                const tableData = [];
-                Object.keys(classBreakdown).forEach(className => {
-                    const stats = classBreakdown[className];
-                    const absent = stats.total - stats.present;
-                    const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+                // Add class breakdown table if available
+                if (Object.keys(classBreakdown).length > 0) {
+                    const tableData = [];
+                    Object.keys(classBreakdown).forEach(className => {
+                        const stats = classBreakdown[className];
+                        const absent = stats.total - stats.present;
+                        const rate = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+                        
+                        tableData.push([
+                            className,
+                            stats.total.toString(),
+                            stats.present.toString(),
+                            absent.toString(),
+                            rate + '%'
+                        ]);
+                    });
                     
-                    tableData.push([
-                        className,
-                        stats.total.toString(),
-                        stats.present.toString(),
-                        absent.toString(),
-                        rate + '%'
-                    ]);
-                });
-                
-                doc.autoTable({
-                    startY: 95,
-                    head: [['Class', 'Total', 'Present', 'Absent', 'Rate']],
-                    body: tableData,
-                    styles: { fontSize: 10 },
-                    headStyles: { fillColor: [0, 90, 156] }
-                });
+                    doc.autoTable({
+                        startY: 95,
+                        head: [['Class', 'Total', 'Present', 'Absent', 'Rate']],
+                        body: tableData,
+                        styles: { fontSize: 10 },
+                        headStyles: { fillColor: [0, 90, 156] }
+                    });
+                }
                 
                 // Save PDF
                 doc.save(`daily_attendance_report_${date}.pdf`);
