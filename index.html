@@ -561,7 +561,7 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject, teacher, and date to mark attendance (Monday to Friday only)</div>
+                    <div class="info-box">Select class, subject, teacher, period and date to mark attendance (Monday to Friday only)</div>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="selectClass">
@@ -581,6 +581,19 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label>Period</label>
+                        <select id="selectPeriod">
+                            <option value="daily">Daily Attendance</option>
+                            <option value="first">First Period</option>
+                            <option value="second">Second Period</option>
+                            <option value="third">Third Period</option>
+                            <option value="fourth">Fourth Period</option>
+                            <option value="fifth">Fifth Period</option>
+                            <option value="sixth">Sixth Period</option>
+                            <option value="seventh">Seventh Period</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Date</label>
                         <input type="date" id="startDate">
                     </div>
@@ -588,7 +601,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>Attendance Sheet for <span id="currentDateDisplay"></span></h3>
+                    <h3>Attendance Sheet for <span id="currentDateDisplay"></span> - <span id="currentPeriodDisplay">Daily Attendance</span></h3>
                     <div id="teacherInfo" class="teacher-info" style="display: none;">
                         <strong>Teacher Information:</strong> 
                         <span id="teacherIdDisplay">-</span> - 
@@ -608,12 +621,13 @@
                                     <th>Subject</th>
                                     <th>Teacher ID</th>
                                     <th>Teacher Name</th>
+                                    <th>Period</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="attendanceTbody">
-                                <tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                                <tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1140,6 +1154,18 @@
             'subjectTeacher': 'Subject Teacher'
         };
 
+        // Period display mapping
+        const periodDisplayMapping = {
+            'daily': 'Daily Attendance',
+            'first': 'First Period',
+            'second': 'Second Period',
+            'third': 'Third Period',
+            'fourth': 'Fourth Period',
+            'fifth': 'Fifth Period',
+            'sixth': 'Sixth Period',
+            'seventh': 'Seventh Period'
+        };
+
         // Complete grade order from Grade 6 - A to Grade 13 - T2
         const gradeOrder = [
             'Grade 6 - A', 'Grade 6 - B', 'Grade 6 - C', 'Grade 6 - D', 'Grade 6 - E', 'Grade 6 - F', 'Grade 6 - G',
@@ -1391,6 +1417,12 @@
             document.getElementById('subjectFilter').addEventListener('keyup', filterSubjects);
             document.getElementById('gradeFilter').addEventListener('keyup', filterGrades);
             document.getElementById('viewAttendanceBtn').addEventListener('click', viewAttendanceRecords);
+            
+            // Period selection
+            document.getElementById('selectPeriod').addEventListener('change', function() {
+                const period = this.value;
+                document.getElementById('currentPeriodDisplay').textContent = periodDisplayMapping[period];
+            });
         }
 
         function showLoginForm() {
@@ -1966,14 +1998,15 @@
             }
         }
 
-        // FIXED ATTENDANCE LOADING FUNCTION
+        // FIXED ATTENDANCE LOADING FUNCTION - UPDATED WITH PERIOD
         async function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
             const selectedTeacher = document.getElementById('selectTeacher').value;
+            const selectedPeriod = document.getElementById('selectPeriod').value;
             const selectedDate = document.getElementById('startDate').value;
             
-            console.log('Loading attendance with:', { selectedClass, selectedSubject, selectedTeacher, selectedDate });
+            console.log('Loading attendance with:', { selectedClass, selectedSubject, selectedTeacher, selectedPeriod, selectedDate });
             
             if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
                 alert('Please select all required fields: Class, Subject, Teacher, and Date');
@@ -1983,7 +2016,7 @@
             try {
                 // Show loading state
                 const tbody = document.getElementById('attendanceTbody');
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Loading students...</td></tr>';
                 
                 // Get teacher information
                 const { data: teacherData, error: teacherError } = await supabase
@@ -2019,7 +2052,7 @@
                 }
                 
                 if (!students || students.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">No students found for the selected class</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">No students found for the selected class</td></tr>';
                     alert('No students found for the selected class');
                     return;
                 }
@@ -2033,13 +2066,14 @@
 
                 const subjectName = subjectData ? subjectData.name : 'Unknown Subject';
                 
-                // Check for existing attendance records for this date
+                // Check for existing attendance records for this date and period
                 const { data: existingAttendance, error: attendanceError } = await supabase
                     .from('attendance')
                     .select('*')
                     .eq('date', selectedDate)
                     .eq('subject_id', selectedSubject)
-                    .eq('teacher_id', selectedTeacher);
+                    .eq('teacher_id', selectedTeacher)
+                    .eq('period', selectedPeriod);
 
                 if (attendanceError) {
                     console.error("Attendance error:", attendanceError);
@@ -2068,6 +2102,7 @@
                         <td>${subjectName}</td>
                         <td>${teacherData.teacher_id}</td>
                         <td>${teacherData.name}</td>
+                        <td>${periodDisplayMapping[selectedPeriod]}</td>
                         <td>
                             <select class="attendance-status" onchange="updateAttendanceSummary()">
                                 <option value="present" ${existingStatus === 'present' ? 'selected' : ''}>Present</option>
@@ -2091,7 +2126,7 @@
             } catch (error) {
                 console.error("Error loading attendance:", error);
                 const tbody = document.getElementById('attendanceTbody');
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #f44336;">Error loading attendance: ' + error.message + '</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #f44336;">Error loading attendance: ' + error.message + '</td></tr>';
                 alert('Error loading attendance: ' + error.message);
             }
         }
@@ -2100,6 +2135,7 @@
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
             const selectedTeacher = document.getElementById('selectTeacher').value;
+            const selectedPeriod = document.getElementById('selectPeriod').value;
             const selectedDate = document.getElementById('startDate').value;
             
             if (!selectedClass || !selectedSubject || !selectedTeacher || !selectedDate) {
@@ -2125,6 +2161,7 @@
                         date: selectedDate,
                         subject_id: selectedSubject,
                         teacher_id: selectedTeacher,
+                        period: selectedPeriod,
                         status: status
                     });
                 }
@@ -2133,7 +2170,7 @@
                 const { error } = await supabase
                     .from('attendance')
                     .upsert(attendanceRecords, {
-                        onConflict: 'student_id,date,subject_id'
+                        onConflict: 'student_id,date,subject_id,period'
                     });
 
                 if (error) throw error;
