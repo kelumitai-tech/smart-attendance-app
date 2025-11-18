@@ -2131,6 +2131,7 @@
             }
         }
 
+        // FIXED SAVE ATTENDANCE FUNCTION - REMOVED ONCONFLICT CONSTRAINT
         async function saveAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
@@ -2166,12 +2167,24 @@
                     });
                 }
                 
-                // Use upsert to handle both insert and update
+                // First, delete existing records for this date, subject, teacher, and period
+                const { error: deleteError } = await supabase
+                    .from('attendance')
+                    .delete()
+                    .eq('date', selectedDate)
+                    .eq('subject_id', selectedSubject)
+                    .eq('teacher_id', selectedTeacher)
+                    .eq('period', selectedPeriod);
+
+                if (deleteError) {
+                    console.error("Error deleting existing records:", deleteError);
+                    // Continue with insert anyway
+                }
+                
+                // Then insert new records
                 const { error } = await supabase
                     .from('attendance')
-                    .upsert(attendanceRecords, {
-                        onConflict: 'student_id,date,subject_id,period'
-                    });
+                    .insert(attendanceRecords);
 
                 if (error) throw error;
                 
