@@ -717,6 +717,20 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>Select Period</label>
+                        <select id="dailyReportPeriod">
+                            <option value="">All Periods</option>
+                            <option value="daily">Daily Attendance</option>
+                            <option value="first">First Period</option>
+                            <option value="second">Second Period</option>
+                            <option value="third">Third Period</option>
+                            <option value="fourth">Fourth Period</option>
+                            <option value="fifth">Fifth Period</option>
+                            <option value="sixth">Sixth Period</option>
+                            <option value="seventh">Seventh Period</option>
+                        </select>
+                    </div>
                     <button class="btn btn-primary" id="generateDailyReportBtn">📊 Generate Daily Report</button>
                     <button class="pdf-btn" id="generateDailyPdfBtn">📄 Generate PDF Report</button>
                     
@@ -752,6 +766,20 @@
                                 <option value="">All Teachers</option>
                             </select>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Period</label>
+                        <select id="monthlyReportPeriod">
+                            <option value="">All Periods</option>
+                            <option value="daily">Daily Attendance</option>
+                            <option value="first">First Period</option>
+                            <option value="second">Second Period</option>
+                            <option value="third">Third Period</option>
+                            <option value="fourth">Fourth Period</option>
+                            <option value="fifth">Fifth Period</option>
+                            <option value="sixth">Sixth Period</option>
+                            <option value="seventh">Seventh Period</option>
+                        </select>
                     </div>
                     <button class="btn btn-primary" id="generateMonthlyReportBtn">📊 Generate Monthly Report</button>
                     <button class="pdf-btn" id="generateMonthlyPdfBtn">📄 Generate PDF Report</button>
@@ -1915,6 +1943,8 @@
                 const monthlyReportSubject = document.getElementById('monthlyReportSubject');
                 const dailyReportTeacher = document.getElementById('dailyReportTeacher');
                 const monthlyReportTeacher = document.getElementById('monthlyReportTeacher');
+                const dailyReportPeriod = document.getElementById('dailyReportPeriod');
+                const monthlyReportPeriod = document.getElementById('monthlyReportPeriod');
                 
                 // Clear existing options
                 dailyReportSubject.innerHTML = '<option value="">All Subjects</option>';
@@ -2835,6 +2865,7 @@
                 const classId = document.getElementById('dailyReportClass').value;
                 const subjectId = document.getElementById('dailyReportSubject').value;
                 const teacherId = document.getElementById('dailyReportTeacher').value;
+                const period = document.getElementById('dailyReportPeriod').value;
                 const output = document.getElementById('dailyReportOutput');
                 
                 if (!date) {
@@ -2873,6 +2904,10 @@
                 
                 if (teacherId) {
                     query = query.eq('teacher_id', teacherId);
+                }
+                
+                if (period) {
+                    query = query.eq('period', period);
                 }
                 
                 const { data: attendance, error } = await query;
@@ -3038,6 +3073,7 @@
                                     <th>Class</th>
                                     <th>Subject</th>
                                     <th>Teacher</th>
+                                    <th>Period</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -3053,6 +3089,7 @@
                     const className = grade ? `${grade.grade} - ${grade.class_name}` : 'Unknown Class';
                     const subjectName = subject ? subject.name : 'Unknown Subject';
                     const teacherName = teacher ? `${teacher.name} (${teacher.teacher_id})` : 'Unknown Teacher';
+                    const periodName = periodDisplayMapping[record.period] || record.period;
                     const statusClass = record.status === 'present' ? 'present' : 'absent';
                     
                     html += `
@@ -3062,6 +3099,7 @@
                             <td>${className}</td>
                             <td>${subjectName}</td>
                             <td>${teacherName}</td>
+                            <td>${periodName}</td>
                             <td class="${statusClass}">${record.status.toUpperCase()}</td>
                         </tr>
                     `;
@@ -3077,6 +3115,7 @@
                     classId,
                     subjectId,
                     teacherId,
+                    period,
                     attendance,
                     studentsLookup,
                     subjectsLookup,
@@ -3101,6 +3140,7 @@
                 const classId = document.getElementById('monthlyReportClass').value;
                 const subjectId = document.getElementById('monthlyReportSubject').value;
                 const teacherId = document.getElementById('monthlyReportTeacher').value;
+                const period = document.getElementById('monthlyReportPeriod').value;
                 const output = document.getElementById('monthlyReportOutput');
                 
                 if (!month) {
@@ -3144,6 +3184,10 @@
                 
                 if (teacherId) {
                     query = query.eq('teacher_id', teacherId);
+                }
+                
+                if (period) {
+                    query = query.eq('period', period);
                 }
                 
                 const { data: attendance, error } = await query;
@@ -3297,6 +3341,7 @@
                     classId,
                     subjectId,
                     teacherId,
+                    period,
                     studentStats,
                     workingDays,
                     totalRecords,
@@ -3310,14 +3355,14 @@
             }
         }
 
-        // PDF REPORT FUNCTIONS
+        // UPDATED PDF REPORT FUNCTIONS - NOW INCLUDING SUBJECT TEACHER, SUBJECT, AND PERIOD
         async function generateDailyPdfReport() {
             if (!appData.currentReportData || appData.currentReportData.type !== 'daily') {
                 alert('Please generate a daily report first before creating PDF');
                 return;
             }
             
-            const { date, classBreakdown, totalRecords, presentRecords, attendanceRate } = appData.currentReportData;
+            const { date, classBreakdown, totalRecords, presentRecords, attendanceRate, subjectId, teacherId, period } = appData.currentReportData;
             
             try {
                 // Show loading state
@@ -3338,12 +3383,55 @@
                 doc.setTextColor(0, 0, 0);
                 doc.text(`Date: ${date}`, 20, 30);
                 
+                // Add subject teacher, subject, and period information if available
+                let yPosition = 40;
+                
+                if (teacherId) {
+                    try {
+                        const { data: teacher } = await supabase
+                            .from('teachers')
+                            .select('name, teacher_id')
+                            .eq('id', teacherId)
+                            .single();
+                        
+                        if (teacher) {
+                            doc.text(`Subject Teacher: ${teacher.name} (${teacher.teacher_id})`, 20, yPosition);
+                            yPosition += 10;
+                        }
+                    } catch (error) {
+                        console.error("Error fetching teacher:", error);
+                    }
+                }
+                
+                if (subjectId) {
+                    try {
+                        const { data: subject } = await supabase
+                            .from('subjects')
+                            .select('name')
+                            .eq('id', subjectId)
+                            .single();
+                        
+                        if (subject) {
+                            doc.text(`Subject: ${subject.name}`, 20, yPosition);
+                            yPosition += 10;
+                        }
+                    } catch (error) {
+                        console.error("Error fetching subject:", error);
+                    }
+                }
+                
+                if (period) {
+                    const periodName = periodDisplayMapping[period] || period;
+                    doc.text(`Period: ${periodName}`, 20, yPosition);
+                    yPosition += 10;
+                }
+                
                 // Add summary section
-                doc.text('Summary:', 20, 45);
-                doc.text(`• Total Records: ${totalRecords}`, 25, 55);
-                doc.text(`• Present: ${presentRecords}`, 25, 65);
-                doc.text(`• Absent: ${totalRecords - presentRecords}`, 25, 75);
-                doc.text(`• Attendance Rate: ${attendanceRate}%`, 25, 85);
+                doc.text('Summary:', 20, yPosition + 5);
+                doc.text(`• Total Records: ${totalRecords}`, 25, yPosition + 15);
+                doc.text(`• Present: ${presentRecords}`, 25, yPosition + 25);
+                doc.text(`• Absent: ${totalRecords - presentRecords}`, 25, yPosition + 35);
+                doc.text(`• Attendance Rate: ${attendanceRate}%`, 25, yPosition + 45);
                 
                 // Add class breakdown table if available
                 if (Object.keys(classBreakdown).length > 0) {
@@ -3363,7 +3451,7 @@
                     });
                     
                     doc.autoTable({
-                        startY: 95,
+                        startY: yPosition + 55,
                         head: [['Class', 'Total', 'Present', 'Absent', 'Rate']],
                         body: tableData,
                         styles: { fontSize: 10 },
@@ -3390,7 +3478,7 @@
                 return;
             }
             
-            const { month, studentStats, workingDays, totalRecords, presentRecords, attendanceRate } = appData.currentReportData;
+            const { month, studentStats, workingDays, totalRecords, presentRecords, attendanceRate, subjectId, teacherId, period } = appData.currentReportData;
             
             try {
                 // Show loading state
@@ -3411,12 +3499,55 @@
                 doc.setTextColor(0, 0, 0);
                 doc.text(`Month: ${month}`, 20, 30);
                 
+                // Add subject teacher, subject, and period information if available
+                let yPosition = 40;
+                
+                if (teacherId) {
+                    try {
+                        const { data: teacher } = await supabase
+                            .from('teachers')
+                            .select('name, teacher_id')
+                            .eq('id', teacherId)
+                            .single();
+                        
+                        if (teacher) {
+                            doc.text(`Subject Teacher: ${teacher.name} (${teacher.teacher_id})`, 20, yPosition);
+                            yPosition += 10;
+                        }
+                    } catch (error) {
+                        console.error("Error fetching teacher:", error);
+                    }
+                }
+                
+                if (subjectId) {
+                    try {
+                        const { data: subject } = await supabase
+                            .from('subjects')
+                            .select('name')
+                            .eq('id', subjectId)
+                            .single();
+                        
+                        if (subject) {
+                            doc.text(`Subject: ${subject.name}`, 20, yPosition);
+                            yPosition += 10;
+                        }
+                    } catch (error) {
+                        console.error("Error fetching subject:", error);
+                    }
+                }
+                
+                if (period) {
+                    const periodName = periodDisplayMapping[period] || period;
+                    doc.text(`Period: ${periodName}`, 20, yPosition);
+                    yPosition += 10;
+                }
+                
                 // Add summary section
-                doc.text('Summary:', 20, 45);
-                doc.text(`• Working Days: ${workingDays}`, 25, 55);
-                doc.text(`• Total Records: ${totalRecords}`, 25, 65);
-                doc.text(`• Present: ${presentRecords}`, 25, 75);
-                doc.text(`• Attendance Rate: ${attendanceRate}%`, 25, 85);
+                doc.text('Summary:', 20, yPosition + 5);
+                doc.text(`• Working Days: ${workingDays}`, 25, yPosition + 15);
+                doc.text(`• Total Records: ${totalRecords}`, 25, yPosition + 25);
+                doc.text(`• Present: ${presentRecords}`, 25, yPosition + 35);
+                doc.text(`• Attendance Rate: ${attendanceRate}%`, 25, yPosition + 45);
                 
                 // Add student performance table
                 const tableData = [];
@@ -3435,7 +3566,7 @@
                 });
                 
                 doc.autoTable({
-                    startY: 95,
+                    startY: yPosition + 55,
                     head: [['Student ID', 'Name', 'Class', 'Present', 'Total', 'Percentage']],
                     body: tableData,
                     styles: { fontSize: 9 },
