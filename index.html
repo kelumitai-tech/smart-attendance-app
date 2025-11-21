@@ -416,6 +416,31 @@
             display: block;
         }
         
+        /* Attendance Action Buttons */
+        .attendance-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .status-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .present-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        .absent-btn {
+            background: #f44336;
+            color: white;
+        }
+        .status-btn.active {
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+        }
+        
         @media (max-width: 768px) {
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
             table { font-size: 14px; }
@@ -1053,7 +1078,7 @@
             <div class="tab-content" id="viewAttendance">
                 <div class="card">
                     <h3>View Attendance Records</h3>
-                    <div class="info-box">View attendance records by grade, teacher, subject, and date</div>
+                    <div class="info-box">View attendance records by grade, teacher, subject, date and period</div>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Select Class</label>
@@ -1079,6 +1104,20 @@
                             <label>Date</label>
                             <input type="date" id="viewDate">
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Period</label>
+                        <select id="viewPeriod">
+                            <option value="">All Periods</option>
+                            <option value="daily">Daily Attendance</option>
+                            <option value="first">First Period</option>
+                            <option value="second">Second Period</option>
+                            <option value="third">Third Period</option>
+                            <option value="fourth">Fourth Period</option>
+                            <option value="fifth">Fifth Period</option>
+                            <option value="sixth">Sixth Period</option>
+                            <option value="seventh">Seventh Period</option>
+                        </select>
                     </div>
                     <button class="btn btn-primary btn-full" id="viewAttendanceBtn">View Attendance</button>
                     <div id="viewAttendanceOutput" style="margin-top: 20px;"></div>
@@ -2006,7 +2045,7 @@
             }
         }
 
-        // FIXED ATTENDANCE LOADING FUNCTION - UPDATED WITH PERIOD
+        // FIXED ATTENDANCE LOADING FUNCTION - UPDATED WITH PERIOD AND BETTER STATUS DISPLAY
         async function loadAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
@@ -2112,13 +2151,13 @@
                         <td>${teacherData.name}</td>
                         <td>${periodDisplayMapping[selectedPeriod]}</td>
                         <td>
-                            <select class="attendance-status" onchange="updateAttendanceSummary()">
-                                <option value="present" ${existingStatus === 'present' ? 'selected' : ''}>Present</option>
-                                <option value="absent" ${existingStatus === 'absent' ? 'selected' : ''}>Absent</option>
-                            </select>
+                            <span class="${existingStatus === 'present' ? 'present' : 'absent'}">${existingStatus.toUpperCase()}</span>
                         </td>
                         <td>
-                            <button class="btn btn-small btn-primary" onclick="toggleAttendance(this)">Toggle</button>
+                            <div class="attendance-actions">
+                                <button class="status-btn present-btn ${existingStatus === 'present' ? 'active' : ''}" onclick="setAttendanceStatus(this, 'present')">Present</button>
+                                <button class="status-btn absent-btn ${existingStatus === 'absent' ? 'active' : ''}" onclick="setAttendanceStatus(this, 'absent')">Absent</button>
+                            </div>
                         </td>
                     `;
                     tbody.appendChild(row);
@@ -2137,6 +2176,26 @@
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #f44336;">Error loading attendance: ' + error.message + '</td></tr>';
                 alert('Error loading attendance: ' + error.message);
             }
+        }
+
+        // NEW FUNCTION: Set attendance status with button clicks
+        function setAttendanceStatus(button, status) {
+            const row = button.closest('tr');
+            const statusCell = row.cells[7];
+            const actionCell = row.cells[8];
+            
+            // Update status display
+            statusCell.innerHTML = `<span class="${status === 'present' ? 'present' : 'absent'}">${status.toUpperCase()}</span>`;
+            
+            // Update button states
+            const presentBtn = actionCell.querySelector('.present-btn');
+            const absentBtn = actionCell.querySelector('.absent-btn');
+            
+            presentBtn.classList.toggle('active', status === 'present');
+            absentBtn.classList.toggle('active', status === 'absent');
+            
+            // Update summary
+            updateAttendanceSummary();
         }
 
         // FIXED SAVE ATTENDANCE FUNCTION - REMOVED ONCONFLICT CONSTRAINT
@@ -2163,7 +2222,8 @@
                 
                 for (const row of rows) {
                     const studentId = row.cells[1].textContent;
-                    const status = row.querySelector('.attendance-status').value;
+                    const statusCell = row.cells[7];
+                    const status = statusCell.querySelector('.present') ? 'present' : 'absent';
                     
                     attendanceRecords.push({
                         student_id: studentId,
@@ -2210,8 +2270,8 @@
             let presentCount = 0;
             
             rows.forEach(row => {
-                const status = row.querySelector('.attendance-status').value;
-                if (status === 'present') {
+                const statusCell = row.cells[7];
+                if (statusCell.querySelector('.present')) {
                     presentCount++;
                 }
             });
@@ -2225,25 +2285,36 @@
         }
 
         function markAllPresent() {
-            const statusSelects = document.querySelectorAll('.attendance-status');
-            statusSelects.forEach(select => {
-                select.value = 'present';
+            const rows = document.querySelectorAll('#attendanceTbody tr');
+            rows.forEach(row => {
+                const statusCell = row.cells[7];
+                const actionCell = row.cells[8];
+                
+                statusCell.innerHTML = '<span class="present">PRESENT</span>';
+                
+                const presentBtn = actionCell.querySelector('.present-btn');
+                const absentBtn = actionCell.querySelector('.absent-btn');
+                
+                presentBtn.classList.add('active');
+                absentBtn.classList.remove('active');
             });
             updateAttendanceSummary();
         }
 
         function markAllAbsent() {
-            const statusSelects = document.querySelectorAll('.attendance-status');
-            statusSelects.forEach(select => {
-                select.value = 'absent';
+            const rows = document.querySelectorAll('#attendanceTbody tr');
+            rows.forEach(row => {
+                const statusCell = row.cells[7];
+                const actionCell = row.cells[8];
+                
+                statusCell.innerHTML = '<span class="absent">ABSENT</span>';
+                
+                const presentBtn = actionCell.querySelector('.present-btn');
+                const absentBtn = actionCell.querySelector('.absent-btn');
+                
+                presentBtn.classList.remove('active');
+                absentBtn.classList.add('active');
             });
-            updateAttendanceSummary();
-        }
-
-        function toggleAttendance(button) {
-            const row = button.closest('tr');
-            const statusSelect = row.querySelector('.attendance-status');
-            statusSelect.value = statusSelect.value === 'present' ? 'absent' : 'present';
             updateAttendanceSummary();
         }
 
@@ -4107,29 +4178,37 @@
             }
         }
 
-        // VIEW ATTENDANCE RECORDS
+        // FIXED VIEW ATTENDANCE RECORDS - NOW INCLUDES PERIOD FILTER
         async function viewAttendanceRecords() {
             try {
                 const classId = document.getElementById('viewClass').value;
                 const subjectId = document.getElementById('viewSubject').value;
                 const teacherId = document.getElementById('viewTeacher').value;
                 const date = document.getElementById('viewDate').value;
+                const period = document.getElementById('viewPeriod').value;
                 const output = document.getElementById('viewAttendanceOutput');
                 
                 if (!classId || !subjectId || !teacherId || !date) {
-                    alert('Please select all filters');
+                    alert('Please select all required filters: Class, Subject, Teacher, and Date');
                     return;
                 }
                 
                 output.innerHTML = '<div class="loading">Loading attendance records...</div>';
                 
-                // Get attendance records
-                const { data: attendance, error } = await supabase
+                // Build query
+                let query = supabase
                     .from('attendance')
                     .select(`*, students (name, student_id), subjects (name), teachers (name, teacher_id)`)
                     .eq('date', date)
                     .eq('subject_id', subjectId)
                     .eq('teacher_id', teacherId);
+                
+                // Add period filter if selected
+                if (period) {
+                    query = query.eq('period', period);
+                }
+                
+                const { data: attendance, error } = await query;
                 
                 if (error) throw error;
                 
@@ -4138,8 +4217,31 @@
                     return;
                 }
                 
+                // Calculate summary
+                const totalRecords = attendance.length;
+                const presentRecords = attendance.filter(a => a.status === 'present').length;
+                const attendanceRate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0;
+                
                 let html = `<div class="card">
                     <h3>Attendance Records - ${date}</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <div class="summary-label">Total Records</div>
+                            <div class="summary-value">${totalRecords}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Present</div>
+                            <div class="summary-value present">${presentRecords}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Absent</div>
+                            <div class="summary-value absent">${totalRecords - presentRecords}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Attendance Rate</div>
+                            <div class="summary-value">${attendanceRate}%</div>
+                        </div>
+                    </div>
                     <div style="overflow-x: auto;">
                         <table>
                             <thead>
@@ -4148,6 +4250,7 @@
                                     <th>Student Name</th>
                                     <th>Subject</th>
                                     <th>Teacher</th>
+                                    <th>Period</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -4155,12 +4258,15 @@
                 
                 attendance.forEach(record => {
                     const statusClass = record.status === 'present' ? 'present' : 'absent';
+                    const periodDisplay = periodDisplayMapping[record.period] || record.period;
+                    
                     html += `
                         <tr>
                             <td>${record.students.student_id}</td>
                             <td>${record.students.name}</td>
                             <td>${record.subjects.name}</td>
                             <td>${record.teachers.name} (${record.teachers.teacher_id})</td>
+                            <td>${periodDisplay}</td>
                             <td class="${statusClass}">${record.status.toUpperCase()}</td>
                         </tr>
                     `;
