@@ -2333,7 +2333,7 @@
                             </select>
                         </td>
                         <td>
-                            <button class="btn btn-small btn-primary" onclick="toggleAttendance(this)">Toggle</button>
+                            <span class="${existingStatus === 'present' ? 'present' : 'absent'}">${existingStatus === 'present' ? 'Present' : 'Absent'}</span>
                         </td>
                     `;
                     tbody.appendChild(row);
@@ -2354,7 +2354,7 @@
             }
         }
 
-        // FIXED SAVE ATTENDANCE FUNCTION - REMOVED ONCONFLICT CONSTRAINT
+        // FIXED SAVE ATTENDANCE FUNCTION - FIXED DUPLICATE KEY CONSTRAINT ISSUE
         async function saveAttendance() {
             const selectedClass = document.getElementById('selectClass').value;
             const selectedSubject = document.getElementById('selectSubject').value;
@@ -2409,9 +2409,26 @@
                     .from('attendance')
                     .insert(attendanceRecords);
 
-                if (error) throw error;
+                if (error) {
+                    // Handle unique constraint violation specifically
+                    if (error.message.includes('duplicate key value violates unique constraint')) {
+                        // Use upsert instead to handle duplicates gracefully
+                        const { error: upsertError } = await supabase
+                            .from('attendance')
+                            .upsert(attendanceRecords, {
+                                onConflict: 'student_id,date,subject_id,teacher_id,period'
+                            });
+                        
+                        if (upsertError) throw upsertError;
+                    } else {
+                        throw error;
+                    }
+                }
                 
                 alert(`Successfully saved attendance for ${attendanceRecords.length} students`);
+                
+                // Update the display to show current status
+                loadAttendance();
                 
             } catch (error) {
                 console.error("Error saving attendance:", error);
@@ -2429,6 +2446,10 @@
                 if (status === 'present') {
                     presentCount++;
                 }
+                
+                // Update the status display column
+                const statusDisplay = row.cells[8];
+                statusDisplay.innerHTML = `<span class="${status === 'present' ? 'present' : 'absent'}">${status === 'present' ? 'Present' : 'Absent'}</span>`;
             });
             
             const totalCount = rows.length;
@@ -2452,13 +2473,6 @@
             statusSelects.forEach(select => {
                 select.value = 'absent';
             });
-            updateAttendanceSummary();
-        }
-
-        function toggleAttendance(button) {
-            const row = button.closest('tr');
-            const statusSelect = row.querySelector('.attendance-status');
-            statusSelect.value = statusSelect.value === 'present' ? 'absent' : 'present';
             updateAttendanceSummary();
         }
 
