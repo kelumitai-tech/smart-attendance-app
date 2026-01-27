@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="si">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -382,7 +382,7 @@
     <div class="container">
         <div class="header">
             <h1>📚 Smart Attendance Tracker</h1>
-            <p>Efficient Student Attendance Management System</p>
+            <p>සිසුන්ගේ ගැනුම්-දැනුම් කළමනාකරණ පද්ධතිය</p>
         </div>
 
         <!-- Login Screen -->
@@ -870,14 +870,11 @@
                             <label>Grade</label>
                             <select id="newGrade">
                                 <option value="">-- Select Grade --</option>
-                                <option value="Grade 6">Grade 6</option>
-                                <option value="Grade 7">Grade 7</option>
-                                <option value="Grade 8">Grade 8</option>
-                                <option value="Grade 9">Grade 9</option>
-                                <option value="Grade 10">Grade 10</option>
-                                <option value="Grade 11">Grade 11</option>
-                                <option value="Grade 12">Grade 12</option>
-                                <option value="Grade 13">Grade 13</option>
+                                <option value="Grade 1">Grade 1</option>
+                                <option value="Grade 2">Grade 2</option>
+                                <option value="Grade 3">Grade 3</option>
+                                <option value="Grade 4">Grade 4</option>
+                                <option value="Grade 5">Grade 5</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -889,16 +886,6 @@
                                 <option value="C">C</option>
                                 <option value="D">D</option>
                                 <option value="E">E</option>
-                                <option value="F">F</option>
-                                <option value="G">G</option>
-                                <option value="A1">A1</option>
-                                <option value="A2">A2</option>
-                                <option value="C1">C1</option>
-                                <option value="C2">C2</option>
-                                <option value="T1">T1</option>
-                                <option value="T2">T2</option>
-                                <option value="S1">S1</option>
-                                <option value="S2">S2</option>
                             </select>
                         </div>
                     </div>
@@ -1015,6 +1002,68 @@
             setTodayDate();
             await checkAuthState();
             setupRegistrationRestrictions();
+            await initializeDatabase();
+        }
+
+        async function initializeDatabase() {
+            try {
+                // Check if database tables exist, if not create them
+                const { data: tables, error } = await supabase
+                    .from('information_schema.tables')
+                    .select('table_name')
+                    .eq('table_schema', 'public');
+
+                if (error) {
+                    console.log("Creating database tables...");
+                    await createDatabaseTables();
+                } else {
+                    console.log("Database tables exist:", tables);
+                }
+            } catch (error) {
+                console.error("Error initializing database:", error);
+                // Try to create tables anyway
+                await createDatabaseTables();
+            }
+        }
+
+        async function createDatabaseTables() {
+            try {
+                // Create subjects table with Sri Lankan subjects
+                const { error: subjectsError } = await supabase
+                    .from('subjects')
+                    .insert([
+                        { name: 'සිංහල' },
+                        { name: 'ගණිතය' },
+                        { name: 'බුද්ධ ධර්මය' },
+                        { name: 'පරිසරය' },
+                        { name: 'ඉංග්‍රිසි' },
+                        { name: 'පුස්තකාලය' }
+                    ], { upsert: true });
+
+                if (subjectsError && !subjectsError.message.includes('duplicate')) {
+                    console.error("Error creating subjects:", subjectsError);
+                }
+
+                // Create a default admin user
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { error: userError } = await supabase
+                        .from('users')
+                        .upsert({
+                            id: user.id,
+                            email: user.email,
+                            role: 'principal'
+                        });
+
+                    if (userError) {
+                        console.error("Error creating admin user:", userError);
+                    }
+                }
+
+                console.log("Database initialized successfully");
+            } catch (error) {
+                console.error("Error creating database tables:", error);
+            }
         }
 
         function setupRegistrationRestrictions() {
