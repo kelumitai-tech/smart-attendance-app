@@ -8,15 +8,6 @@
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- jsPDF for PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- Chart.js for dashboard charts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -69,12 +60,10 @@
             border-radius: 8px;
             font-size: 16px;
             background: white;
-            transition: all 0.3s;
         }
         .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #005A9C;
-            box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
         }
         .btn {
             padding: 14px;
@@ -85,10 +74,6 @@
             cursor: pointer;
             transition: all 0.3s;
             margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
         }
         .btn-full {
             width: 100%;
@@ -100,104 +85,26 @@
         .btn-primary:hover {
             background: #004a80;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
         }
         .btn-secondary { background: #4CAF50; color: white; }
-        .btn-secondary:hover { background: #3d8b40; transform: translateY(-2px); }
         .btn-danger { background: #f44336; color: white; }
-        .btn-warning { background: #ff9800; color: white; }
-        .btn-info { background: #2196F3; color: white; }
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 14px;
-        }
         .error-msg, .success-msg {
             padding: 12px;
             border-radius: 8px;
             margin-top: 15px;
             text-align: center;
-            display: none;
         }
         .error-msg {
             background: #fee;
             color: #c00;
-            border-left: 4px solid #c00;
+            display: none;
         }
         .success-msg {
             background: #e7f5e7;
             color: #2e7d32;
-            border-left: 4px solid #2e7d32;
+            display: none;
         }
         .app-main { display: none; }
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            border-bottom: 2px solid #e0e0e0;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            padding: 0 10px;
-        }
-        .nav-tab {
-            padding: 12px 24px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .nav-tab:hover {
-            color: #005A9C;
-            background: #f0f8ff;
-            border-radius: 8px 8px 0 0;
-        }
-        .nav-tab.active {
-            color: #005A9C;
-            border-bottom-color: #005A9C;
-            background: #f0f8ff;
-        }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .card {
-            background: #f9f9f9;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .card h3 {
-            color: #005A9C;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        th {
-            background: #005A9C;
-            color: white;
-            font-weight: 600;
-        }
-        tr:hover {
-            background-color: #f5f9ff;
-        }
         .logout-btn {
             position: absolute;
             top: 20px;
@@ -209,12 +116,10 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.3s;
         }
         .logout-btn:hover {
             background: white;
             color: #005A9C;
-            transform: translateY(-2px);
         }
         .info-box {
             background: #e3f2fd;
@@ -222,273 +127,9 @@
             border-radius: 8px;
             color: #1565c0;
             margin-bottom: 20px;
-            border-left: 4px solid #2196F3;
-        }
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-        }
-        .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-        .stats-card h2 { font-size: 3em; margin: 10px 0; }
-        .stats-card p { font-size: 1.1em; opacity: 0.9; }
-        .principal-only { display: none; }
-        .class-teacher-only { display: none; }
-        .subject-teacher-only { display: none; }
-        .filter-input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E") no-repeat 15px center;
-            padding-left: 40px;
-        }
-        .student-item, .teacher-item, .subject-item, .grade-item {
-            background: white;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #005A9C;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-        }
-        .student-item:hover, .teacher-item:hover, .subject-item:hover, .grade-item:hover {
-            transform: translateX(4px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .item-info {
-            flex: 1;
-        }
-        .item-actions {
-            display: flex;
-            gap: 10px;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        .loading:after {
-            content: '';
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #005A9C;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-left: 10px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .attendance-summary {
-            background: #e8f5e8;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            color: #2e7d32;
-            font-weight: bold;
-            text-align: center;
-            border-left: 4px solid #4CAF50;
-        }
-        .present { color: #4CAF50; font-weight: bold; }
-        .absent { color: #f44336; font-weight: bold; }
-        .teacher-info {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #ffc107;
-        }
-        .pdf-btn {
-            background: #d32f2f;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-top: 15px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-        .pdf-btn:hover {
-            background: #b71c1c;
-            transform: translateY(-2px);
-        }
-        .serial-number {
-            background: #005A9C;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 10px;
-            flex-shrink: 0;
-        }
-        .attendance-percentage {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 5px;
-        }
-        .percentage-good { color: #4CAF50; }
-        .percentage-average { color: #ff9800; }
-        .percentage-poor { color: #f44336; }
-        .restricted-option {
-            color: #999;
-            font-style: italic;
-        }
-        .dashboard-controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            border: 1px solid #e0e0e0;
-        }
-        .chart-title {
-            color: #005A9C;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .gender-stats {
-            display: flex;
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .gender-stat {
-            flex: 1;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .male-stat { background: #2196F3; }
-        .female-stat { background: #E91E63; }
-        .daily-summary {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #e0e0e0;
-        }
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .summary-item {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-        }
-        .summary-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .summary-value {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #005A9C;
-            margin: 5px 0;
-        }
-        .summary-label {
-            font-size: 0.9em;
-            color: #666;
-        }
-        .alert-box {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .alert-info {
-            background: #e3f2fd;
-            color: #1565c0;
-            border-left: 4px solid #2196F3;
-        }
-        .alert-success {
-            background: #e7f5e7;
-            color: #2e7d32;
-            border-left: 4px solid #4CAF50;
-        }
-        .alert-warning {
-            background: #fff3cd;
-            color: #856404;
-            border-left: 4px solid #ffc107;
-        }
-        .alert-danger {
-            background: #fee;
-            color: #c00;
-            border-left: 4px solid #f44336;
         }
         
         @media (max-width: 768px) {
-            .grid-2, .grid-3 { grid-template-columns: 1fr; }
-            table { font-size: 14px; }
-            th, td { padding: 8px; }
-            .student-item, .teacher-item, .subject-item, .grade-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .item-actions {
-                margin-top: 10px;
-                width: 100%;
-                justify-content: flex-end;
-            }
-            .dashboard-controls {
-                flex-direction: column;
-            }
-            .nav-tabs {
-                justify-content: center;
-            }
-            .nav-tab {
-                padding: 10px 15px;
-                font-size: 14px;
-            }
-            .header h1 { font-size: 1.5em; }
             .logout-btn {
                 position: relative;
                 top: auto;
@@ -502,58 +143,47 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-book"></i> Smart Attendance Tracker</h1>
+            <h1>📚 Smart Attendance Tracker</h1>
             <p>සිසුන්ගේ ගැනුම්-දැනුම් කළමනාකරණ පද්ධතිය</p>
         </div>
 
         <!-- Login Screen -->
         <div class="content" id="loginScreen">
             <div class="login-box">
-                <h2 style="text-align: center; margin-bottom: 30px; color: #333; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <i class="fas fa-user-circle"></i> Welcome Back
-                </h2>
+                <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Welcome Back</h2>
                 
                 <!-- Registration Form -->
                 <div id="registrationForm" style="display: none;">
-                    <h3 style="text-align: center; margin-bottom: 20px; color: #005A9C; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <i class="fas fa-user-plus"></i> Create New Account
-                    </h3>
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #005A9C;">Create New Account</h3>
                     <div class="form-group">
-                        <label><i class="fas fa-user-tag"></i> Register As</label>
+                        <label>Register As</label>
                         <select id="registerRole">
                             <option value="subjectTeacher">Subject Teacher</option>
                             <option value="principal" class="restricted-option" disabled>Principal (Admin) - Contact Administrator</option>
                             <option value="classTeacher" class="restricted-option" disabled>Class Teacher - Contact Administrator</option>
                         </select>
                     </div>
-                    <div class="alert-box alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        <div>
-                            <strong>Note:</strong> Only Subject Teacher accounts can be created through registration. 
-                            For Principal or Class Teacher accounts, please contact the system administrator.
-                        </div>
+                    <div class="info-box" style="margin-bottom: 20px;">
+                        <strong>Note:</strong> Only Subject Teacher accounts can be created through registration. 
+                        For Principal or Class Teacher accounts, please contact the system administrator.
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-envelope"></i> Email Address</label>
+                        <label>Email Address</label>
                         <input type="email" id="registerEmail" placeholder="Enter your email">
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-lock"></i> Password</label>
+                        <label>Password</label>
                         <input type="password" id="registerPassword" placeholder="Create a password (min 6 characters)">
                     </div>
-                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">
-                        <i class="fas fa-user-plus"></i> Create Subject Teacher Account
-                    </button>
-                    <button class="btn btn-primary btn-full" id="backToLoginBtn">
-                        <i class="fas fa-arrow-left"></i> Back to Login
-                    </button>
+                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">📝 Create Account</button>
+                    <button class="btn btn-primary btn-full" id="backToLoginBtn">← Back to Login</button>
                     <div class="error-msg" id="registerError"></div>
                 </div>
 
                 <!-- Login Form -->
                 <div id="loginForm">
                     <div class="form-group">
-                        <label><i class="fas fa-user-tag"></i> Login As</label>
+                        <label>Login As</label>
                         <select id="loginRole">
                             <option value="principal">Principal (Admin)</option>
                             <option value="classTeacher">Class Teacher</option>
@@ -561,250 +191,553 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-envelope"></i> Email Address</label>
+                        <label>Email Address</label>
                         <input type="email" id="loginEmail" placeholder="Enter your email">
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-lock"></i> Password</label>
+                        <label>Password</label>
                         <input type="password" id="loginPassword" placeholder="Enter your password">
                     </div>
-                    <button class="btn btn-primary btn-full" id="loginBtn">
-                        <i class="fas fa-sign-in-alt"></i> Login
-                    </button>
+                    <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
                     <div class="error-msg" id="loginError"></div>
                     
                     <!-- Registration Section -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                        <h3 style="text-align: center; margin-bottom: 15px; color: #333; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                            <i class="fas fa-user-plus"></i> New User?
-                        </h3>
-                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">
-                            <i class="fas fa-user-plus"></i> Register as Subject Teacher
-                        </button>
-                        <div class="alert-box alert-info" style="margin-top: 15px;">
-                            <i class="fas fa-info-circle"></i>
-                            <div>
-                                Need Principal or Class Teacher access?<br>
-                                Contact administrator.
-                            </div>
-                        </div>
+                        <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
+                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register as Subject Teacher</button>
+                        <p style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">
+                            Need Principal or Class Teacher access? <br>Contact administrator.
+                        </p>
                     </div>
                 </div>
             </div>
             
             <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
                 <p style="color: #666; font-size: 0.9em; line-height: 1.8;">
-                    <strong style="color: #005A9C; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <i class="fas fa-code"></i> Developer: Kelum Konara
-                    </strong><br>
-                    <strong style="color: #005A9C; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <i class="fas fa-mobile-alt"></i> SmartSoft | The Mobile Apps Developer
-                    </strong><br>
-                    <span style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
-                        <i class="fas fa-phone"></i> <strong>0714469232</strong>
-                    </span>
+                    <strong style="color: #005A9C;">Developer:</strong> Kelum Konara<br>
+                    <strong style="color: #005A9C;">SmartSoft</strong> | The Mobile Apps Developer<br>
+                    📞 <strong>0714469232</strong>
                 </p>
             </footer>
         </div>
 
         <!-- Main App -->
         <div class="content app-main" id="appContent">
-            <button class="logout-btn" id="logoutBtn">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
-            <div class="role-badge" id="roleBadge">
-                <i class="fas fa-user-circle"></i> Loading...
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+            <div class="role-badge" id="roleBadge">Loading...</div>
+            
+            <h2 id="welcomeMessage" style="color: #005A9C; margin-bottom: 30px; text-align: center;">Welcome to Smart Attendance Tracker</h2>
+            
+            <div class="info-box">
+                <strong>System Ready!</strong> You are successfully logged in to the Smart Attendance Tracker system.
             </div>
             
-            <div class="nav-tabs" id="navTabs">
-                <button class="nav-tab active" data-tab="attendance">
-                    <i class="fas fa-clipboard-check"></i> Attendance
-                </button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="students">
-                    <i class="fas fa-users"></i> Students
-                </button>
-                <button class="nav-tab" data-tab="reports">
-                    <i class="fas fa-chart-bar"></i> Reports
-                </button>
-                <button class="nav-tab principal-only" data-tab="dashboard">
-                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                </button>
-                <button class="nav-tab principal-only" data-tab="teachers">
-                    <i class="fas fa-chalkboard-teacher"></i> Teachers
-                </button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="grades">
-                    <i class="fas fa-graduation-cap"></i> Grades
-                </button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">
-                    <i class="fas fa-book"></i> Subjects
-                </button>
-                <button class="nav-tab principal-only" data-tab="viewAttendance">
-                    <i class="fas fa-eye"></i> View Attendance
-                </button>
-            </div>
-
-            <!-- Attendance Tab -->
-            <div class="tab-content active" id="attendance">
-                <div class="card">
-                    <h3><i class="fas fa-clipboard-check"></i> Mark Attendance</h3>
-                    <div class="alert-box alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        <div>Select class, subject, teacher, period and date to mark attendance (Monday to Friday only)</div>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-school"></i> Select Class</label>
-                        <select id="selectClass">
-                            <option value="">Loading classes...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-book"></i> Select Subject</label>
-                        <select id="selectSubject">
-                            <option value="">Loading subjects...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-chalkboard-teacher"></i> Select Teacher</label>
-                        <select id="selectTeacher">
-                            <option value="">Loading teachers...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-clock"></i> Period</label>
-                        <select id="selectPeriod">
-                            <option value="daily">Daily Attendance</option>
-                            <option value="first">First Period</option>
-                            <option value="second">Second Period</option>
-                            <option value="third">Third Period</option>
-                            <option value="fourth">Fourth Period</option>
-                            <option value="fifth">Fifth Period</option>
-                            <option value="sixth">Sixth Period</option>
-                            <option value="seventh">Seventh Period</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-calendar-alt"></i> Date</label>
-                        <input type="date" id="startDate">
-                    </div>
-                    <button class="btn btn-primary btn-full" id="loadAttendanceBtn">
-                        <i class="fas fa-download"></i> Load Attendance Sheet
-                    </button>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
+                <div style="background: #f9f9f9; padding: 25px; border-radius: 12px; text-align: center;">
+                    <h3 style="color: #005A9C; margin-bottom: 15px;">📋 Mark Attendance</h3>
+                    <p>Record student attendance by class and period</p>
                 </div>
-
-                <div class="card">
-                    <h3><i class="fas fa-list-alt"></i> Attendance Sheet for 
-                        <span id="currentDateDisplay"></span> - 
-                        <span id="currentPeriodDisplay">Daily Attendance</span>
-                    </h3>
-                    <div id="teacherInfo" class="teacher-info" style="display: none;">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        <strong>Teacher Information:</strong> 
-                        <span id="teacherIdDisplay">-</span> - 
-                        <span id="teacherNameDisplay">-</span>
-                    </div>
-                    <div id="attendanceSummary" class="attendance-summary" style="display: none;">
-                        <i class="fas fa-chart-pie"></i>
-                        Attendance Summary: <span id="presentCount">0</span>/<span id="totalCount">0</span> students present 
-                        (<span id="attendancePercentage">0</span>%)
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table id="attendanceTable">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Student ID</th>
-                                    <th>Name</th>
-                                    <th>Subject</th>
-                                    <th>Teacher ID</th>
-                                    <th>Teacher Name</th>
-                                    <th>Period</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="attendanceTbody">
-                                <tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">
-                                    <i class="fas fa-users-slash"></i><br>
-                                    Select class to view students
-                                </td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" id="markAllBtn">
-                            <i class="fas fa-check-circle"></i> Mark All Present
-                        </button>
-                        <button class="btn btn-primary" id="saveAttendanceBtn">
-                            <i class="fas fa-save"></i> Save Attendance
-                        </button>
-                        <button class="btn btn-danger" id="clearAllBtn">
-                            <i class="fas fa-times-circle"></i> Mark All Absent
-                        </button>
-                    </div>
+                
+                <div style="background: #f9f9f9; padding: 25px; border-radius: 12px; text-align: center;">
+                    <h3 style="color: #005A9C; margin-bottom: 15px;">📊 View Reports</h3>
+                    <p>Generate attendance reports and analytics</p>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 25px; border-radius: 12px; text-align: center;">
+                    <h3 style="color: #005A9C; margin-bottom: 15px;">👥 Manage Students</h3>
+                    <p>Add, edit, and view student information</p>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Students Tab -->
-            <div class="tab-content" id="students">
-                <div class="card">
-                    <h3><i class="fas fa-user-plus"></i> Add New Student</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label><i class="fas fa-id-card"></i> Student ID</label>
-                            <input type="text" id="studentId" placeholder="e.g., S001">
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-user"></i> Student Name</label>
-                            <input type="text" id="studentName" placeholder="Enter name">
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label><i class="fas fa-graduation-cap"></i> Grade</label>
-                            <select id="studentGrade">
-                                <option value="">Loading grades...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-venus-mars"></i> Gender</label>
-                            <select id="studentGender">
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-full" id="addStudentBtn">
-                        <i class="fas fa-plus-circle"></i> Add Student
-                    </button>
-                    <div class="success-msg" id="studentSuccess"></div>
-                </div>
+    <script>
+        // Supabase Configuration - නව project සඳහා
+        // ඔබගේ නව Supabase project details මෙහි add කරන්න
+        const SUPABASE_CONFIG = {
+            // ඔබගේ Supabase project URL එක මෙහි දමන්න
+            supabaseUrl: 'https://YOUR_NEW_SUPABASE_PROJECT.supabase.co',
+            // ඔබගේ Supabase anon/public key එක මෙහි දමන්න
+            supabaseKey: 'YOUR_NEW_SUPABASE_ANON_KEY'
+        };
 
-                <div class="card">
-                    <h3><i class="fas fa-users"></i> Student List</h3>
-                    <div class="form-group">
-                        <label><i class="fas fa-filter"></i> Filter by Class</label>
-                        <select id="filterStudentClass">
-                            <option value="">All Classes</option>
-                        </select>
-                    </div>
-                    <input type="text" class="filter-input" id="studentFilter" placeholder="Search by Student ID, Name, or Grade...">
-                    <div id="studentList" class="loading">Loading students...</div>
-                </div>
-            </div>
+        // Initialize Supabase
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(
+                SUPABASE_CONFIG.supabaseUrl, 
+                SUPABASE_CONFIG.supabaseKey,
+                {
+                    auth: {
+                        autoRefreshToken: true,
+                        persistSession: true,
+                        detectSessionInUrl: true
+                    }
+                }
+            );
+            console.log("✅ Supabase initialized successfully");
+            console.log("URL:", SUPABASE_CONFIG.supabaseUrl);
+        } catch (error) {
+            console.error("❌ Failed to initialize Supabase:", error);
+            document.getElementById('loginError').textContent = 'Database connection failed. Please check configuration.';
+            document.getElementById('loginError').style.display = 'block';
+        }
 
-            <!-- Reports Tab -->
-            <div class="tab-content" id="reports">
-                <div class="card">
-                    <h3><i class="fas fa-calendar-day"></i> Daily Attendance Report</h3>
-                    <div class="alert-box alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        <div>Generate daily attendance report by class, subject, and teacher</div>
-                    </div>
+        // Global app data
+        const appData = {
+            currentUser: null,
+            userRole: null
+        };
+
+        // Role display mapping
+        const roleDisplayMapping = {
+            'principal': 'Principal (Admin)',
+            'classTeacher': 'Class Teacher', 
+            'subjectTeacher': 'Subject Teacher'
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("📱 DOM loaded, initializing app...");
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            console.log("🚀 Initializing app...");
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Set today's date
+            setTodayDate();
+            
+            // Check authentication state
+            await checkAuthState();
+            
+            console.log("✅ App initialization complete");
+        }
+
+        function setTodayDate() {
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            console.log("📅 Today's date:", formattedDate);
+        }
+
+        async function checkAuthState() {
+            try {
+                console.log("🔍 Checking auth state...");
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    console.error("❌ Error getting session:", error);
+                    showLoginScreen();
+                    return;
+                }
+                
+                console.log("🔐 Session:", session ? "Found" : "Not found");
+                
+                if (session && session.user) {
+                    console.log("👤 User found:", session.user.email);
+                    appData.currentUser = session.user;
+                    await getUserRole(session.user.id);
+                } else {
+                    console.log("👤 No user session, showing login");
+                    showLoginScreen();
+                }
+
+                // Listen for auth changes
+                supabase.auth.onAuthStateChange(async (event, session) => {
+                    console.log("🔄 Auth state changed:", event, session ? "User logged in" : "User logged out");
+                    if (session && session.user) {
+                        appData.currentUser = session.user;
+                        await getUserRole(session.user.id);
+                    } else {
+                        appData.currentUser = null;
+                        appData.userRole = null;
+                        showLoginScreen();
+                    }
+                });
+            } catch (error) {
+                console.error("❌ Error in checkAuthState:", error);
+                showLoginScreen();
+            }
+        }
+
+        function showLoginScreen() {
+            console.log("👤 Showing login screen");
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('appContent').style.display = 'none';
+            showLoginForm();
+        }
+
+        async function getUserRole(userId) {
+            try {
+                console.log("👤 Getting user role for:", userId);
+                
+                // First, try to get role from users table
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    console.log("⚠️ User not found in users table, creating default...");
+                    // Create default user
+                    return await createDefaultUser(userId);
+                }
+
+                console.log("✅ User role found:", data.role);
+                appData.userRole = data.role;
+                showApp(data.role);
+                return data.role;
+            } catch (error) {
+                console.error("❌ Error in getUserRole:", error);
+                return await createDefaultUser(userId);
+            }
+        }
+
+        async function createDefaultUser(userId) {
+            try {
+                const { data: userData } = await supabase.auth.getUser();
+                if (userData.user) {
+                    const selectedRole = document.getElementById('loginRole')?.value || 'subjectTeacher';
                     
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label><i class="fas fa-calendar-alt"></i> Select Date</label>
-                            <input type="date" id="dailyReportDate">
-                        </div>
-                        <div class="form-group">
-                            <label><
+                    console.log("👤 Creating default user with role:", selectedRole);
+                    
+                    const { error: insertError } = await supabase
+                        .from('users')
+                        .insert([{
+                            id: userId,
+                            email: userData.user.email,
+                            role: selectedRole
+                        }]);
+                    
+                    if (!insertError) {
+                        console.log("✅ Default user created successfully");
+                        appData.userRole = selectedRole;
+                        showApp(selectedRole);
+                        return selectedRole;
+                    } else {
+                        console.error("❌ Error creating default user:", insertError);
+                    }
+                }
+                return 'subjectTeacher'; // Default role
+            } catch (error) {
+                console.error("❌ Error creating default user:", error);
+                return 'subjectTeacher';
+            }
+        }
+
+        function setupEventListeners() {
+            console.log("🎯 Setting up event listeners...");
+            
+            // Authentication buttons
+            const loginBtn = document.getElementById('loginBtn');
+            const showRegisterBtn = document.getElementById('showRegisterBtn');
+            const backToLoginBtn = document.getElementById('backToLoginBtn');
+            const confirmRegisterBtn = document.getElementById('confirmRegisterBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            
+            if (loginBtn) {
+                console.log("✅ Login button found");
+                loginBtn.addEventListener('click', doLogin);
+            } else {
+                console.error("❌ Login button not found!");
+            }
+            
+            if (showRegisterBtn) {
+                console.log("✅ Show register button found");
+                showRegisterBtn.addEventListener('click', showRegistrationForm);
+            }
+            
+            if (backToLoginBtn) {
+                console.log("✅ Back to login button found");
+                backToLoginBtn.addEventListener('click', showLoginForm);
+            }
+            
+            if (confirmRegisterBtn) {
+                console.log("✅ Confirm register button found");
+                confirmRegisterBtn.addEventListener('click', doRegistration);
+            }
+            
+            if (logoutBtn) {
+                console.log("✅ Logout button found");
+                logoutBtn.addEventListener('click', doLogout);
+            }
+            
+            console.log("✅ Event listeners setup complete");
+        }
+
+        function showLoginForm() {
+            console.log("📝 Showing login form");
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registrationForm').style.display = 'none';
+        }
+
+        function showRegistrationForm() {
+            console.log("📝 Showing registration form");
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registrationForm').style.display = 'block';
+        }
+
+        async function doLogin() {
+            console.log("🔐 Login attempt...");
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const selectedRole = document.getElementById('loginRole').value;
+            const errorMsg = document.getElementById('loginError');
+            
+            console.log("📧 Email:", email ? "Provided" : "Missing");
+            console.log("🔑 Password:", password ? "Provided" : "Missing");
+            console.log("👤 Selected role:", selectedRole);
+            
+            if (!email || !password) {
+                console.log("❌ Missing email or password");
+                errorMsg.textContent = 'Please enter both email and password';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            try {
+                // Test Supabase connection first
+                console.log("🔌 Testing Supabase connection...");
+                const { data: testData, error: testError } = await supabase.auth.getSession();
+                
+                if (testError) {
+                    console.error("❌ Supabase connection test failed:", testError);
+                    errorMsg.textContent = 'Database connection failed. Please check your internet connection.';
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+                
+                console.log("✅ Supabase connection successful");
+                
+                // Attempt login
+                console.log("🔐 Attempting login...");
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    console.error("❌ Login error:", error);
+                    throw error;
+                }
+
+                console.log("✅ Login successful for user:", data.user.email);
+                
+                // Check if user exists in users table
+                console.log("👤 Checking user in database...");
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (userError) {
+                    console.log("⚠️ User not found in database, creating...");
+                    // Create user record if it doesn't exist
+                    await createUserRecord(data.user.id, email, selectedRole);
+                    appData.userRole = selectedRole;
+                } else {
+                    appData.userRole = userData.role;
+                    console.log("✅ User role from database:", appData.userRole);
+                }
+
+                // Store user data
+                appData.currentUser = {
+                    id: data.user.id,
+                    email: email
+                };
+
+                // Show success
+                errorMsg.style.display = 'none';
+                console.log("✅ Showing app...");
+                showApp(appData.userRole);
+                
+            } catch (error) {
+                console.error("❌ Login failed:", error);
+                if (error.message.includes('Invalid login credentials')) {
+                    errorMsg.textContent = 'Invalid email or password. Please try again.';
+                } else if (error.message.includes('Email not confirmed')) {
+                    errorMsg.textContent = 'Please check your email to confirm your account.';
+                } else {
+                    errorMsg.textContent = 'Login failed: ' + error.message;
+                }
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        async function createUserRecord(userId, email, role) {
+            try {
+                console.log("👤 Creating user record...");
+                const { error } = await supabase
+                    .from('users')
+                    .insert([{
+                        id: userId,
+                        email: email,
+                        role: role
+                    }]);
+
+                if (error) {
+                    console.error("❌ Error creating user record:", error);
+                } else {
+                    console.log("✅ User record created successfully");
+                }
+            } catch (error) {
+                console.error("❌ Error in createUserRecord:", error);
+            }
+        }
+
+        async function doRegistration() {
+            console.log("📝 Registration attempt...");
+            
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value.trim();
+            const role = document.getElementById('registerRole').value;
+            const errorMsg = document.getElementById('registerError');
+            
+            console.log("📧 Email:", email);
+            console.log("🔑 Password length:", password.length);
+            console.log("👤 Role:", role);
+            
+            if (!email || !password) {
+                console.log("❌ Missing email or password");
+                errorMsg.textContent = 'Please enter both email and password';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                console.log("❌ Password too short");
+                errorMsg.textContent = 'Password should be at least 6 characters';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            // Ensure only subject teacher can register
+            if (role !== 'subjectTeacher') {
+                console.log("❌ Invalid role for registration");
+                errorMsg.textContent = 'Only Subject Teacher accounts can be created through registration.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                console.log("🔐 Attempting registration...");
+                
+                // Create user in Supabase Auth
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (authError) {
+                    console.error("❌ Registration auth error:", authError);
+                    throw authError;
+                }
+
+                console.log("✅ Auth registration successful");
+                
+                if (authData.user) {
+                    // Create user record in users table
+                    await createUserRecord(authData.user.id, email, role);
+                    
+                    // Auto login after registration
+                    console.log("🔐 Auto-login after registration...");
+                    const { error: loginError } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (!loginError) {
+                        appData.userRole = role;
+                        appData.currentUser = {
+                            id: authData.user.id,
+                            email: email
+                        };
+                        
+                        console.log("✅ Registration and auto-login successful");
+                        alert('Registration successful! Welcome to Smart Attendance Tracker.');
+                        showApp(role);
+                    } else {
+                        console.log("ℹ️ Registration successful, please login");
+                        alert('Registration successful! Please login with your credentials.');
+                        showLoginForm();
+                    }
+                } else {
+                    console.log("ℹ️ Registration initiated, check email");
+                    alert('Registration successful! Please check your email to confirm your account.');
+                    showLoginForm();
+                }
+                
+            } catch (error) {
+                console.error("❌ Registration failed:", error);
+                if (error.message.includes('already registered')) {
+                    errorMsg.textContent = 'Email already exists. Please use a different email.';
+                } else if (error.message.includes('password')) {
+                    errorMsg.textContent = 'Password should be at least 6 characters.';
+                } else {
+                    errorMsg.textContent = 'Registration failed: ' + error.message;
+                }
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        function showApp(role) {
+            console.log("🚀 Showing app for role:", role);
+            
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            
+            // Set role badge
+            document.getElementById('roleBadge').textContent = roleDisplayMapping[role] || role;
+            
+            // Set welcome message
+            const welcomeMsg = document.getElementById('welcomeMessage');
+            if (welcomeMsg) {
+                welcomeMsg.textContent = `Welcome ${roleDisplayMapping[role] || role}`;
+            }
+            
+            console.log("✅ App displayed successfully");
+        }
+
+        async function doLogout() {
+            console.log("👋 Logging out...");
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error("❌ Logout error:", error);
+            } else {
+                console.log("✅ Logout successful");
+            }
+            
+            appData.currentUser = null;
+            appData.userRole = null;
+            showLoginScreen();
+        }
+
+        // Debug function - run in console to test
+        window.debugAuth = async function() {
+            console.log("🔍 Debugging auth...");
+            console.log("Supabase client:", supabase ? "Loaded" : "Not loaded");
+            
+            const { data: session } = await supabase.auth.getSession();
+            console.log("Session:", session);
+            
+            const { data: user } = await supabase.auth.getUser();
+            console.log("User:", user);
+            
+            // Test database connection
+            const { data: test, error } = await supabase
+                .from('users')
+                .select('count')
+                .limit(1);
+                
+            console.log("Database test:", error ? "Failed: " + error.message : "Success");
+        };
+
+    </script>
+</body>
+</html>
