@@ -4,740 +4,554 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
-    
-    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        body { 
+            font-family: Arial, sans-serif; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 20px;
         }
         .container {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 1200px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             width: 100%;
-            margin: 0 auto;
+            max-width: 400px;
             overflow: hidden;
         }
         .header {
-            background: linear-gradient(135deg, #005A9C 0%, #0077cc 100%);
+            background: #005A9C;
             color: white;
-            padding: 30px;
+            padding: 20px;
             text-align: center;
-            position: relative;
         }
-        .header h1 { font-size: 2em; margin-bottom: 5px; }
-        .header p { opacity: 0.9; font-size: 0.9em; }
-        .role-badge {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            border: 2px solid white;
-        }
-        .content { padding: 40px; }
-        .login-box { max-width: 400px; margin: 0 auto; }
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .content { padding: 30px; }
         .form-group { margin-bottom: 20px; }
         .form-group label {
             display: block;
             margin-bottom: 8px;
             color: #333;
-            font-weight: 600;
+            font-weight: bold;
         }
         .form-group input, .form-group select {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
             font-size: 16px;
-            background: white;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #005A9C;
         }
         .btn {
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 10px;
-        }
-        .btn-full {
             width: 100%;
-        }
-        .btn-primary {
+            padding: 12px;
             background: #005A9C;
             color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
         }
-        .btn-primary:hover {
-            background: #004a80;
-            transform: translateY(-2px);
-        }
-        .btn-secondary { background: #4CAF50; color: white; }
-        .btn-danger { background: #f44336; color: white; }
-        .error-msg, .success-msg {
-            padding: 12px;
-            border-radius: 8px;
+        .btn:hover { background: #004a80; }
+        .error-msg {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 5px;
             margin-top: 15px;
             text-align: center;
-        }
-        .error-msg {
-            background: #fee;
-            color: #c00;
             display: none;
         }
         .success-msg {
-            background: #e7f5e7;
+            background: #e8f5e9;
             color: #2e7d32;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-align: center;
             display: none;
         }
-        .app-main { display: none; }
-        .logout-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 8px 20px;
-            background: rgba(255,255,255,0.2);
-            border: 2px solid white;
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
+        .toggle-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
         }
-        .logout-btn:hover {
-            background: white;
+        .toggle-link a {
             color: #005A9C;
+            text-decoration: none;
+            font-weight: bold;
         }
-        .info-box {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 8px;
-            color: #1565c0;
-            margin-bottom: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .logout-btn {
-                position: relative;
-                top: auto;
-                right: auto;
-                margin-top: 10px;
-                width: 100%;
-            }
+        .logout-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📚 Smart Attendance Tracker</h1>
-            <p>සිසුන්ගේ ගැනුම්-දැනුම් කළමනාකරණ පද්ධතිය</p>
+            <h1>Smart Attendance Tracker</h1>
+            <p>සිසුන්ගේ ගැනුම්-දැනුම් පද්ධතිය</p>
         </div>
-
-        <!-- Login Screen -->
-        <div class="content" id="loginScreen">
-            <div class="login-box">
-                <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Welcome Back</h2>
+        
+        <div class="content">
+            <!-- Login Form -->
+            <div id="loginForm">
+                <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Login</h2>
                 
-                <!-- Registration Form -->
-                <div id="registrationForm" style="display: none;">
-                    <h3 style="text-align: center; margin-bottom: 20px; color: #005A9C;">Create New Account</h3>
-                    <div class="form-group">
-                        <label>Register As</label>
-                        <select id="registerRole">
-                            <option value="subjectTeacher">Subject Teacher</option>
-                            <option value="principal" class="restricted-option" disabled>Principal (Admin) - Contact Administrator</option>
-                            <option value="classTeacher" class="restricted-option" disabled>Class Teacher - Contact Administrator</option>
-                        </select>
-                    </div>
-                    <div class="info-box" style="margin-bottom: 20px;">
-                        <strong>Note:</strong> Only Subject Teacher accounts can be created through registration. 
-                        For Principal or Class Teacher accounts, please contact the system administrator.
-                    </div>
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" id="registerEmail" placeholder="Enter your email">
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="registerPassword" placeholder="Create a password (min 6 characters)">
-                    </div>
-                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">📝 Create Account</button>
-                    <button class="btn btn-primary btn-full" id="backToLoginBtn">← Back to Login</button>
-                    <div class="error-msg" id="registerError"></div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email" value="test@example.com">
                 </div>
-
-                <!-- Login Form -->
-                <div id="loginForm">
-                    <div class="form-group">
-                        <label>Login As</label>
-                        <select id="loginRole">
-                            <option value="principal">Principal (Admin)</option>
-                            <option value="classTeacher">Class Teacher</option>
-                            <option value="subjectTeacher">Subject Teacher</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" id="loginEmail" placeholder="Enter your email">
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="loginPassword" placeholder="Enter your password">
-                    </div>
-                    <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
-                    <div class="error-msg" id="loginError"></div>
-                    
-                    <!-- Registration Section -->
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                        <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
-                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register as Subject Teacher</button>
-                        <p style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">
-                            Need Principal or Class Teacher access? <br>Contact administrator.
-                        </p>
-                    </div>
+                
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter password" value="password123">
+                </div>
+                
+                <div class="form-group">
+                    <label>Login As</label>
+                    <select id="loginRole">
+                        <option value="principal">Principal</option>
+                        <option value="classTeacher">Class Teacher</option>
+                        <option value="subjectTeacher" selected>Subject Teacher</option>
+                    </select>
+                </div>
+                
+                <button class="btn" id="loginBtn">Login</button>
+                
+                <div class="error-msg" id="loginError"></div>
+                <div class="success-msg" id="loginSuccess"></div>
+                
+                <div class="toggle-link">
+                    Don't have an account? <a href="#" id="showRegister">Register</a>
                 </div>
             </div>
             
-            <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
-                <p style="color: #666; font-size: 0.9em; line-height: 1.8;">
-                    <strong style="color: #005A9C;">Developer:</strong> Kelum Konara<br>
-                    <strong style="color: #005A9C;">SmartSoft</strong> | The Mobile Apps Developer<br>
-                    📞 <strong>0714469232</strong>
-                </p>
-            </footer>
-        </div>
-
-        <!-- Main App -->
-        <div class="content app-main" id="appContent">
-            <button class="logout-btn" id="logoutBtn">Logout</button>
-            <div class="role-badge" id="roleBadge">Loading...</div>
-            
-            <h2 id="welcomeMessage" style="color: #005A9C; margin-bottom: 30px; text-align: center;">Welcome to Smart Attendance Tracker</h2>
-            
-            <div class="info-box">
-                <strong>System Ready!</strong> You are successfully logged in to the Smart Attendance Tracker system.
+            <!-- Registration Form -->
+            <div id="registerForm" style="display: none;">
+                <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Register</h2>
+                
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="registerEmail" placeholder="Enter your email">
+                </div>
+                
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="registerPassword" placeholder="Enter password (min 6 chars)">
+                </div>
+                
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="registerRole">
+                        <option value="subjectTeacher">Subject Teacher</option>
+                    </select>
+                </div>
+                
+                <button class="btn" id="registerBtn">Register</button>
+                
+                <div class="error-msg" id="registerError"></div>
+                <div class="success-msg" id="registerSuccess"></div>
+                
+                <div class="toggle-link">
+                    Already have an account? <a href="#" id="showLogin">Login</a>
+                </div>
             </div>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
-                <div style="background: #f9f9f9; padding: 25px; border-radius: 12px; text-align: center;">
-                    <h3 style="color: #005A9C; margin-bottom: 15px;">📋 Mark Attendance</h3>
-                    <p>Record student attendance by class and period</p>
+            <!-- App Content (hidden initially) -->
+            <div id="appContent" style="display: none;">
+                <h2 style="text-align: center; color: #005A9C;">Welcome!</h2>
+                <p style="text-align: center; margin: 20px 0;">You are logged in successfully.</p>
+                
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <p><strong>User Email:</strong> <span id="userEmail"></span></p>
+                    <p><strong>User Role:</strong> <span id="userRole"></span></p>
                 </div>
                 
-                <div style="background: #f9f9f9; padding: 25px; border-radius: 12px; text-align: center;">
-                    <h3 style="color: #005A9C; margin-bottom: 15px;">📊 View Reports</h3>
-                    <p>Generate attendance reports and analytics</p>
-                </div>
-                
-                <div style="background: #f9f9f9; padding: 25px; border-radius: 12px; text-align: center;">
-                    <h3 style="color: #005A9C; margin-bottom: 15px;">👥 Manage Students</h3>
-                    <p>Add, edit, and view student information</p>
-                </div>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Supabase Configuration - නව project සඳහා
-        // ඔබගේ නව Supabase project details මෙහි add කරන්න
-        const SUPABASE_CONFIG = {
-            // ඔබගේ Supabase project URL එක මෙහි දමන්න
-            supabaseUrl: 'https://YOUR_NEW_SUPABASE_PROJECT.supabase.co',
-            // ඔබගේ Supabase anon/public key එක මෙහි දමන්න
-            supabaseKey: 'YOUR_NEW_SUPABASE_ANON_KEY'
-        };
-
+        // ====================
+        // SUPABASE CONFIGURATION
+        // ====================
+        // ඔබගේ Supabase project details මෙහි දමන්න
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE'; // Example: https://abcdefghijklmnop.supabase.co
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE'; // Example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        
         // Initialize Supabase
-        let supabase;
-        try {
-            supabase = window.supabase.createClient(
-                SUPABASE_CONFIG.supabaseUrl, 
-                SUPABASE_CONFIG.supabaseKey,
-                {
-                    auth: {
-                        autoRefreshToken: true,
-                        persistSession: true,
-                        detectSessionInUrl: true
-                    }
-                }
-            );
-            console.log("✅ Supabase initialized successfully");
-            console.log("URL:", SUPABASE_CONFIG.supabaseUrl);
-        } catch (error) {
-            console.error("❌ Failed to initialize Supabase:", error);
-            document.getElementById('loginError').textContent = 'Database connection failed. Please check configuration.';
-            document.getElementById('loginError').style.display = 'block';
-        }
-
-        // Global app data
-        const appData = {
-            currentUser: null,
-            userRole: null
-        };
-
-        // Role display mapping
-        const roleDisplayMapping = {
-            'principal': 'Principal (Admin)',
-            'classTeacher': 'Class Teacher', 
-            'subjectTeacher': 'Subject Teacher'
-        };
-
-        // Initialize the application
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        console.log('Supabase initialized:', supabase ? 'Success' : 'Failed');
+        
+        // ====================
+        // EVENT LISTENERS
+        // ====================
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("📱 DOM loaded, initializing app...");
-            initializeApp();
+            console.log('DOM loaded');
+            
+            // Login/Register toggle
+            document.getElementById('showRegister').addEventListener('click', function(e) {
+                e.preventDefault();
+                showRegisterForm();
+            });
+            
+            document.getElementById('showLogin').addEventListener('click', function(e) {
+                e.preventDefault();
+                showLoginForm();
+            });
+            
+            // Login button
+            document.getElementById('loginBtn').addEventListener('click', login);
+            
+            // Register button
+            document.getElementById('registerBtn').addEventListener('click', register);
+            
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            
+            // Check if user is already logged in
+            checkSession();
         });
-
-        async function initializeApp() {
-            console.log("🚀 Initializing app...");
-            
-            // Setup event listeners
-            setupEventListeners();
-            
-            // Set today's date
-            setTodayDate();
-            
-            // Check authentication state
-            await checkAuthState();
-            
-            console.log("✅ App initialization complete");
+        
+        // ====================
+        // FUNCTIONS
+        // ====================
+        function showRegisterForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+            clearMessages();
         }
-
-        function setTodayDate() {
-            const today = new Date();
-            const formattedDate = today.toISOString().split('T')[0];
-            console.log("📅 Today's date:", formattedDate);
+        
+        function showLoginForm() {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            clearMessages();
         }
-
-        async function checkAuthState() {
+        
+        function clearMessages() {
+            document.getElementById('loginError').style.display = 'none';
+            document.getElementById('loginSuccess').style.display = 'none';
+            document.getElementById('registerError').style.display = 'none';
+            document.getElementById('registerSuccess').style.display = 'none';
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+        
+        async function checkSession() {
             try {
-                console.log("🔍 Checking auth state...");
                 const { data: { session }, error } = await supabase.auth.getSession();
                 
                 if (error) {
-                    console.error("❌ Error getting session:", error);
-                    showLoginScreen();
+                    console.error('Session error:', error);
                     return;
                 }
                 
-                console.log("🔐 Session:", session ? "Found" : "Not found");
-                
                 if (session && session.user) {
-                    console.log("👤 User found:", session.user.email);
-                    appData.currentUser = session.user;
-                    await getUserRole(session.user.id);
-                } else {
-                    console.log("👤 No user session, showing login");
-                    showLoginScreen();
+                    console.log('User already logged in:', session.user.email);
+                    showApp(session.user);
                 }
-
-                // Listen for auth changes
-                supabase.auth.onAuthStateChange(async (event, session) => {
-                    console.log("🔄 Auth state changed:", event, session ? "User logged in" : "User logged out");
-                    if (session && session.user) {
-                        appData.currentUser = session.user;
-                        await getUserRole(session.user.id);
-                    } else {
-                        appData.currentUser = null;
-                        appData.userRole = null;
-                        showLoginScreen();
-                    }
-                });
             } catch (error) {
-                console.error("❌ Error in checkAuthState:", error);
-                showLoginScreen();
+                console.error('Check session error:', error);
             }
         }
-
-        function showLoginScreen() {
-            console.log("👤 Showing login screen");
-            document.getElementById('loginScreen').style.display = 'block';
-            document.getElementById('appContent').style.display = 'none';
-            showLoginForm();
-        }
-
-        async function getUserRole(userId) {
-            try {
-                console.log("👤 Getting user role for:", userId);
-                
-                // First, try to get role from users table
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('id', userId)
-                    .single();
-
-                if (error) {
-                    console.log("⚠️ User not found in users table, creating default...");
-                    // Create default user
-                    return await createDefaultUser(userId);
-                }
-
-                console.log("✅ User role found:", data.role);
-                appData.userRole = data.role;
-                showApp(data.role);
-                return data.role;
-            } catch (error) {
-                console.error("❌ Error in getUserRole:", error);
-                return await createDefaultUser(userId);
-            }
-        }
-
-        async function createDefaultUser(userId) {
-            try {
-                const { data: userData } = await supabase.auth.getUser();
-                if (userData.user) {
-                    const selectedRole = document.getElementById('loginRole')?.value || 'subjectTeacher';
-                    
-                    console.log("👤 Creating default user with role:", selectedRole);
-                    
-                    const { error: insertError } = await supabase
-                        .from('users')
-                        .insert([{
-                            id: userId,
-                            email: userData.user.email,
-                            role: selectedRole
-                        }]);
-                    
-                    if (!insertError) {
-                        console.log("✅ Default user created successfully");
-                        appData.userRole = selectedRole;
-                        showApp(selectedRole);
-                        return selectedRole;
-                    } else {
-                        console.error("❌ Error creating default user:", insertError);
-                    }
-                }
-                return 'subjectTeacher'; // Default role
-            } catch (error) {
-                console.error("❌ Error creating default user:", error);
-                return 'subjectTeacher';
-            }
-        }
-
-        function setupEventListeners() {
-            console.log("🎯 Setting up event listeners...");
-            
-            // Authentication buttons
-            const loginBtn = document.getElementById('loginBtn');
-            const showRegisterBtn = document.getElementById('showRegisterBtn');
-            const backToLoginBtn = document.getElementById('backToLoginBtn');
-            const confirmRegisterBtn = document.getElementById('confirmRegisterBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-            
-            if (loginBtn) {
-                console.log("✅ Login button found");
-                loginBtn.addEventListener('click', doLogin);
-            } else {
-                console.error("❌ Login button not found!");
-            }
-            
-            if (showRegisterBtn) {
-                console.log("✅ Show register button found");
-                showRegisterBtn.addEventListener('click', showRegistrationForm);
-            }
-            
-            if (backToLoginBtn) {
-                console.log("✅ Back to login button found");
-                backToLoginBtn.addEventListener('click', showLoginForm);
-            }
-            
-            if (confirmRegisterBtn) {
-                console.log("✅ Confirm register button found");
-                confirmRegisterBtn.addEventListener('click', doRegistration);
-            }
-            
-            if (logoutBtn) {
-                console.log("✅ Logout button found");
-                logoutBtn.addEventListener('click', doLogout);
-            }
-            
-            console.log("✅ Event listeners setup complete");
-        }
-
-        function showLoginForm() {
-            console.log("📝 Showing login form");
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('registrationForm').style.display = 'none';
-        }
-
-        function showRegistrationForm() {
-            console.log("📝 Showing registration form");
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('registrationForm').style.display = 'block';
-        }
-
-        async function doLogin() {
-            console.log("🔐 Login attempt...");
-            
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-            const selectedRole = document.getElementById('loginRole').value;
-            const errorMsg = document.getElementById('loginError');
-            
-            console.log("📧 Email:", email ? "Provided" : "Missing");
-            console.log("🔑 Password:", password ? "Provided" : "Missing");
-            console.log("👤 Selected role:", selectedRole);
+        
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const role = document.getElementById('loginRole').value;
             
             if (!email || !password) {
-                console.log("❌ Missing email or password");
-                errorMsg.textContent = 'Please enter both email and password';
-                errorMsg.style.display = 'block';
+                showError('loginError', 'Please enter email and password');
                 return;
             }
             
             try {
-                // Test Supabase connection first
-                console.log("🔌 Testing Supabase connection...");
-                const { data: testData, error: testError } = await supabase.auth.getSession();
+                console.log('Attempting login...');
                 
-                if (testError) {
-                    console.error("❌ Supabase connection test failed:", testError);
-                    errorMsg.textContent = 'Database connection failed. Please check your internet connection.';
-                    errorMsg.style.display = 'block';
-                    return;
-                }
-                
-                console.log("✅ Supabase connection successful");
+                // First, sign out any existing session
+                await supabase.auth.signOut();
                 
                 // Attempt login
-                console.log("🔐 Attempting login...");
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
-
+                
                 if (error) {
-                    console.error("❌ Login error:", error);
-                    throw error;
+                    console.error('Login error:', error);
+                    
+                    // If user doesn't exist, try to sign up
+                    if (error.message.includes('Invalid login credentials')) {
+                        showError('loginError', 'Invalid credentials. Trying to register...');
+                        
+                        // Try to register
+                        const { data: signupData, error: signupError } = await supabase.auth.signUp({
+                            email: email,
+                            password: password
+                        });
+                        
+                        if (signupError) {
+                            showError('loginError', 'Registration failed: ' + signupError.message);
+                            return;
+                        }
+                        
+                        if (signupData.user) {
+                            // Create user record in users table
+                            await createUserRecord(signupData.user.id, email, role);
+                            
+                            // Auto login
+                            const { data: loginData, error: loginError2 } = await supabase.auth.signInWithPassword({
+                                email: email,
+                                password: password
+                            });
+                            
+                            if (loginError2) {
+                                showError('loginError', 'Auto-login failed. Please try logging in.');
+                                return;
+                            }
+                            
+                            showApp(loginData.user);
+                            showSuccess('loginSuccess', 'Account created and logged in successfully!');
+                        }
+                    } else {
+                        showError('loginError', 'Login failed: ' + error.message);
+                    }
+                    return;
                 }
-
-                console.log("✅ Login successful for user:", data.user.email);
+                
+                // Login successful
+                console.log('Login successful:', data.user.email);
                 
                 // Check if user exists in users table
-                console.log("👤 Checking user in database...");
                 const { data: userData, error: userError } = await supabase
                     .from('users')
-                    .select('role')
-                    .eq('id', data.user.id)
+                    .select('*')
+                    .eq('email', email)
                     .single();
-
+                
                 if (userError) {
-                    console.log("⚠️ User not found in database, creating...");
-                    // Create user record if it doesn't exist
-                    await createUserRecord(data.user.id, email, selectedRole);
-                    appData.userRole = selectedRole;
-                } else {
-                    appData.userRole = userData.role;
-                    console.log("✅ User role from database:", appData.userRole);
+                    // User doesn't exist in users table, create record
+                    await createUserRecord(data.user.id, email, role);
                 }
-
-                // Store user data
-                appData.currentUser = {
-                    id: data.user.id,
-                    email: email
-                };
-
-                // Show success
-                errorMsg.style.display = 'none';
-                console.log("✅ Showing app...");
-                showApp(appData.userRole);
+                
+                showApp(data.user);
+                showSuccess('loginSuccess', 'Login successful!');
                 
             } catch (error) {
-                console.error("❌ Login failed:", error);
-                if (error.message.includes('Invalid login credentials')) {
-                    errorMsg.textContent = 'Invalid email or password. Please try again.';
-                } else if (error.message.includes('Email not confirmed')) {
-                    errorMsg.textContent = 'Please check your email to confirm your account.';
-                } else {
-                    errorMsg.textContent = 'Login failed: ' + error.message;
-                }
-                errorMsg.style.display = 'block';
+                console.error('Login catch error:', error);
+                showError('loginError', 'An error occurred: ' + error.message);
             }
         }
-
+        
         async function createUserRecord(userId, email, role) {
             try {
-                console.log("👤 Creating user record...");
                 const { error } = await supabase
                     .from('users')
-                    .insert([{
-                        id: userId,
-                        email: email,
-                        role: role
-                    }]);
-
+                    .insert([
+                        {
+                            id: userId,
+                            email: email,
+                            role: role
+                        }
+                    ]);
+                
                 if (error) {
-                    console.error("❌ Error creating user record:", error);
+                    console.error('Error creating user record:', error);
                 } else {
-                    console.log("✅ User record created successfully");
+                    console.log('User record created successfully');
                 }
             } catch (error) {
-                console.error("❌ Error in createUserRecord:", error);
+                console.error('Create user record error:', error);
             }
         }
-
-        async function doRegistration() {
-            console.log("📝 Registration attempt...");
-            
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value.trim();
+        
+        async function register() {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
             const role = document.getElementById('registerRole').value;
-            const errorMsg = document.getElementById('registerError');
-            
-            console.log("📧 Email:", email);
-            console.log("🔑 Password length:", password.length);
-            console.log("👤 Role:", role);
             
             if (!email || !password) {
-                console.log("❌ Missing email or password");
-                errorMsg.textContent = 'Please enter both email and password';
-                errorMsg.style.display = 'block';
+                showError('registerError', 'Please enter email and password');
                 return;
             }
             
             if (password.length < 6) {
-                console.log("❌ Password too short");
-                errorMsg.textContent = 'Password should be at least 6 characters';
-                errorMsg.style.display = 'block';
+                showError('registerError', 'Password must be at least 6 characters');
                 return;
             }
-
-            // Ensure only subject teacher can register
-            if (role !== 'subjectTeacher') {
-                console.log("❌ Invalid role for registration");
-                errorMsg.textContent = 'Only Subject Teacher accounts can be created through registration.';
-                errorMsg.style.display = 'block';
-                return;
-            }
-
+            
             try {
-                console.log("🔐 Attempting registration...");
+                console.log('Attempting registration...');
                 
-                // Create user in Supabase Auth
-                const { data: authData, error: authError } = await supabase.auth.signUp({
+                // Sign up with Supabase Auth
+                const { data, error } = await supabase.auth.signUp({
                     email: email,
                     password: password
                 });
-
-                if (authError) {
-                    console.error("❌ Registration auth error:", authError);
-                    throw authError;
-                }
-
-                console.log("✅ Auth registration successful");
                 
-                if (authData.user) {
+                if (error) {
+                    console.error('Registration error:', error);
+                    showError('registerError', 'Registration failed: ' + error.message);
+                    return;
+                }
+                
+                if (data.user) {
                     // Create user record in users table
-                    await createUserRecord(authData.user.id, email, role);
+                    await createUserRecord(data.user.id, email, role);
                     
-                    // Auto login after registration
-                    console.log("🔐 Auto-login after registration...");
-                    const { error: loginError } = await supabase.auth.signInWithPassword({
-                        email: email,
-                        password: password
-                    });
-                    
-                    if (!loginError) {
-                        appData.userRole = role;
-                        appData.currentUser = {
-                            id: authData.user.id,
-                            email: email
-                        };
-                        
-                        console.log("✅ Registration and auto-login successful");
-                        alert('Registration successful! Welcome to Smart Attendance Tracker.');
-                        showApp(role);
-                    } else {
-                        console.log("ℹ️ Registration successful, please login");
-                        alert('Registration successful! Please login with your credentials.');
-                        showLoginForm();
-                    }
-                } else {
-                    console.log("ℹ️ Registration initiated, check email");
-                    alert('Registration successful! Please check your email to confirm your account.');
+                    showSuccess('registerSuccess', 'Registration successful! You can now login.');
                     showLoginForm();
+                } else {
+                    showSuccess('registerSuccess', 'Registration initiated. Please check your email.');
                 }
                 
             } catch (error) {
-                console.error("❌ Registration failed:", error);
-                if (error.message.includes('already registered')) {
-                    errorMsg.textContent = 'Email already exists. Please use a different email.';
-                } else if (error.message.includes('password')) {
-                    errorMsg.textContent = 'Password should be at least 6 characters.';
-                } else {
-                    errorMsg.textContent = 'Registration failed: ' + error.message;
-                }
-                errorMsg.style.display = 'block';
+                console.error('Register catch error:', error);
+                showError('registerError', 'An error occurred: ' + error.message);
             }
         }
-
-        function showApp(role) {
-            console.log("🚀 Showing app for role:", role);
+        
+        function showApp(user) {
+            // Hide login/register forms
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
             
-            document.getElementById('loginScreen').style.display = 'none';
+            // Show app content
             document.getElementById('appContent').style.display = 'block';
             
-            // Set role badge
-            document.getElementById('roleBadge').textContent = roleDisplayMapping[role] || role;
+            // Display user info
+            document.getElementById('userEmail').textContent = user.email;
             
-            // Set welcome message
-            const welcomeMsg = document.getElementById('welcomeMessage');
-            if (welcomeMsg) {
-                welcomeMsg.textContent = `Welcome ${roleDisplayMapping[role] || role}`;
-            }
-            
-            console.log("✅ App displayed successfully");
+            // Try to get user role
+            getUserRole(user.email);
         }
-
-        async function doLogout() {
-            console.log("👋 Logging out...");
-            const { error } = await supabase.auth.signOut();
-            if (error) {
-                console.error("❌ Logout error:", error);
-            } else {
-                console.log("✅ Logout successful");
-            }
-            
-            appData.currentUser = null;
-            appData.userRole = null;
-            showLoginScreen();
-        }
-
-        // Debug function - run in console to test
-        window.debugAuth = async function() {
-            console.log("🔍 Debugging auth...");
-            console.log("Supabase client:", supabase ? "Loaded" : "Not loaded");
-            
-            const { data: session } = await supabase.auth.getSession();
-            console.log("Session:", session);
-            
-            const { data: user } = await supabase.auth.getUser();
-            console.log("User:", user);
-            
-            // Test database connection
-            const { data: test, error } = await supabase
-                .from('users')
-                .select('count')
-                .limit(1);
+        
+        async function getUserRole(email) {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('email', email)
+                    .single();
                 
-            console.log("Database test:", error ? "Failed: " + error.message : "Success");
+                if (!error && data) {
+                    document.getElementById('userRole').textContent = data.role;
+                } else {
+                    document.getElementById('userRole').textContent = 'Subject Teacher';
+                }
+            } catch (error) {
+                console.error('Get user role error:', error);
+                document.getElementById('userRole').textContent = 'Subject Teacher';
+            }
+        }
+        
+        async function logout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                
+                if (error) {
+                    console.error('Logout error:', error);
+                } else {
+                    // Hide app content
+                    document.getElementById('appContent').style.display = 'none';
+                    
+                    // Show login form
+                    showLoginForm();
+                    
+                    // Clear form fields
+                    document.getElementById('loginEmail').value = '';
+                    document.getElementById('loginPassword').value = '';
+                    
+                    console.log('Logged out successfully');
+                }
+            } catch (error) {
+                console.error('Logout catch error:', error);
+            }
+        }
+        
+        // Listen for auth state changes
+        supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event);
+            
+            if (event === 'SIGNED_IN' && session) {
+                console.log('User signed in:', session.user.email);
+                showApp(session.user);
+            } else if (event === 'SIGNED_OUT') {
+                console.log('User signed out');
+                document.getElementById('appContent').style.display = 'none';
+                showLoginForm();
+            }
+        });
+        
+        // Debug function
+        window.testSupabase = async function() {
+            console.log('Testing Supabase connection...');
+            
+            try {
+                // Test 1: Check auth
+                const { data: authData, error: authError } = await supabase.auth.getSession();
+                console.log('Auth test:', authError ? 'Failed: ' + authError.message : 'Success');
+                
+                // Test 2: Check database
+                const { data: dbData, error: dbError } = await supabase
+                    .from('subjects')
+                    .select('count')
+                    .limit(1);
+                    
+                console.log('Database test:', dbError ? 'Failed: ' + dbError.message : 'Success');
+                
+                // Test 3: List tables
+                const { data: tables, error: tablesError } = await supabase
+                    .from('subjects')
+                    .select('*')
+                    .limit(5);
+                    
+                console.log('Tables test:', tablesError ? 'Failed: ' + tablesError.message : 'Success', tables);
+                
+            } catch (error) {
+                console.error('Test error:', error);
+            }
         };
-
+        
+        // Run test on load
+        setTimeout(() => {
+            window.testSupabase();
+        }, 1000);
     </script>
 </body>
 </html>
