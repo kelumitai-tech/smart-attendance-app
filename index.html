@@ -1,19 +1,272 @@
--- Create users table
-CREATE TABLE IF NOT EXISTS users (
-    id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    role TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Attendance - Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial; padding: 40px; background: #f0f2f5; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #005A9C; margin-bottom: 30px; }
+        input, button { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        button { background: #005A9C; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #004a80; }
+        .message { padding: 15px; border-radius: 5px; margin: 15px 0; text-align: center; }
+        .error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+        .success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .debug { background: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 20px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔐 Smart Attendance Login</h2>
+        
+        <input type="email" id="email" placeholder="Email" value="teacher@school.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        
+        <button onclick="login()">Login</button>
+        <button onclick="register()" style="background: #4CAF50;">Register New Account</button>
+        
+        <div id="message" class="message"></div>
+        
+        <div class="debug">
+            <strong>Debug Info:</strong><br>
+            <div id="debug"></div>
+        </div>
+    </div>
 
--- Enable RLS
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-
--- Create policy for all access (for testing)
-CREATE POLICY "Enable all access for users table" ON users
-FOR ALL USING (true);
-
--- Insert a test user
-INSERT INTO users (id, email, role) VALUES 
-('00000000-0000-0000-0000-000000000000', 'teacher@example.com', 'subjectTeacher')
-ON CONFLICT (email) DO NOTHING;
+    <script>
+        // ඔබගේ Supabase details
+        const SUPABASE_URL = 'https://issfuzhjzvncnuxbmkia.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_Q-G068b2mCNUP4QU9DggIg_6XhVaQ7f';
+        
+        // Supabase initialize
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        console.log('🚀 Smart Attendance System Started');
+        console.log('URL:', SUPABASE_URL);
+        
+        // Update debug info
+        function updateDebug(msg) {
+            document.getElementById('debug').innerHTML = msg + '<br>' + new Date().toLocaleTimeString();
+        }
+        
+        // Simple login function
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            updateDebug('Logging in...');
+            
+            try {
+                // TRY 1: Direct login
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    console.log('Login error:', error.message);
+                    updateDebug('Login failed: ' + error.message);
+                    
+                    // If invalid credentials, try to register
+                    if (error.message.includes('Invalid login credentials')) {
+                        document.getElementById('message').innerHTML = 
+                            '<div class="error">User not found. Creating new account...</div>';
+                        await registerAndLogin(email, password);
+                    } else {
+                        document.getElementById('message').innerHTML = 
+                            `<div class="error">Error: ${error.message}</div>`;
+                    }
+                    return;
+                }
+                
+                // SUCCESS!
+                console.log('✅ Login successful:', data.user);
+                updateDebug('Login successful! User: ' + data.user.email);
+                
+                // Save user to our database
+                await saveUserToDatabase(data.user);
+                
+                document.getElementById('message').innerHTML = 
+                    `<div class="success">✅ Welcome ${data.user.email}!</div>`;
+                    
+            } catch (error) {
+                console.error('Login catch error:', error);
+                updateDebug('Error: ' + error.message);
+                document.getElementById('message').innerHTML = 
+                    `<div class="error">System error: ${error.message}</div>`;
+            }
+        }
+        
+        // Register and auto-login
+        async function registerAndLogin(email, password) {
+            try {
+                updateDebug('Registering new user...');
+                
+                // Step 1: Register with Supabase Auth
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    updateDebug('Registration error: ' + error.message);
+                    document.getElementById('message').innerHTML = 
+                        `<div class="error">Registration failed: ${error.message}</div>`;
+                    return;
+                }
+                
+                console.log('Registration data:', data);
+                updateDebug('Registration successful');
+                
+                // Step 2: Auto login
+                const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (loginError) {
+                    updateDebug('Auto-login failed: ' + loginError.message);
+                    document.getElementById('message').innerHTML = 
+                        '<div class="success">Account created! Please login manually.</div>';
+                    return;
+                }
+                
+                // Step 3: Save to our database
+                await saveUserToDatabase(loginData.user);
+                
+                updateDebug('User saved to database');
+                document.getElementById('message').innerHTML = 
+                    `<div class="success">✅ Account created! Welcome ${loginData.user.email}</div>`;
+                    
+            } catch (error) {
+                console.error('Register error:', error);
+                updateDebug('Register error: ' + error.message);
+                document.getElementById('message').innerHTML = 
+                    `<div class="error">Registration error: ${error.message}</div>`;
+            }
+        }
+        
+        // Save user to our users table
+        async function saveUserToDatabase(user) {
+            try {
+                // First check if user already exists
+                const { data: existingUser, error: checkError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('email', user.email)
+                    .maybeSingle();
+                
+                if (checkError && !checkError.message.includes('No rows found')) {
+                    console.error('Check error:', checkError);
+                    return;
+                }
+                
+                // If user doesn't exist, create new record
+                if (!existingUser) {
+                    const { error: insertError } = await supabase
+                        .from('users')
+                        .insert([
+                            {
+                                email: user.email,
+                                role: 'teacher',  // Default role
+                                created_at: new Date().toISOString()
+                            }
+                        ]);
+                    
+                    if (insertError) {
+                        console.error('Insert error:', insertError);
+                    } else {
+                        console.log('User saved to database');
+                    }
+                } else {
+                    console.log('User already exists in database');
+                }
+                
+            } catch (error) {
+                console.error('Save user error:', error);
+            }
+        }
+        
+        // Standalone register function
+        async function register() {
+            const email = document.getElementById('email').value || 'user' + Date.now() + '@school.com';
+            const password = document.getElementById('password').value || 'password123';
+            
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+            
+            await registerAndLogin(email, password);
+        }
+        
+        // Test connection on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            updateDebug('Checking connection...');
+            
+            try {
+                // Test 1: Auth connection
+                const { data: session, error: authError } = await supabase.auth.getSession();
+                console.log('Auth test:', authError ? 'Failed' : 'OK', session);
+                
+                // Test 2: Database connection
+                const { data: dbData, error: dbError } = await supabase
+                    .from('users')
+                    .select('count')
+                    .limit(1);
+                
+                if (dbError) {
+                    updateDebug('DB Error: ' + dbError.message);
+                    console.log('DB test error:', dbError);
+                    
+                    // Try to create table
+                    await createTableIfNeeded();
+                } else {
+                    updateDebug('✅ Connected to Supabase!');
+                    console.log('DB test success:', dbData);
+                }
+                
+            } catch (error) {
+                updateDebug('Connection error: ' + error.message);
+                console.error('Connection test error:', error);
+            }
+        });
+        
+        // Create table if needed
+        async function createTableIfNeeded() {
+            try {
+                updateDebug('Creating users table...');
+                
+                // Just try to insert (will fail if table doesn't exist)
+                const { error } = await supabase
+                    .from('users')
+                    .insert([
+                        {
+                            email: 'test@test.com',
+                            role: 'test',
+                            created_at: new Date().toISOString()
+                        }
+                    ]);
+                
+                if (error && error.message.includes('does not exist')) {
+                    updateDebug('⚠️ Table not found. Run SQL in Supabase.');
+                    document.getElementById('message').innerHTML = 
+                        '<div class="error">Database table not found. Please run the SQL query in Supabase.</div>';
+                }
+                
+            } catch (error) {
+                console.error('Table creation error:', error);
+            }
+        }
+        
+        // Debug functions
+        window.testAuth = async function() {
+            console.log('Testing auth...');
+            const { data, error } = await supabase.auth.signUp({
+                email: 'test' + Date.now() + '@test.com',
+                password: 'test123'
+            });
+            console.log('Auth test:', data, error);
+        };
+    </script>
+</body>
+</html>
