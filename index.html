@@ -1,272 +1,1481 @@
 <!DOCTYPE html>
-<html>
+<html lang="si">
 <head>
-    <title>Smart Attendance - Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance Tracker</title>
+    
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Chart.js for dashboard charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
-        body { font-family: Arial; padding: 40px; background: #f0f2f5; }
-        .container { max-width: 400px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #005A9C; margin-bottom: 30px; }
-        input, button { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
-        button { background: #005A9C; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background: #004a80; }
-        .message { padding: 15px; border-radius: 5px; margin: 15px 0; text-align: center; }
-        .error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
-        .success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-        .debug { background: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 20px; font-family: monospace; font-size: 12px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #005A9C 0%, #0077cc 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 5px; }
+        .header p { opacity: 0.9; font-size: 0.9em; }
+        .role-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            border: 2px solid white;
+        }
+        .content { padding: 40px; }
+        .login-box { max-width: 400px; margin: 0 auto; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #005A9C;
+        }
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-full {
+            width: 100%;
+        }
+        .btn-primary {
+            background: #005A9C;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #004a80;
+            transform: translateY(-2px);
+        }
+        .btn-secondary { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-info { background: #2196F3; color: white; }
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .error-msg, .success-msg {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .error-msg {
+            background: #fee;
+            color: #c00;
+            display: none;
+        }
+        .success-msg {
+            background: #e7f5e7;
+            color: #2e7d32;
+            display: none;
+        }
+        .app-main { display: none; }
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .nav-tab {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-tab.active {
+            color: #005A9C;
+            border-bottom-color: #005A9C;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .card h3 {
+            color: #005A9C;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background: #005A9C;
+            color: white;
+        }
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .logout-btn:hover {
+            background: white;
+            color: #005A9C;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            color: #1565c0;
+            margin-bottom: 20px;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stats-card h2 { font-size: 3em; margin: 10px 0; }
+        .stats-card p { font-size: 1.1em; opacity: 0.9; }
+        .principal-only { display: none; }
+        .class-teacher-only { display: none; }
+        .subject-teacher-only { display: none; }
+        .filter-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .student-item, .teacher-item, .subject-item, .grade-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #005A9C;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-info {
+            flex: 1;
+        }
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .attendance-summary {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #2e7d32;
+            font-weight: bold;
+            text-align: center;
+        }
+        .present { color: #4CAF50; font-weight: bold; }
+        .absent { color: #f44336; font-weight: bold; }
+        .teacher-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        .pdf-btn {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        .pdf-btn:hover {
+            background: #b71c1c;
+        }
+        .serial-number {
+            background: #005A9C;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .attendance-percentage {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .percentage-good { color: #4CAF50; }
+        .percentage-average { color: #ff9800; }
+        .percentage-poor { color: #f44336; }
+        .restricted-option {
+            color: #999;
+            font-style: italic;
+        }
+        .dashboard-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .chart-title {
+            color: #005A9C;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        .gender-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .gender-stat {
+            flex: 1;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+        }
+        .male-stat { background: #2196F3; }
+        .female-stat { background: #E91E63; }
+        .daily-summary {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .summary-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #005A9C;
+            margin: 5px 0;
+        }
+        .summary-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            table { font-size: 14px; }
+            th, td { padding: 8px; }
+            .student-item, .teacher-item, .subject-item, .grade-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .item-actions {
+                margin-top: 10px;
+                width: 100%;
+                justify-content: flex-end;
+            }
+            .dashboard-controls {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>🔐 Smart Attendance Login</h2>
-        
-        <input type="email" id="email" placeholder="Email" value="teacher@school.com">
-        <input type="password" id="password" placeholder="Password" value="password123">
-        
-        <button onclick="login()">Login</button>
-        <button onclick="register()" style="background: #4CAF50;">Register New Account</button>
-        
-        <div id="message" class="message"></div>
-        
-        <div class="debug">
-            <strong>Debug Info:</strong><br>
-            <div id="debug"></div>
+        <div class="header">
+            <h1>📚 Smart Attendance Tracker</h1>
+            <p>Efficient Student Attendance Management System</p>
+        </div>
+
+        <!-- Login Screen -->
+        <div class="content" id="loginScreen">
+            <div class="login-box">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Welcome Back</h2>
+                
+                <!-- Registration Form -->
+                <div id="registrationForm" style="display: none;">
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #005A9C;">Create New Account</h3>
+                    <div class="form-group">
+                        <label>Register As</label>
+                        <select id="registerRole">
+                            <option value="subjectTeacher">Subject Teacher</option>
+                            <option value="principal" class="restricted-option" disabled>Principal (Admin) - Contact Administrator</option>
+                            <option value="classTeacher" class="restricted-option" disabled>Class Teacher - Contact Administrator</option>
+                        </select>
+                    </div>
+                    <div class="info-box" style="margin-bottom: 20px;">
+                        <strong>Note:</strong> Only Subject Teacher accounts can be created through registration. 
+                        For Principal or Class Teacher accounts, please contact the system administrator.
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="registerEmail" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="registerPassword" placeholder="Create a password (min 6 characters)">
+                    </div>
+                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">📝 Create Subject Teacher Account</button>
+                    <button class="btn btn-primary btn-full" id="backToLoginBtn">← Back to Login</button>
+                    <div class="error-msg" id="registerError"></div>
+                </div>
+
+                <!-- Login Form -->
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label>Login As</label>
+                        <select id="loginRole">
+                            <option value="principal">Principal (Admin)</option>
+                            <option value="classTeacher">Class Teacher</option>
+                            <option value="subjectTeacher">Subject Teacher</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="loginEmail" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="Enter your password">
+                    </div>
+                    <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
+                    <div class="error-msg" id="loginError"></div>
+                    
+                    <!-- Registration Section -->
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                        <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
+                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register as Subject Teacher</button>
+                        <p style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">
+                            Need Principal or Class Teacher access? <br>Contact administrator.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
+                <p style="color: #666; font-size: 0.9em; line-height: 1.8;">
+                    <strong style="color: #005A9C;">Developer:</strong> Kelum Konara<br>
+                    <strong style="color: #005A9C;">SmartSoft</strong> | The Mobile Apps Developer<br>
+                    📞 <strong>0714469232</strong>
+                </p>
+            </footer>
+        </div>
+
+        <!-- Main App -->
+        <div class="content app-main" id="appContent">
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+            <div class="role-badge" id="roleBadge">Loading...</div>
+            
+            <div class="nav-tabs" id="navTabs">
+                <button class="nav-tab active" data-tab="attendance">📋 Attendance</button>
+                <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
+                <button class="nav-tab" data-tab="reports">📊 Reports</button>
+                <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
+                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
+                <button class="nav-tab principal-only class-teacher-only" data-tab="grades">🎓 Grades</button>
+                <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
+                <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div class="tab-content active" id="attendance">
+                <div class="card">
+                    <h3>Mark Attendance</h3>
+                    <div class="info-box">Select class, subject, teacher, period and date to mark attendance (Monday to Friday only)</div>
+                    <div class="form-group">
+                        <label>Select Class</label>
+                        <select id="selectClass">
+                            <option value="">Loading classes...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Subject</label>
+                        <select id="selectSubject">
+                            <option value="">Loading subjects...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Teacher</label>
+                        <select id="selectTeacher">
+                            <option value="">Loading teachers...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Period</label>
+                        <select id="selectPeriod">
+                            <option value="daily">Daily Attendance</option>
+                            <option value="first">First Period</option>
+                            <option value="second">Second Period</option>
+                            <option value="third">Third Period</option>
+                            <option value="fourth">Fourth Period</option>
+                            <option value="fifth">Fifth Period</option>
+                            <option value="sixth">Sixth Period</option>
+                            <option value="seventh">Seventh Period</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    <button class="btn btn-primary btn-full" id="loadAttendanceBtn">Load Attendance Sheet</button>
+                </div>
+
+                <div class="card">
+                    <h3>Attendance Sheet for <span id="currentDateDisplay"></span> - <span id="currentPeriodDisplay">Daily Attendance</span></h3>
+                    <div id="teacherInfo" class="teacher-info" style="display: none;">
+                        <strong>Teacher Information:</strong> 
+                        <span id="teacherIdDisplay">-</span> - 
+                        <span id="teacherNameDisplay">-</span>
+                    </div>
+                    <div id="attendanceSummary" class="attendance-summary" style="display: none;">
+                        Attendance Summary: <span id="presentCount">0</span>/<span id="totalCount">0</span> students present 
+                        (<span id="attendancePercentage">0</span>%)
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="attendanceTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Subject</th>
+                                    <th>Teacher ID</th>
+                                    <th>Teacher Name</th>
+                                    <th>Period</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTbody">
+                                <tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" id="markAllBtn">✓ Mark All Present</button>
+                        <button class="btn btn-primary" id="saveAttendanceBtn">💾 Save Attendance</button>
+                        <button class="btn btn-danger" id="clearAllBtn">✗ Mark All Absent</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div class="tab-content" id="students">
+                <div class="card">
+                    <h3>Add New Student</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Student ID</label>
+                            <input type="text" id="studentId" placeholder="e.g., S001">
+                        </div>
+                        <div class="form-group">
+                            <label>Student Name</label>
+                            <input type="text" id="studentName" placeholder="Enter name">
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select id="studentGrade">
+                                <option value="">Loading grades...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="studentGender">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-full" id="addStudentBtn">Add Student</button>
+                    <div class="success-msg" id="studentSuccess"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Student List</h3>
+                    <div class="form-group">
+                        <label>Filter by Class</label>
+                        <select id="filterStudentClass">
+                            <option value="">All Classes</option>
+                        </select>
+                    </div>
+                    <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
+                    <div id="studentList" class="loading">Loading students...</div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div class="tab-content" id="reports">
+                <div class="card">
+                    <h3>📅 Daily Attendance Report</h3>
+                    <div class="info-box">Generate daily attendance report by class, subject, and teacher</div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Select Date</label>
+                            <input type="date" id="dailyReportDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Select Class</label>
+                            <select id="dailyReportClass">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Select Subject</label>
+                            <select id="dailyReportSubject">
+                                <option value="">All Subjects</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Teacher</label>
+                            <select id="dailyReportTeacher">
+                                <option value="">All Teachers</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Period</label>
+                        <select id="dailyReportPeriod">
+                            <option value="">All Periods</option>
+                            <option value="daily">Daily Attendance</option>
+                            <option value="first">First Period</option>
+                            <option value="second">Second Period</option>
+                            <option value="third">Third Period</option>
+                            <option value="fourth">Fourth Period</option>
+                            <option value="fifth">Fifth Period</option>
+                            <option value="sixth">Sixth Period</option>
+                            <option value="seventh">Seventh Period</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="generateDailyReportBtn">📊 Generate Daily Report</button>
+                    <button class="pdf-btn" id="generateDailyPdfBtn">📄 Generate PDF Report</button>
+                    
+                    <div id="dailyReportOutput" style="margin-top: 20px;"></div>
+                </div>
+
+                <div class="card">
+                    <h3>📈 Monthly Attendance Report</h3>
+                    <div class="info-box">Generate monthly attendance report by class, subject, and teacher</div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Select Month</label>
+                            <input type="month" id="monthlyReportMonth">
+                        </div>
+                        <div class="form-group">
+                            <label>Select Class</label>
+                            <select id="monthlyReportClass">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Select Subject</label>
+                            <select id="monthlyReportSubject">
+                                <option value="">All Subjects</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Teacher</label>
+                            <select id="monthlyReportTeacher">
+                                <option value="">All Teachers</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Period</label>
+                        <select id="monthlyReportPeriod">
+                            <option value="">All Periods</option>
+                            <option value="daily">Daily Attendance</option>
+                            <option value="first">First Period</option>
+                            <option value="second">Second Period</option>
+                            <option value="third">Third Period</option>
+                            <option value="fourth">Fourth Period</option>
+                            <option value="fifth">Fifth Period</option>
+                            <option value="sixth">Sixth Period</option>
+                            <option value="seventh">Seventh Period</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="generateMonthlyReportBtn">📊 Generate Monthly Report</button>
+                    <button class="pdf-btn" id="generateMonthlyPdfBtn">📄 Generate PDF Report</button>
+                    
+                    <div id="monthlyReportOutput" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div class="tab-content" id="dashboard">
+                <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
+                
+                <!-- Dashboard Controls -->
+                <div class="dashboard-controls">
+                    <div class="form-group" style="flex: 1; min-width: 200px;">
+                        <label>Select Date</label>
+                        <input type="date" id="dashboardDate" value="">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 200px;">
+                        <label>Filter by Class</label>
+                        <select id="dashboardClass">
+                            <option value="">All Classes</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 200px;">
+                        <label>Filter by Subject</label>
+                        <select id="dashboardSubject">
+                            <option value="">All Subjects</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="refreshDashboardBtn" style="align-self: flex-end;">🔄 Refresh Dashboard</button>
+                </div>
+
+                <!-- Daily Summary Stats -->
+                <div class="daily-summary">
+                    <h3 style="color: #005A9C; margin-bottom: 15px;">📊 Daily Attendance Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <div class="summary-label">Total Students</div>
+                            <div class="summary-value" id="totalStudentsCount">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Present Today</div>
+                            <div class="summary-value present" id="presentStudentsCount">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Absent Today</div>
+                            <div class="summary-value absent" id="absentStudentsCount">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Attendance Rate</div>
+                            <div class="summary-value" id="attendanceRate">0%</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gender Statistics -->
+                    <div class="gender-stats">
+                        <div class="gender-stat male-stat">
+                            <div>Male Students</div>
+                            <div style="font-size: 1.5em;" id="maleStudentsCount">0</div>
+                            <div>Present: <span id="malePresentCount">0</span></div>
+                        </div>
+                        <div class="gender-stat female-stat">
+                            <div>Female Students</div>
+                            <div style="font-size: 1.5em;" id="femaleStudentsCount">0</div>
+                            <div>Present: <span id="femalePresentCount">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overall Stats Cards -->
+                <div class="grid-3">
+                    <div class="stats-card">
+                        <p>Total Students</p>
+                        <h2 id="totalStudents">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <p>Total Teachers</p>
+                        <h2 id="totalTeachers">0</h2>
+                    </div>
+                    <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <p>Total Classes</p>
+                        <h2 id="totalGrades">0</h2>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid-2">
+                    <!-- Attendance by Class Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title">📈 Attendance by Class</div>
+                        <canvas id="attendanceByClassChart"></canvas>
+                    </div>
+                    
+                    <!-- Attendance by Subject Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title">📚 Attendance by Subject</div>
+                        <canvas id="attendanceBySubjectChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gender Distribution Chart -->
+                <div class="chart-container">
+                    <div class="chart-title">👥 Gender Distribution - Today's Attendance</div>
+                    <canvas id="genderDistributionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Teachers Tab -->
+            <div class="tab-content" id="teachers">
+                <div class="card">
+                    <h3>Add New Teacher</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Teacher ID</label>
+                            <input type="text" id="teacherIdInput" placeholder="e.g., T001">
+                        </div>
+                        <div class="form-group">
+                            <label>Teacher Name</label>
+                            <input type="text" id="teacherNameInput" placeholder="Enter name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select id="teacherSubject">
+                            <option value="">Loading subjects...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="teacherRole">
+                            <option value="classTeacher">Class Teacher</option>
+                            <option value="subjectTeacher">Subject Teacher</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher</button>
+                    <div class="success-msg" id="teacherSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Teachers List</h3>
+                    <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
+                    <div id="teachersList" class="loading">Loading teachers...</div>
+                </div>
+            </div>
+
+            <!-- Subjects Tab -->
+            <div class="tab-content" id="subjects">
+                <div class="card">
+                    <h3>Add New Subject</h3>
+                    <div class="form-group">
+                        <label>Subject Name</label>
+                        <input type="text" id="subjectName" placeholder="e.g., Mathematics">
+                    </div>
+                    <button class="btn btn-primary btn-full" id="addSubjectBtn">Add Subject</button>
+                    <div class="success-msg" id="subjectSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Subjects List</h3>
+                    <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects...">
+                    <div id="subjectsList" class="loading">Loading subjects...</div>
+                </div>
+            </div>
+
+            <!-- Grades Tab -->
+            <div class="tab-content" id="grades">
+                <div class="card">
+                    <h3>Add New Grade & Class</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select id="newGrade">
+                                <option value="">-- Select Grade --</option>
+                                <option value="Grade 1">Grade 1</option>
+                                <option value="Grade 2">Grade 2</option>
+                                <option value="Grade 3">Grade 3</option>
+                                <option value="Grade 4">Grade 4</option>
+                                <option value="Grade 5">Grade 5</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Class Name</label>
+                            <select id="className">
+                                <option value="">-- Select Class --</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-full" id="addClassBtn">Add Grade & Class</button>
+                    <div class="success-msg" id="classSuccess"></div>
+                </div>
+                <div class="card">
+                    <h3>Grades & Classes List</h3>
+                    <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
+                    <div id="gradesList" class="loading">Loading grades...</div>
+                </div>
+            </div>
+
+            <!-- View Attendance Tab -->
+            <div class="tab-content" id="viewAttendance">
+                <div class="card">
+                    <h3>View Attendance Records</h3>
+                    <div class="info-box">View attendance records by grade, teacher, subject, and date</div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Select Class</label>
+                            <select id="viewClass">
+                                <option value="">Loading classes...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Subject</label>
+                            <select id="viewSubject">
+                                <option value="">Loading subjects...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Select Teacher</label>
+                            <select id="viewTeacher">
+                                <option value="">Loading teachers...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="viewDate">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-full" id="viewAttendanceBtn">View Attendance</button>
+                    <div id="viewAttendanceOutput" style="margin-top: 20px;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // ඔබගේ Supabase details
-        const SUPABASE_URL = 'https://issfuzhjzvncnuxbmkia.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_Q-G068b2mCNUP4QU9DggIg_6XhVaQ7f';
-        
-        // Supabase initialize
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
-        console.log('🚀 Smart Attendance System Started');
-        console.log('URL:', SUPABASE_URL);
-        
-        // Update debug info
-        function updateDebug(msg) {
-            document.getElementById('debug').innerHTML = msg + '<br>' + new Date().toLocaleTimeString();
+        // Supabase Configuration
+        const SUPABASE_CONFIG = {
+            supabaseUrl: 'https://issfuzhjzvncnuxbmkia.supabase.co',
+            supabaseKey: 'sb_publishable_Q-G068b2mCNUP4QU9DggIg_6XhVaQ7f'
+        };
+
+        // Initialize Supabase
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(
+                SUPABASE_CONFIG.supabaseUrl, 
+                SUPABASE_CONFIG.supabaseKey,
+                {
+                    auth: {
+                        autoRefreshToken: true,
+                        persistSession: true,
+                        detectSessionInUrl: true
+                    }
+                }
+            );
+            console.log("✅ Supabase initialized successfully");
+        } catch (error) {
+            console.error("❌ Failed to initialize Supabase:", error);
+            alert("Failed to initialize database connection. Please refresh the page.");
         }
-        
-        // Simple login function
-        async function login() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+
+        // Global app data
+        const appData = {
+            currentUser: null,
+            userRole: null,
+            currentAttendance: {},
+            dashboardCharts: {},
+            currentReportData: null
+        };
+
+        // Role display mapping
+        const roleDisplayMapping = {
+            'principal': 'Principal (Admin)',
+            'classTeacher': 'Class Teacher', 
+            'subjectTeacher': 'Subject Teacher'
+        };
+
+        // Period display mapping
+        const periodDisplayMapping = {
+            'daily': 'Daily Attendance',
+            'first': 'First Period',
+            'second': 'Second Period',
+            'third': 'Third Period',
+            'fourth': 'Fourth Period',
+            'fifth': 'Fifth Period',
+            'sixth': 'Sixth Period',
+            'seventh': 'Seventh Period'
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            setupEventListeners();
+            setTodayDate();
+            await checkAuthState();
+            setupRegistrationRestrictions();
+        }
+
+        function setupRegistrationRestrictions() {
+            const registerRoleSelect = document.getElementById('registerRole');
+            if (registerRoleSelect) {
+                registerRoleSelect.addEventListener('change', function() {
+                    if (this.value !== 'subjectTeacher') {
+                        this.value = 'subjectTeacher';
+                        alert('Only Subject Teacher accounts can be created through registration. Please contact administrator for other roles.');
+                    }
+                });
+            }
+        }
+
+        function setTodayDate() {
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
             
-            updateDebug('Logging in...');
+            // Set today's date to all date inputs
+            const dateInputs = ['startDate', 'viewDate', 'dashboardDate', 'dailyReportDate'];
+            dateInputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.value = formattedDate;
+            });
+            
+            // Set current month for monthly report
+            const currentMonth = formattedDate.substring(0, 7);
+            const monthlyReportMonth = document.getElementById('monthlyReportMonth');
+            if (monthlyReportMonth) monthlyReportMonth.value = currentMonth;
+            
+            // Update date display
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const currentDateDisplay = document.getElementById('currentDateDisplay');
+            if (currentDateDisplay) {
+                currentDateDisplay.textContent = today.toLocaleDateString('en-US', options);
+            }
+        }
+
+        async function checkAuthState() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    console.error("Error getting session:", error);
+                    showLoginScreen();
+                    return;
+                }
+                
+                if (session && session.user) {
+                    await getUserRole(session.user.id);
+                } else {
+                    showLoginScreen();
+                }
+
+                // Listen for auth changes
+                supabase.auth.onAuthStateChange(async (event, session) => {
+                    if (session && session.user) {
+                        await getUserRole(session.user.id);
+                    } else {
+                        showLoginScreen();
+                    }
+                });
+            } catch (error) {
+                console.error("Error in checkAuthState:", error);
+                showLoginScreen();
+            }
+        }
+
+        function showLoginScreen() {
+            const loginScreen = document.getElementById('loginScreen');
+            const appContent = document.getElementById('appContent');
+            if (loginScreen) loginScreen.style.display = 'block';
+            if (appContent) appContent.style.display = 'none';
+            showLoginForm();
+        }
+
+        async function getUserRole(userId) {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    console.error("Error fetching user role:", error);
+                    // Create default user if doesn't exist
+                    return await createDefaultUser(userId);
+                }
+
+                appData.currentUser = { id: userId };
+                appData.userRole = data.role;
+                showApp(data.role);
+                return data.role;
+            } catch (error) {
+                console.error("Error in getUserRole:", error);
+                return await createDefaultUser(userId);
+            }
+        }
+
+        async function createDefaultUser(userId) {
+            try {
+                const { data: userData } = await supabase.auth.getUser();
+                if (userData.user) {
+                    const selectedRole = document.getElementById('loginRole')?.value || 'subjectTeacher';
+                    
+                    const { error: insertError } = await supabase
+                        .from('users')
+                        .insert([{
+                            id: userId,
+                            email: userData.user.email,
+                            role: selectedRole
+                        }]);
+                    
+                    if (!insertError) {
+                        appData.currentUser = { id: userId };
+                        appData.userRole = selectedRole;
+                        showApp(selectedRole);
+                        return selectedRole;
+                    }
+                }
+                return 'subjectTeacher';
+            } catch (error) {
+                console.error("Error creating default user:", error);
+                return 'subjectTeacher';
+            }
+        }
+
+        function setupEventListeners() {
+            console.log("Setting up event listeners...");
+            
+            // Authentication
+            const loginBtn = document.getElementById('loginBtn');
+            const showRegisterBtn = document.getElementById('showRegisterBtn');
+            const backToLoginBtn = document.getElementById('backToLoginBtn');
+            const confirmRegisterBtn = document.getElementById('confirmRegisterBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            
+            if (loginBtn) {
+                loginBtn.addEventListener('click', doLogin);
+                console.log("Login button listener added");
+            }
+            
+            if (showRegisterBtn) {
+                showRegisterBtn.addEventListener('click', showRegistrationForm);
+            }
+            
+            if (backToLoginBtn) {
+                backToLoginBtn.addEventListener('click', showLoginForm);
+            }
+            
+            if (confirmRegisterBtn) {
+                confirmRegisterBtn.addEventListener('click', doRegistration);
+            }
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', doLogout);
+            }
+            
+            // Navigation
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showTab(this.getAttribute('data-tab'));
+                });
+            });
+            
+            // Other buttons will be initialized after login
+        }
+
+        function showLoginForm() {
+            const loginForm = document.getElementById('loginForm');
+            const registrationForm = document.getElementById('registrationForm');
+            if (loginForm) loginForm.style.display = 'block';
+            if (registrationForm) registrationForm.style.display = 'none';
+        }
+
+        function showRegistrationForm() {
+            const loginForm = document.getElementById('loginForm');
+            const registrationForm = document.getElementById('registrationForm');
+            if (loginForm) loginForm.style.display = 'none';
+            if (registrationForm) registrationForm.style.display = 'block';
+        }
+
+        async function doLogin() {
+            console.log("Login button clicked!");
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const selectedRole = document.getElementById('loginRole').value;
+            const errorMsg = document.getElementById('loginError');
+            
+            console.log("Login attempt with:", { email, role: selectedRole });
+            
+            if (!email || !password) {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Please enter both email and password';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
             
             try {
-                // TRY 1: Direct login
+                console.log("Attempting Supabase login...");
+                
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
-                
+
                 if (error) {
-                    console.log('Login error:', error.message);
-                    updateDebug('Login failed: ' + error.message);
-                    
-                    // If invalid credentials, try to register
-                    if (error.message.includes('Invalid login credentials')) {
-                        document.getElementById('message').innerHTML = 
-                            '<div class="error">User not found. Creating new account...</div>';
-                        await registerAndLogin(email, password);
-                    } else {
-                        document.getElementById('message').innerHTML = 
-                            `<div class="error">Error: ${error.message}</div>`;
-                    }
-                    return;
+                    console.error("Login error:", error);
+                    throw error;
                 }
+
+                console.log("Login successful!", data.user);
                 
-                // SUCCESS!
-                console.log('✅ Login successful:', data.user);
-                updateDebug('Login successful! User: ' + data.user.email);
-                
-                // Save user to our database
-                await saveUserToDatabase(data.user);
-                
-                document.getElementById('message').innerHTML = 
-                    `<div class="success">✅ Welcome ${data.user.email}!</div>`;
-                    
-            } catch (error) {
-                console.error('Login catch error:', error);
-                updateDebug('Error: ' + error.message);
-                document.getElementById('message').innerHTML = 
-                    `<div class="error">System error: ${error.message}</div>`;
-            }
-        }
-        
-        // Register and auto-login
-        async function registerAndLogin(email, password) {
-            try {
-                updateDebug('Registering new user...');
-                
-                // Step 1: Register with Supabase Auth
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password
-                });
-                
-                if (error) {
-                    updateDebug('Registration error: ' + error.message);
-                    document.getElementById('message').innerHTML = 
-                        `<div class="error">Registration failed: ${error.message}</div>`;
-                    return;
-                }
-                
-                console.log('Registration data:', data);
-                updateDebug('Registration successful');
-                
-                // Step 2: Auto login
-                const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-                
-                if (loginError) {
-                    updateDebug('Auto-login failed: ' + loginError.message);
-                    document.getElementById('message').innerHTML = 
-                        '<div class="success">Account created! Please login manually.</div>';
-                    return;
-                }
-                
-                // Step 3: Save to our database
-                await saveUserToDatabase(loginData.user);
-                
-                updateDebug('User saved to database');
-                document.getElementById('message').innerHTML = 
-                    `<div class="success">✅ Account created! Welcome ${loginData.user.email}</div>`;
-                    
-            } catch (error) {
-                console.error('Register error:', error);
-                updateDebug('Register error: ' + error.message);
-                document.getElementById('message').innerHTML = 
-                    `<div class="error">Registration error: ${error.message}</div>`;
-            }
-        }
-        
-        // Save user to our users table
-        async function saveUserToDatabase(user) {
-            try {
-                // First check if user already exists
-                const { data: existingUser, error: checkError } = await supabase
+                // Check if user exists in users table
+                const { data: userData, error: userError } = await supabase
                     .from('users')
-                    .select('*')
-                    .eq('email', user.email)
-                    .maybeSingle();
-                
-                if (checkError && !checkError.message.includes('No rows found')) {
-                    console.error('Check error:', checkError);
-                    return;
-                }
-                
-                // If user doesn't exist, create new record
-                if (!existingUser) {
-                    const { error: insertError } = await supabase
-                        .from('users')
-                        .insert([
-                            {
-                                email: user.email,
-                                role: 'teacher',  // Default role
-                                created_at: new Date().toISOString()
-                            }
-                        ]);
-                    
-                    if (insertError) {
-                        console.error('Insert error:', insertError);
-                    } else {
-                        console.log('User saved to database');
-                    }
+                    .select('role')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (userError) {
+                    console.log("User not in users table, creating...");
+                    // Create user record if it doesn't exist
+                    await createUserRecord(data.user.id, email, selectedRole);
+                    appData.userRole = selectedRole;
                 } else {
-                    console.log('User already exists in database');
+                    appData.userRole = userData.role;
+                    console.log("User role from DB:", appData.userRole);
                 }
+
+                showApp(appData.userRole);
+                if (errorMsg) errorMsg.style.display = 'none';
                 
             } catch (error) {
-                console.error('Save user error:', error);
-            }
-        }
-        
-        // Standalone register function
-        async function register() {
-            const email = document.getElementById('email').value || 'user' + Date.now() + '@school.com';
-            const password = document.getElementById('password').value || 'password123';
-            
-            document.getElementById('email').value = email;
-            document.getElementById('password').value = password;
-            
-            await registerAndLogin(email, password);
-        }
-        
-        // Test connection on load
-        document.addEventListener('DOMContentLoaded', async () => {
-            updateDebug('Checking connection...');
-            
-            try {
-                // Test 1: Auth connection
-                const { data: session, error: authError } = await supabase.auth.getSession();
-                console.log('Auth test:', authError ? 'Failed' : 'OK', session);
-                
-                // Test 2: Database connection
-                const { data: dbData, error: dbError } = await supabase
-                    .from('users')
-                    .select('count')
-                    .limit(1);
-                
-                if (dbError) {
-                    updateDebug('DB Error: ' + dbError.message);
-                    console.log('DB test error:', dbError);
-                    
-                    // Try to create table
-                    await createTableIfNeeded();
-                } else {
-                    updateDebug('✅ Connected to Supabase!');
-                    console.log('DB test success:', dbData);
+                console.error("Login catch error:", error);
+                if (errorMsg) {
+                    errorMsg.textContent = 'Invalid email or password. Please try again.';
+                    errorMsg.style.display = 'block';
                 }
-                
-            } catch (error) {
-                updateDebug('Connection error: ' + error.message);
-                console.error('Connection test error:', error);
             }
-        });
-        
-        // Create table if needed
-        async function createTableIfNeeded() {
+        }
+
+        async function createUserRecord(userId, email, role) {
             try {
-                updateDebug('Creating users table...');
-                
-                // Just try to insert (will fail if table doesn't exist)
                 const { error } = await supabase
                     .from('users')
-                    .insert([
-                        {
-                            email: 'test@test.com',
-                            role: 'test',
-                            created_at: new Date().toISOString()
-                        }
-                    ]);
-                
-                if (error && error.message.includes('does not exist')) {
-                    updateDebug('⚠️ Table not found. Run SQL in Supabase.');
-                    document.getElementById('message').innerHTML = 
-                        '<div class="error">Database table not found. Please run the SQL query in Supabase.</div>';
+                    .insert([{
+                        id: userId,
+                        email: email,
+                        role: role
+                    }]);
+
+                if (error) {
+                    console.error("Error creating user record:", error);
+                } else {
+                    console.log("User record created successfully");
                 }
-                
             } catch (error) {
-                console.error('Table creation error:', error);
+                console.error("Error in createUserRecord:", error);
             }
         }
-        
-        // Debug functions
-        window.testAuth = async function() {
-            console.log('Testing auth...');
-            const { data, error } = await supabase.auth.signUp({
-                email: 'test' + Date.now() + '@test.com',
-                password: 'test123'
+
+        async function doRegistration() {
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value.trim();
+            const role = document.getElementById('registerRole').value;
+            const errorMsg = document.getElementById('registerError');
+            
+            if (!email || !password) {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Please enter both email and password';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+            
+            if (password.length < 6) {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Password should be at least 6 characters';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            // Ensure only subject teacher can register
+            if (role !== 'subjectTeacher') {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Only Subject Teacher accounts can be created through registration.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            try {
+                // Create user in Supabase Auth
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (authError) {
+                    throw authError;
+                }
+
+                // Create user record in users table
+                await createUserRecord(authData.user.id, email, role);
+
+                // Show success message
+                if (errorMsg) errorMsg.style.display = 'none';
+                alert('Registration successful! Please check your email to confirm your account.');
+                showLoginForm();
+                
+            } catch (error) {
+                console.error("Registration error:", error);
+                if (errorMsg) {
+                    if (error.message.includes('already registered')) {
+                        errorMsg.textContent = 'Email already exists. Please use a different email.';
+                    } else {
+                        errorMsg.textContent = 'Registration failed: ' + error.message;
+                    }
+                    errorMsg.style.display = 'block';
+                }
+            }
+        }
+
+        function showApp(role) {
+            console.log("Showing app for role:", role);
+            
+            const loginScreen = document.getElementById('loginScreen');
+            const appContent = document.getElementById('appContent');
+            
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (appContent) appContent.style.display = 'block';
+            
+            // Set role badge
+            const roleBadge = document.getElementById('roleBadge');
+            if (roleBadge) roleBadge.textContent = roleDisplayMapping[role] || role;
+            
+            // Update role-based visibility
+            updateRoleBasedVisibility(role);
+            
+            // Initialize app data
+            initializeAppData();
+        }
+
+        function updateRoleBasedVisibility(role) {
+            // Reset all visibility
+            document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => {
+                el.style.display = 'none';
             });
-            console.log('Auth test:', data, error);
+            
+            // Show based on role
+            if (role === 'principal') {
+                document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+            } else if (role === 'classTeacher') {
+                document.querySelectorAll('.class-teacher-only').forEach(el => {
+                    el.style.display = 'block';
+                });
+            }
+        }
+
+        async function doLogout() {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error("Logout error:", error);
+            }
+            
+            appData.currentUser = null;
+            appData.userRole = null;
+            showLoginScreen();
+        }
+
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const tabContent = document.getElementById(tabName);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
+            
+            // Add active class to clicked tab
+            const navTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+            if (navTab) {
+                navTab.classList.add('active');
+            }
+            
+            // Load data for the tab
+            if (tabName === 'attendance') {
+                loadClassDropdowns();
+                loadSubjectDropdowns();
+                loadTeacherDropdowns();
+            } else if (tabName === 'students') {
+                loadStudents();
+                loadClassDropdowns();
+            } else if (tabName === 'teachers') {
+                loadTeachers();
+                loadSubjectDropdowns();
+            } else if (tabName === 'subjects') {
+                loadSubjects();
+            } else if (tabName === 'grades') {
+                loadGrades();
+            } else if (tabName === 'dashboard') {
+                loadDashboard();
+            } else if (tabName === 'reports') {
+                loadReportDropdowns();
+            }
+        }
+
+        function initializeAppData() {
+            // Load all dropdowns
+            loadClassDropdowns();
+            loadSubjectDropdowns();
+            loadTeacherDropdowns();
+        }
+
+        // DATABASE OPERATIONS
+        async function loadClassDropdowns() {
+            try {
+                // This is a placeholder - implement based on your database structure
+                const selectors = [
+                    'selectClass', 'viewClass', 'studentGrade', 
+                    'filterStudentClass', 'dashboardClass', 
+                    'dailyReportClass', 'monthlyReportClass'
+                ];
+                
+                selectors.forEach(selector => {
+                    const element = document.getElementById(selector);
+                    if (element) {
+                        element.innerHTML = selector === 'filterStudentClass' ? 
+                            '<option value="">All Classes</option>' : 
+                            '<option value="">Select Class</option>';
+                        
+                        // Add sample data
+                        const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'];
+                        const classes = ['A', 'B', 'C', 'D', 'E'];
+                        
+                        grades.forEach(grade => {
+                            classes.forEach(cls => {
+                                const option = document.createElement('option');
+                                option.value = `${grade}-${cls}`;
+                                option.textContent = `${grade} - ${cls}`;
+                                element.appendChild(option);
+                            });
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error("Error loading classes:", error);
+            }
+        }
+
+        // Add other database functions as needed...
+
+        // Test function - remove this in production
+        window.testLogin = function() {
+            document.getElementById('loginEmail').value = 'test@example.com';
+            document.getElementById('loginPassword').value = 'password123';
+            doLogin();
         };
+
     </script>
 </body>
 </html>
