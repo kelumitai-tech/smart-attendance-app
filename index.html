@@ -63,6 +63,7 @@
         .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; }
         .stats-card h2 { font-size: 3em; margin: 10px 0; }
         .stats-card p { font-size: 1.1em; opacity: 0.9; }
+        .restricted-option { color: #999; font-style: italic; }
     </style>
 </head>
 <body>
@@ -79,18 +80,18 @@
                 
                 <!-- Registration Form -->
                 <div id="registrationForm" style="display: none;">
-                    <h3 style="text-align: center; margin-bottom: 20px; color: #005A9C;">Create New Account</h3>
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #005A9C;">Create Account</h3>
                     
-                    <div class="info-box" style="margin-bottom: 20px; font-size:14px; background:#e8f5e9; border-left: 4px solid #4CAF50;">
-                        <strong>Tip:</strong> Select 'Principal' or 'Class Teacher' to unlock more features!
+                    <div class="info-box" style="margin-bottom: 20px; font-size:14px;">
+                        <strong>Note:</strong> Only <strong>Subject Teacher</strong> accounts can be created through self-registration. Principal and Class Teacher accounts must be created by the Administrator.
                     </div>
 
                     <div class="form-group">
                         <label>Register As</label>
                         <select id="registerRole">
                             <option value="subjectTeacher">Subject Teacher</option>
-                            <option value="classTeacher">Class Teacher</option>
-                            <option value="principal">Principal (Admin)</option>
+                            <option value="principal" class="restricted-option" disabled>Principal (Admin) - Restricted</option>
+                            <option value="classTeacher" class="restricted-option" disabled>Class Teacher - Restricted</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -121,7 +122,7 @@
                     
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                         <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
-                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register</button>
+                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register as Subject Teacher</button>
                     </div>
                 </div>
             </div>
@@ -243,7 +244,7 @@
 
     <script>
         // =======================================================
-        // FULLY CONFIGURED FIREBASE SETTINGS
+        // FIREBASE SETTINGS (ASIA-SOUTHEAST1)
         // =======================================================
         const firebaseConfig = {
           apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
@@ -267,7 +268,20 @@
             setupEventListeners();
             setTodayDate();
             checkAuthState();
+            setupRegistrationRestrictions();
         });
+
+        function setupRegistrationRestrictions() {
+            const registerRoleSelect = document.getElementById('registerRole');
+            if (registerRoleSelect) {
+                registerRoleSelect.addEventListener('change', function() {
+                    if (this.value !== 'subjectTeacher') {
+                        this.value = 'subjectTeacher';
+                        alert('Only Subject Teacher accounts can be created through self-registration. Contact Administrator for Principal or Class Teacher roles.');
+                    }
+                });
+            }
+        }
 
         function setupEventListeners() {
             document.getElementById('loginBtn').addEventListener('click', doLogin);
@@ -370,6 +384,9 @@
             const role = document.getElementById('registerRole').value;
             const errorMsg = document.getElementById('registerError');
             
+            // Force role to subjectTeacher from public registration for safety
+            const finalRole = 'subjectTeacher';
+            
             if (!email || !password || password.length < 6) {
                 errorMsg.textContent = 'Please provide valid email and password (min 6 chars)';
                 errorMsg.style.display = 'block';
@@ -383,12 +400,12 @@
                 const cred = await auth.createUserWithEmailAndPassword(email, password);
                 await db.ref('users/' + cred.user.uid).set({
                     email: email,
-                    role: role
+                    role: finalRole
                 });
                 isRegistering = false;
-                alert('Registration successful!');
-                appUserRole = role;
-                showApp(role);
+                alert('Registration successful! (Registered as Subject Teacher)');
+                appUserRole = finalRole;
+                showApp(finalRole);
             } catch (error) {
                 isRegistering = false;
                 errorMsg.textContent = error.message;
@@ -411,6 +428,7 @@
             if (role === 'principal') {
                 document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'block');
                 document.querySelectorAll('.nav-tab.principal-only').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.nav-tab.class-teacher-only').forEach(el => el.style.display = 'block');
             } else if (role === 'classTeacher') {
                 document.querySelectorAll('.class-teacher-only').forEach(el => el.style.display = 'block');
                 document.querySelectorAll('.nav-tab.class-teacher-only').forEach(el => el.style.display = 'block');
@@ -502,16 +520,27 @@
                 const element = document.getElementById(selector);
                 if (element) {
                     element.innerHTML = '<option value="">Select Class</option>';
-                    const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'];
-                    const classes = ['A', 'B', 'C', 'D'];
-                    grades.forEach(grade => {
-                        classes.forEach(cls => {
+                    
+                    // Grades 6 to 11 with classes A to E
+                    for (let g = 6; g <= 11; g++) {
+                        ['A', 'B', 'C', 'D', 'E'].forEach(cls => {
                             const option = document.createElement('option');
-                            option.value = `${grade}-${cls}`;
-                            option.textContent = `${grade} - ${cls}`;
+                            option.value = `Grade ${g} - ${cls}`;
+                            option.textContent = `Grade ${g} - ${cls}`;
                             element.appendChild(option);
                         });
-                    });
+                    }
+
+                    // Grades 12 to 13 with specific class streams
+                    const seniorClasses = ['A1', 'A2', 'C1', 'C2', 'T1', 'T2', 'S1', 'S2', 'M1', 'M2'];
+                    for (let g = 12; g <= 13; g++) {
+                        seniorClasses.forEach(cls => {
+                            const option = document.createElement('option');
+                            option.value = `Grade ${g} - ${cls}`;
+                            option.textContent = `Grade ${g} - ${cls}`;
+                            element.appendChild(option);
+                        });
+                    }
                 }
             });
         }
