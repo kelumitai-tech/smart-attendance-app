@@ -80,10 +80,16 @@
                 <!-- Registration Form -->
                 <div id="registrationForm" style="display: none;">
                     <h3 style="text-align: center; margin-bottom: 20px; color: #005A9C;">Create New Account</h3>
+                    
+                    <div class="info-box" style="margin-bottom: 20px; font-size:14px; background:#e8f5e9; border-left: 4px solid #4CAF50;">
+                        <strong>Tip:</strong> Select 'Principal' or 'Class Teacher' to unlock more features!
+                    </div>
+
                     <div class="form-group">
                         <label>Register As</label>
                         <select id="registerRole">
                             <option value="subjectTeacher">Subject Teacher</option>
+                            <option value="classTeacher">Class Teacher</option>
                             <option value="principal">Principal (Admin)</option>
                         </select>
                     </div>
@@ -237,24 +243,17 @@
 
     <script>
         // =======================================================
-        // FULLY CONFIGURED FIREBASE SETTINGS (ASIA-SOUTHEAST1)
+        // FULLY CONFIGURED FIREBASE SETTINGS
         // =======================================================
         const firebaseConfig = {
           apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
           authDomain: "smart-attendance-44601.firebaseapp.com",
-          
-          // පහත ලින්ක් එක මකා දමා ඔබගේ Firebase කොන්සෝලයෙන් Copy කරගත් ලින්ක් එක මෙතනට Paste කරන්න.
-          databaseURL: "PASTE_YOUR_DATABASE_URL_HERE", 
-          
+          databaseURL: "https://smart-attendance-44601-default-rtdb.asia-southeast1.firebasedatabase.app",
           projectId: "smart-attendance-44601",
           storageBucket: "smart-attendance-44601.firebasestorage.app",
           messagingSenderId: "1094964796464",
           appId: "1:1094964796464:web:b2c492846691b227b1e1f5"
         };
-
-        if (firebaseConfig.databaseURL === "PASTE_YOUR_DATABASE_URL_HERE") {
-            alert("කරුණාකර Text Editor එක හරහා කේතයේ ඇති databaseURL අගය ඔබගේ ලින්ක් එකට මාරු කරන්න!");
-        }
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -309,8 +308,6 @@
                     appUserRole = snapshot.val().role;
                     showApp(appUserRole);
                 } else {
-                    // FIX: අතීතයේ Rules ප්‍රශ්නයක් නිසා Database එකේ Role එක Save වී නොමැති නම්,
-                    // ඔහුව එළියට දාන්නේ නැතුව ස්වයංක්‍රීයව අලුත් Role එකක් සකස් කරයි.
                     const user = auth.currentUser;
                     if(user) {
                         const fallbackRole = 'subjectTeacher';
