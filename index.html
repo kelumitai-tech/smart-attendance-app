@@ -242,12 +242,19 @@
         const firebaseConfig = {
           apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
           authDomain: "smart-attendance-44601.firebaseapp.com",
-          databaseURL: "https://smart-attendance-44601-default-rtdb.asia-southeast1.firebasedatabase.app",
+          
+          // පහත ලින්ක් එක මකා දමා ඔබගේ Firebase කොන්සෝලයෙන් Copy කරගත් ලින්ක් එක මෙතනට Paste කරන්න.
+          databaseURL: "PASTE_YOUR_DATABASE_URL_HERE", 
+          
           projectId: "smart-attendance-44601",
           storageBucket: "smart-attendance-44601.firebasestorage.app",
           messagingSenderId: "1094964796464",
           appId: "1:1094964796464:web:b2c492846691b227b1e1f5"
         };
+
+        if (firebaseConfig.databaseURL === "PASTE_YOUR_DATABASE_URL_HERE") {
+            alert("කරුණාකර Text Editor එක හරහා කේතයේ ඇති databaseURL අගය ඔබගේ ලින්ක් එකට මාරු කරන්න!");
+        }
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -302,8 +309,21 @@
                     appUserRole = snapshot.val().role;
                     showApp(appUserRole);
                 } else {
-                    await auth.signOut();
-                    showLoginScreen();
+                    // FIX: අතීතයේ Rules ප්‍රශ්නයක් නිසා Database එකේ Role එක Save වී නොමැති නම්,
+                    // ඔහුව එළියට දාන්නේ නැතුව ස්වයංක්‍රීයව අලුත් Role එකක් සකස් කරයි.
+                    const user = auth.currentUser;
+                    if(user) {
+                        const fallbackRole = 'subjectTeacher';
+                        await db.ref('users/' + userId).set({
+                            email: user.email,
+                            role: fallbackRole
+                        });
+                        appUserRole = fallbackRole;
+                        showApp(appUserRole);
+                    } else {
+                        await auth.signOut();
+                        showLoginScreen();
+                    }
                 }
             } catch (error) {
                 console.error("Error getting user data", error);
@@ -342,7 +362,7 @@
             try {
                 await auth.signInWithEmailAndPassword(email, password);
             } catch (error) {
-                errorMsg.textContent = 'Invalid credentials or login failed.';
+                errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
             }
         }
