@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Attendance Tracker</title>
     
-    <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -603,406 +600,63 @@
                 </div>
             </div>
 
-            <!-- Reports Tab -->
+            <!-- Reports, Dashboard, Teachers, Subjects, Grades, View Attendance Tabs (kept structure) -->
             <div class="tab-content" id="reports">
-                <div class="card">
-                    <h3>📅 Daily Attendance Report</h3>
-                    <div class="info-box">Generate daily attendance report by class, subject, and teacher</div>
-                    
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Date</label>
-                            <input type="date" id="dailyReportDate">
-                        </div>
-                        <div class="form-group">
-                            <label>Select Class</label>
-                            <select id="dailyReportClass">
-                                <option value="">All Classes</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Subject</label>
-                            <select id="dailyReportSubject">
-                                <option value="">All Subjects</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Select Teacher</label>
-                            <select id="dailyReportTeacher">
-                                <option value="">All Teachers</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Select Period</label>
-                        <select id="dailyReportPeriod">
-                            <option value="">All Periods</option>
-                            <option value="daily">Daily Attendance</option>
-                            <option value="first">First Period</option>
-                            <option value="second">Second Period</option>
-                            <option value="third">Third Period</option>
-                            <option value="fourth">Fourth Period</option>
-                            <option value="fifth">Fifth Period</option>
-                            <option value="sixth">Sixth Period</option>
-                            <option value="seventh">Seventh Period</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" id="generateDailyReportBtn">📊 Generate Daily Report</button>
-                    <button class="pdf-btn" id="generateDailyPdfBtn">📄 Generate PDF Report</button>
-                    
-                    <div id="dailyReportOutput" style="margin-top: 20px;"></div>
-                </div>
-
-                <div class="card">
-                    <h3>📈 Monthly Attendance Report</h3>
-                    <div class="info-box">Generate monthly attendance report by class, subject, and teacher</div>
-                    
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Month</label>
-                            <input type="month" id="monthlyReportMonth">
-                        </div>
-                        <div class="form-group">
-                            <label>Select Class</label>
-                            <select id="monthlyReportClass">
-                                <option value="">All Classes</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Subject</label>
-                            <select id="monthlyReportSubject">
-                                <option value="">All Subjects</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Select Teacher</label>
-                            <select id="monthlyReportTeacher">
-                                <option value="">All Teachers</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Select Period</label>
-                        <select id="monthlyReportPeriod">
-                            <option value="">All Periods</option>
-                            <option value="daily">Daily Attendance</option>
-                            <option value="first">First Period</option>
-                            <option value="second">Second Period</option>
-                            <option value="third">Third Period</option>
-                            <option value="fourth">Fourth Period</option>
-                            <option value="fifth">Fifth Period</option>
-                            <option value="sixth">Sixth Period</option>
-                            <option value="seventh">Seventh Period</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" id="generateMonthlyReportBtn">📊 Generate Monthly Report</button>
-                    <button class="pdf-btn" id="generateMonthlyPdfBtn">📄 Generate PDF Report</button>
-                    
-                    <div id="monthlyReportOutput" style="margin-top: 20px;"></div>
-                </div>
+                <div class="card"><h3>Reports Coming Soon</h3></div>
             </div>
-
-            <!-- Dashboard Tab -->
+            
             <div class="tab-content" id="dashboard">
-                <h2 style="color: #005A9C; margin-bottom: 30px;">🎯 Principal Dashboard</h2>
-                
-                <!-- Dashboard Controls -->
-                <div class="dashboard-controls">
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Select Date</label>
-                        <input type="date" id="dashboardDate" value="">
-                    </div>
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Filter by Class</label>
-                        <select id="dashboardClass">
-                            <option value="">All Classes</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Filter by Subject</label>
-                        <select id="dashboardSubject">
-                            <option value="">All Subjects</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" id="refreshDashboardBtn" style="align-self: flex-end;">🔄 Refresh Dashboard</button>
-                </div>
-
-                <!-- Daily Summary Stats -->
-                <div class="daily-summary">
-                    <h3 style="color: #005A9C; margin-bottom: 15px;">📊 Daily Attendance Summary</h3>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <div class="summary-label">Total Students</div>
-                            <div class="summary-value" id="totalStudentsCount">0</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-label">Present Today</div>
-                            <div class="summary-value present" id="presentStudentsCount">0</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-label">Absent Today</div>
-                            <div class="summary-value absent" id="absentStudentsCount">0</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-label">Attendance Rate</div>
-                            <div class="summary-value" id="attendanceRate">0%</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Gender Statistics -->
-                    <div class="gender-stats">
-                        <div class="gender-stat male-stat">
-                            <div>Male Students</div>
-                            <div style="font-size: 1.5em;" id="maleStudentsCount">0</div>
-                            <div>Present: <span id="malePresentCount">0</span></div>
-                        </div>
-                        <div class="gender-stat female-stat">
-                            <div>Female Students</div>
-                            <div style="font-size: 1.5em;" id="femaleStudentsCount">0</div>
-                            <div>Present: <span id="femalePresentCount">0</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Overall Stats Cards -->
-                <div class="grid-3">
-                    <div class="stats-card">
-                        <p>Total Students</p>
-                        <h2 id="totalStudents">0</h2>
-                    </div>
-                    <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                        <p>Total Teachers</p>
-                        <h2 id="totalTeachers">0</h2>
-                    </div>
-                    <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                        <p>Total Classes</p>
-                        <h2 id="totalGrades">0</h2>
-                    </div>
-                </div>
-
-                <!-- Charts Section -->
-                <div class="grid-2">
-                    <!-- Attendance by Class Chart -->
-                    <div class="chart-container">
-                        <div class="chart-title">📈 Attendance by Class</div>
-                        <canvas id="attendanceByClassChart"></canvas>
-                    </div>
-                    
-                    <!-- Attendance by Subject Chart -->
-                    <div class="chart-container">
-                        <div class="chart-title">📚 Attendance by Subject</div>
-                        <canvas id="attendanceBySubjectChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Gender Distribution Chart -->
-                <div class="chart-container">
-                    <div class="chart-title">👥 Gender Distribution - Today's Attendance</div>
-                    <canvas id="genderDistributionChart"></canvas>
-                </div>
+                <div class="card"><h3>Dashboard Coming Soon</h3></div>
             </div>
 
-            <!-- Teachers Tab -->
             <div class="tab-content" id="teachers">
-                <div class="card">
-                    <h3>Add New Teacher</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Teacher ID</label>
-                            <input type="text" id="teacherIdInput" placeholder="e.g., T001">
-                        </div>
-                        <div class="form-group">
-                            <label>Teacher Name</label>
-                            <input type="text" id="teacherNameInput" placeholder="Enter name">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Subject</label>
-                        <select id="teacherSubject">
-                            <option value="">Loading subjects...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select id="teacherRole">
-                            <option value="classTeacher">Class Teacher</option>
-                            <option value="subjectTeacher">Subject Teacher</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary btn-full" id="addTeacherBtn">Add Teacher</button>
-                    <div class="success-msg" id="teacherSuccess"></div>
-                </div>
-                <div class="card">
-                    <h3>Teachers List</h3>
-                    <input type="text" class="filter-input" id="teacherFilter" placeholder="🔍 Search by ID, Name, or Subject...">
-                    <div id="teachersList" class="loading">Loading teachers...</div>
-                </div>
+                <div class="card"><h3>Teachers Coming Soon</h3></div>
             </div>
 
-            <!-- Subjects Tab -->
             <div class="tab-content" id="subjects">
-                <div class="card">
-                    <h3>Add New Subject</h3>
-                    <div class="form-group">
-                        <label>Subject Name</label>
-                        <input type="text" id="subjectName" placeholder="e.g., Mathematics">
-                    </div>
-                    <button class="btn btn-primary btn-full" id="addSubjectBtn">Add Subject</button>
-                    <div class="success-msg" id="subjectSuccess"></div>
-                </div>
-                <div class="card">
-                    <h3>Subjects List</h3>
-                    <input type="text" class="filter-input" id="subjectFilter" placeholder="🔍 Search subjects...">
-                    <div id="subjectsList" class="loading">Loading subjects...</div>
-                </div>
+                <div class="card"><h3>Subjects Coming Soon</h3></div>
             </div>
 
-            <!-- Grades Tab -->
             <div class="tab-content" id="grades">
-                <div class="card">
-                    <h3>Add New Grade & Class</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Grade</label>
-                            <select id="newGrade">
-                                <option value="">-- Select Grade --</option>
-                                <option value="Grade 1">Grade 1</option>
-                                <option value="Grade 2">Grade 2</option>
-                                <option value="Grade 3">Grade 3</option>
-                                <option value="Grade 4">Grade 4</option>
-                                <option value="Grade 5">Grade 5</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Class Name</label>
-                            <select id="className">
-                                <option value="">-- Select Class --</option>
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                                <option value="C">C</option>
-                                <option value="D">D</option>
-                                <option value="E">E</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-full" id="addClassBtn">Add Grade & Class</button>
-                    <div class="success-msg" id="classSuccess"></div>
-                </div>
-                <div class="card">
-                    <h3>Grades & Classes List</h3>
-                    <input type="text" class="filter-input" id="gradeFilter" placeholder="🔍 Search grades...">
-                    <div id="gradesList" class="loading">Loading grades...</div>
-                </div>
+                <div class="card"><h3>Grades Coming Soon</h3></div>
             </div>
 
-            <!-- View Attendance Tab -->
             <div class="tab-content" id="viewAttendance">
-                <div class="card">
-                    <h3>View Attendance Records</h3>
-                    <div class="info-box">View attendance records by grade, teacher, subject, and date</div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Class</label>
-                            <select id="viewClass">
-                                <option value="">Loading classes...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Select Subject</label>
-                            <select id="viewSubject">
-                                <option value="">Loading subjects...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Select Teacher</label>
-                            <select id="viewTeacher">
-                                <option value="">Loading teachers...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Date</label>
-                            <input type="date" id="viewDate">
-                        </div>
-                    </div>
-                    <button class="btn btn-primary btn-full" id="viewAttendanceBtn">View Attendance</button>
-                    <div id="viewAttendanceOutput" style="margin-top: 20px;"></div>
-                </div>
+                <div class="card"><h3>View Attendance Coming Soon</h3></div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Supabase Configuration
-        const SUPABASE_CONFIG = {
-            supabaseUrl: 'https://issfuzhjzvncnuxbmkia.supabase.co',
-            supabaseKey: 'sb_publishable_Q-G068b2mCNUP4QU9DggIg_6XhVaQ7f'
+    <!-- Firebase SDK (Modular v10) replacing Supabase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Your Firebase config added here
+        const firebaseConfig = {
+          apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
+          authDomain: "smart-attendance-44601.firebaseapp.com",
+          projectId: "smart-attendance-44601",
+          storageBucket: "smart-attendance-44601.firebasestorage.app",
+          messagingSenderId: "1094964796464",
+          appId: "1:1094964796464:web:b2c492846691b227b1e1f5",
+          measurementId: "G-D68YB8ND7B"
         };
 
-        // Initialize Supabase
-        let supabase;
-        try {
-            supabase = window.supabase.createClient(
-                SUPABASE_CONFIG.supabaseUrl, 
-                SUPABASE_CONFIG.supabaseKey,
-                {
-                    auth: {
-                        autoRefreshToken: true,
-                        persistSession: true,
-                        detectSessionInUrl: true
-                    }
-                }
-            );
-            console.log("✅ Supabase initialized successfully");
-        } catch (error) {
-            console.error("❌ Failed to initialize Supabase:", error);
-            alert("Failed to initialize database connection. Please refresh the page.");
-        }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Global app data
-        const appData = {
-            currentUser: null,
-            userRole: null,
-            currentAttendance: {},
-            dashboardCharts: {},
-            currentReportData: null
-        };
+        const appData = { currentUser: null, userRole: null };
+        const roleDisplayMapping = { 'principal': 'Principal (Admin)', 'classTeacher': 'Class Teacher', 'subjectTeacher': 'Subject Teacher' };
 
-        // Role display mapping
-        const roleDisplayMapping = {
-            'principal': 'Principal (Admin)',
-            'classTeacher': 'Class Teacher', 
-            'subjectTeacher': 'Subject Teacher'
-        };
-
-        // Period display mapping
-        const periodDisplayMapping = {
-            'daily': 'Daily Attendance',
-            'first': 'First Period',
-            'second': 'Second Period',
-            'third': 'Third Period',
-            'fourth': 'Fourth Period',
-            'fifth': 'Fifth Period',
-            'sixth': 'Sixth Period',
-            'seventh': 'Seventh Period'
-        };
-
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeApp();
-        });
-
-        async function initializeApp() {
+        document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             setTodayDate();
-            await checkAuthState();
+            checkAuthState();
             setupRegistrationRestrictions();
-        }
+        });
 
         function setupRegistrationRestrictions() {
             const registerRoleSelect = document.getElementById('registerRole');
@@ -1010,7 +664,7 @@
                 registerRoleSelect.addEventListener('change', function() {
                     if (this.value !== 'subjectTeacher') {
                         this.value = 'subjectTeacher';
-                        alert('Only Subject Teacher accounts can be created through registration. Please contact administrator for other roles.');
+                        alert('Only Subject Teacher accounts can be created through registration.');
                     }
                 });
             }
@@ -1019,251 +673,97 @@
         function setTodayDate() {
             const today = new Date();
             const formattedDate = today.toISOString().split('T')[0];
-            
-            // Set today's date to all date inputs
             const dateInputs = ['startDate', 'viewDate', 'dashboardDate', 'dailyReportDate'];
             dateInputs.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.value = formattedDate;
             });
-            
-            // Set current month for monthly report
             const currentMonth = formattedDate.substring(0, 7);
             const monthlyReportMonth = document.getElementById('monthlyReportMonth');
             if (monthlyReportMonth) monthlyReportMonth.value = currentMonth;
             
-            // Update date display
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const currentDateDisplay = document.getElementById('currentDateDisplay');
-            if (currentDateDisplay) {
-                currentDateDisplay.textContent = today.toLocaleDateString('en-US', options);
-            }
+            if (currentDateDisplay) currentDateDisplay.textContent = today.toLocaleDateString('en-US', options);
         }
 
-        async function checkAuthState() {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                
-                if (error) {
-                    console.error("Error getting session:", error);
-                    showLoginScreen();
-                    return;
-                }
-                
-                if (session && session.user) {
-                    await getUserRole(session.user.id);
+        function checkAuthState() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    await getUserRole(user.uid);
                 } else {
                     showLoginScreen();
                 }
+            });
+        }
 
-                // Listen for auth changes
-                supabase.auth.onAuthStateChange(async (event, session) => {
-                    if (session && session.user) {
-                        await getUserRole(session.user.id);
-                    } else {
-                        showLoginScreen();
-                    }
-                });
+        async function getUserRole(userId) {
+            try {
+                const docRef = doc(db, "users", userId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    appData.currentUser = { id: userId };
+                    appData.userRole = data.role;
+                    showApp(data.role);
+                } else {
+                    // Sign out if no role assigned
+                    await signOut(auth);
+                    showLoginScreen();
+                }
             } catch (error) {
-                console.error("Error in checkAuthState:", error);
+                console.error("Error fetching user role:", error);
                 showLoginScreen();
             }
         }
 
         function showLoginScreen() {
-            const loginScreen = document.getElementById('loginScreen');
-            const appContent = document.getElementById('appContent');
-            if (loginScreen) loginScreen.style.display = 'block';
-            if (appContent) appContent.style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('appContent').style.display = 'none';
             showLoginForm();
         }
 
-        async function getUserRole(userId) {
-            try {
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('id', userId)
-                    .single();
-
-                if (error) {
-                    console.error("Error fetching user role:", error);
-                    // Create default user if doesn't exist
-                    return await createDefaultUser(userId);
-                }
-
-                appData.currentUser = { id: userId };
-                appData.userRole = data.role;
-                showApp(data.role);
-                return data.role;
-            } catch (error) {
-                console.error("Error in getUserRole:", error);
-                return await createDefaultUser(userId);
-            }
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registrationForm').style.display = 'none';
         }
 
-        async function createDefaultUser(userId) {
-            try {
-                const { data: userData } = await supabase.auth.getUser();
-                if (userData.user) {
-                    const selectedRole = document.getElementById('loginRole')?.value || 'subjectTeacher';
-                    
-                    const { error: insertError } = await supabase
-                        .from('users')
-                        .insert([{
-                            id: userId,
-                            email: userData.user.email,
-                            role: selectedRole
-                        }]);
-                    
-                    if (!insertError) {
-                        appData.currentUser = { id: userId };
-                        appData.userRole = selectedRole;
-                        showApp(selectedRole);
-                        return selectedRole;
-                    }
-                }
-                return 'subjectTeacher';
-            } catch (error) {
-                console.error("Error creating default user:", error);
-                return 'subjectTeacher';
-            }
+        function showRegistrationForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registrationForm').style.display = 'block';
         }
 
         function setupEventListeners() {
-            console.log("Setting up event listeners...");
+            document.getElementById('loginBtn')?.addEventListener('click', doLogin);
+            document.getElementById('showRegisterBtn')?.addEventListener('click', showRegistrationForm);
+            document.getElementById('backToLoginBtn')?.addEventListener('click', showLoginForm);
+            document.getElementById('confirmRegisterBtn')?.addEventListener('click', doRegistration);
+            document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+            document.getElementById('addStudentBtn')?.addEventListener('click', addStudent);
             
-            // Authentication
-            const loginBtn = document.getElementById('loginBtn');
-            const showRegisterBtn = document.getElementById('showRegisterBtn');
-            const backToLoginBtn = document.getElementById('backToLoginBtn');
-            const confirmRegisterBtn = document.getElementById('confirmRegisterBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-            
-            if (loginBtn) {
-                loginBtn.addEventListener('click', doLogin);
-                console.log("Login button listener added");
-            }
-            
-            if (showRegisterBtn) {
-                showRegisterBtn.addEventListener('click', showRegistrationForm);
-            }
-            
-            if (backToLoginBtn) {
-                backToLoginBtn.addEventListener('click', showLoginForm);
-            }
-            
-            if (confirmRegisterBtn) {
-                confirmRegisterBtn.addEventListener('click', doRegistration);
-            }
-            
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', doLogout);
-            }
-            
-            // Navigation
             document.querySelectorAll('.nav-tab').forEach(btn => {
                 btn.addEventListener('click', function() {
                     showTab(this.getAttribute('data-tab'));
                 });
             });
-            
-            // Other buttons will be initialized after login
-        }
-
-        function showLoginForm() {
-            const loginForm = document.getElementById('loginForm');
-            const registrationForm = document.getElementById('registrationForm');
-            if (loginForm) loginForm.style.display = 'block';
-            if (registrationForm) registrationForm.style.display = 'none';
-        }
-
-        function showRegistrationForm() {
-            const loginForm = document.getElementById('loginForm');
-            const registrationForm = document.getElementById('registrationForm');
-            if (loginForm) loginForm.style.display = 'none';
-            if (registrationForm) registrationForm.style.display = 'block';
         }
 
         async function doLogin() {
-            console.log("Login button clicked!");
-            
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
-            const selectedRole = document.getElementById('loginRole').value;
             const errorMsg = document.getElementById('loginError');
             
-            console.log("Login attempt with:", { email, role: selectedRole });
-            
             if (!email || !password) {
-                if (errorMsg) {
-                    errorMsg.textContent = 'Please enter both email and password';
-                    errorMsg.style.display = 'block';
-                }
+                if (errorMsg) { errorMsg.textContent = 'Please enter both email and password'; errorMsg.style.display = 'block'; }
                 return;
             }
             
             try {
-                console.log("Attempting Supabase login...");
-                
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) {
-                    console.error("Login error:", error);
-                    throw error;
-                }
-
-                console.log("Login successful!", data.user);
-                
-                // Check if user exists in users table
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('id', data.user.id)
-                    .single();
-
-                if (userError) {
-                    console.log("User not in users table, creating...");
-                    // Create user record if it doesn't exist
-                    await createUserRecord(data.user.id, email, selectedRole);
-                    appData.userRole = selectedRole;
-                } else {
-                    appData.userRole = userData.role;
-                    console.log("User role from DB:", appData.userRole);
-                }
-
-                showApp(appData.userRole);
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                await getUserRole(userCredential.user.uid);
                 if (errorMsg) errorMsg.style.display = 'none';
-                
             } catch (error) {
-                console.error("Login catch error:", error);
-                if (errorMsg) {
-                    errorMsg.textContent = 'Invalid email or password. Please try again.';
-                    errorMsg.style.display = 'block';
-                }
-            }
-        }
-
-        async function createUserRecord(userId, email, role) {
-            try {
-                const { error } = await supabase
-                    .from('users')
-                    .insert([{
-                        id: userId,
-                        email: email,
-                        role: role
-                    }]);
-
-                if (error) {
-                    console.error("Error creating user record:", error);
-                } else {
-                    console.log("User record created successfully");
-                }
-            } catch (error) {
-                console.error("Error in createUserRecord:", error);
+                if (errorMsg) { errorMsg.textContent = 'Invalid email or password. Please try again.'; errorMsg.style.display = 'block'; }
             }
         }
 
@@ -1274,208 +774,180 @@
             const errorMsg = document.getElementById('registerError');
             
             if (!email || !password) {
-                if (errorMsg) {
-                    errorMsg.textContent = 'Please enter both email and password';
-                    errorMsg.style.display = 'block';
-                }
+                if (errorMsg) { errorMsg.textContent = 'Please enter both email and password'; errorMsg.style.display = 'block'; }
                 return;
             }
-            
             if (password.length < 6) {
-                if (errorMsg) {
-                    errorMsg.textContent = 'Password should be at least 6 characters';
-                    errorMsg.style.display = 'block';
-                }
-                return;
-            }
-
-            // Ensure only subject teacher can register
-            if (role !== 'subjectTeacher') {
-                if (errorMsg) {
-                    errorMsg.textContent = 'Only Subject Teacher accounts can be created through registration.';
-                    errorMsg.style.display = 'block';
-                }
+                if (errorMsg) { errorMsg.textContent = 'Password should be at least 6 characters'; errorMsg.style.display = 'block'; }
                 return;
             }
 
             try {
-                // Create user in Supabase Auth
-                const { data: authData, error: authError } = await supabase.auth.signUp({
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Save user role in firestore
+                await setDoc(doc(db, "users", user.uid), {
                     email: email,
-                    password: password
+                    role: role
                 });
 
-                if (authError) {
-                    throw authError;
-                }
-
-                // Create user record in users table
-                await createUserRecord(authData.user.id, email, role);
-
-                // Show success message
                 if (errorMsg) errorMsg.style.display = 'none';
-                alert('Registration successful! Please check your email to confirm your account.');
+                alert('Registration successful! You can now login.');
                 showLoginForm();
-                
             } catch (error) {
-                console.error("Registration error:", error);
-                if (errorMsg) {
-                    if (error.message.includes('already registered')) {
-                        errorMsg.textContent = 'Email already exists. Please use a different email.';
-                    } else {
-                        errorMsg.textContent = 'Registration failed: ' + error.message;
-                    }
-                    errorMsg.style.display = 'block';
-                }
-            }
-        }
-
-        function showApp(role) {
-            console.log("Showing app for role:", role);
-            
-            const loginScreen = document.getElementById('loginScreen');
-            const appContent = document.getElementById('appContent');
-            
-            if (loginScreen) loginScreen.style.display = 'none';
-            if (appContent) appContent.style.display = 'block';
-            
-            // Set role badge
-            const roleBadge = document.getElementById('roleBadge');
-            if (roleBadge) roleBadge.textContent = roleDisplayMapping[role] || role;
-            
-            // Update role-based visibility
-            updateRoleBasedVisibility(role);
-            
-            // Initialize app data
-            initializeAppData();
-        }
-
-        function updateRoleBasedVisibility(role) {
-            // Reset all visibility
-            document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => {
-                el.style.display = 'none';
-            });
-            
-            // Show based on role
-            if (role === 'principal') {
-                document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => {
-                    el.style.display = 'block';
-                });
-            } else if (role === 'classTeacher') {
-                document.querySelectorAll('.class-teacher-only').forEach(el => {
-                    el.style.display = 'block';
-                });
+                if (errorMsg) { errorMsg.textContent = 'Registration failed: ' + error.message; errorMsg.style.display = 'block'; }
             }
         }
 
         async function doLogout() {
-            const { error } = await supabase.auth.signOut();
-            if (error) {
-                console.error("Logout error:", error);
-            }
-            
+            await signOut(auth);
             appData.currentUser = null;
             appData.userRole = null;
             showLoginScreen();
         }
 
+        function showApp(role) {
+            const loginScreen = document.getElementById('loginScreen');
+            const appContent = document.getElementById('appContent');
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (appContent) appContent.style.display = 'block';
+            
+            const roleBadge = document.getElementById('roleBadge');
+            if (roleBadge) roleBadge.textContent = roleDisplayMapping[role] || role;
+            
+            updateRoleBasedVisibility(role);
+            initializeAppData();
+        }
+
+        function updateRoleBasedVisibility(role) {
+            document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => { el.style.display = 'none'; });
+            if (role === 'principal') {
+                document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => { el.style.display = 'block'; });
+            } else if (role === 'classTeacher') {
+                document.querySelectorAll('.class-teacher-only').forEach(el => { el.style.display = 'block'; });
+            }
+        }
+
         function showTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
+            document.querySelectorAll('.tab-content').forEach(tab => { tab.classList.remove('active'); });
+            document.querySelectorAll('.nav-tab').forEach(tab => { tab.classList.remove('active'); });
             
-            // Remove active class from all tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab content
             const tabContent = document.getElementById(tabName);
-            if (tabContent) {
-                tabContent.classList.add('active');
-            }
+            if (tabContent) tabContent.classList.add('active');
             
-            // Add active class to clicked tab
             const navTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
-            if (navTab) {
-                navTab.classList.add('active');
-            }
+            if (navTab) navTab.classList.add('active');
             
-            // Load data for the tab
             if (tabName === 'attendance') {
                 loadClassDropdowns();
-                loadSubjectDropdowns();
-                loadTeacherDropdowns();
             } else if (tabName === 'students') {
                 loadStudents();
                 loadClassDropdowns();
-            } else if (tabName === 'teachers') {
-                loadTeachers();
-                loadSubjectDropdowns();
-            } else if (tabName === 'subjects') {
-                loadSubjects();
-            } else if (tabName === 'grades') {
-                loadGrades();
-            } else if (tabName === 'dashboard') {
-                loadDashboard();
-            } else if (tabName === 'reports') {
-                loadReportDropdowns();
             }
         }
 
         function initializeAppData() {
-            // Load all dropdowns
             loadClassDropdowns();
-            loadSubjectDropdowns();
-            loadTeacherDropdowns();
         }
 
-        // DATABASE OPERATIONS
-        async function loadClassDropdowns() {
+        // ==========================
+        // FIRESTORE DATABASE ACTIONS
+        // ==========================
+
+        async function addStudent() {
+            const studentId = document.getElementById('studentId').value;
+            const name = document.getElementById('studentName').value;
+            const grade = document.getElementById('studentGrade').value;
+            const gender = document.getElementById('studentGender').value;
+            const successMsg = document.getElementById('studentSuccess');
+
+            if (!studentId || !name || !grade) {
+                alert("Please enter required details!");
+                return;
+            }
+
             try {
-                // This is a placeholder - implement based on your database structure
-                const selectors = [
-                    'selectClass', 'viewClass', 'studentGrade', 
-                    'filterStudentClass', 'dashboardClass', 
-                    'dailyReportClass', 'monthlyReportClass'
-                ];
-                
-                selectors.forEach(selector => {
-                    const element = document.getElementById(selector);
-                    if (element) {
-                        element.innerHTML = selector === 'filterStudentClass' ? 
-                            '<option value="">All Classes</option>' : 
-                            '<option value="">Select Class</option>';
-                        
-                        // Add sample data
-                        const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'];
-                        const classes = ['A', 'B', 'C', 'D', 'E'];
-                        
-                        grades.forEach(grade => {
-                            classes.forEach(cls => {
-                                const option = document.createElement('option');
-                                option.value = `${grade}-${cls}`;
-                                option.textContent = `${grade} - ${cls}`;
-                                element.appendChild(option);
-                            });
-                        });
-                    }
+                await setDoc(doc(db, "students", studentId), {
+                    student_id: studentId,
+                    name: name,
+                    grade: grade,
+                    gender: gender
                 });
+
+                if (successMsg) {
+                    successMsg.textContent = "Student successfully added!";
+                    successMsg.style.display = 'block';
+                    setTimeout(() => successMsg.style.display = 'none', 3000);
+                }
+                
+                document.getElementById('studentId').value = '';
+                document.getElementById('studentName').value = '';
+                loadStudents();
             } catch (error) {
-                console.error("Error loading classes:", error);
+                console.error("Error adding student:", error);
+                alert("Error: " + error.message);
             }
         }
 
-        // Add other database functions as needed...
+        async function loadStudents() {
+            const studentList = document.getElementById('studentList');
+            if(!studentList) return;
+            studentList.innerHTML = "Loading students...";
 
-        // Test function - remove this in production
-        window.testLogin = function() {
-            document.getElementById('loginEmail').value = 'test@example.com';
-            document.getElementById('loginPassword').value = 'password123';
-            doLogin();
-        };
+            try {
+                const querySnapshot = await getDocs(collection(db, "students"));
+                if (querySnapshot.empty) {
+                    studentList.innerHTML = "<p>No students found.</p>";
+                    return;
+                }
 
+                let html = '';
+                querySnapshot.forEach((docSnap) => {
+                    const student = docSnap.data();
+                    html += `
+                        <div class="student-item">
+                            <div class="item-info">
+                                <strong>${student.name}</strong> (${student.student_id})<br>
+                                <small>Grade: ${student.grade} | Gender: ${student.gender}</small>
+                            </div>
+                        </div>`;
+                });
+                studentList.innerHTML = html;
+            } catch (error) {
+                console.error("Error loading students:", error);
+                studentList.innerHTML = "Error fetching data.";
+            }
+        }
+
+        async function loadClassDropdowns() {
+            const selectors = [
+                'selectClass', 'viewClass', 'studentGrade', 
+                'filterStudentClass', 'dashboardClass', 
+                'dailyReportClass', 'monthlyReportClass'
+            ];
+            
+            selectors.forEach(selector => {
+                const element = document.getElementById(selector);
+                if (element) {
+                    element.innerHTML = selector === 'filterStudentClass' ? 
+                        '<option value="">All Classes</option>' : 
+                        '<option value="">Select Class</option>';
+                    
+                    const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'];
+                    const classes = ['A', 'B', 'C', 'D', 'E'];
+                    
+                    grades.forEach(grade => {
+                        classes.forEach(cls => {
+                            const option = document.createElement('option');
+                            option.value = `${grade}-${cls}`;
+                            option.textContent = `${grade} - ${cls}`;
+                            element.appendChild(option);
+                        });
+                    });
+                }
+            });
+        }
     </script>
 </body>
 </html>
