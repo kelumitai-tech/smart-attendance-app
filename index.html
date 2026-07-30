@@ -12,367 +12,53 @@
     <!-- Chart.js for dashboard charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- Firebase Compat SDK (Works flawlessly on local file:// execution) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 1200px;
-            width: 100%;
-            margin: 0 auto;
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #005A9C 0%, #0077cc 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 1200px; width: 100%; margin: 0 auto; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #005A9C 0%, #0077cc 100%); color: white; padding: 30px; text-align: center; position: relative; }
         .header h1 { font-size: 2em; margin-bottom: 5px; }
         .header p { opacity: 0.9; font-size: 0.9em; }
-        .role-badge {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            border: 2px solid white;
-        }
+        .role-badge { position: absolute; top: 20px; left: 20px; background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; font-size: 0.85em; border: 2px solid white; }
         .content { padding: 40px; }
         .login-box { max-width: 400px; margin: 0 auto; }
         .form-group { margin-bottom: 20px; }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            background: white;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #005A9C;
-        }
-        .btn {
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 10px;
-        }
-        .btn-full {
-            width: 100%;
-        }
-        .btn-primary {
-            background: #005A9C;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #004a80;
-            transform: translateY(-2px);
-        }
+        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; background: white; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #005A9C; }
+        .btn { padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-bottom: 10px; }
+        .btn-full { width: 100%; }
+        .btn-primary { background: #005A9C; color: white; }
+        .btn-primary:hover { background: #004a80; transform: translateY(-2px); }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
-        .btn-warning { background: #ff9800; color: white; }
-        .btn-info { background: #2196F3; color: white; }
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-        .error-msg, .success-msg {
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 15px;
-            text-align: center;
-        }
-        .error-msg {
-            background: #fee;
-            color: #c00;
-            display: none;
-        }
-        .success-msg {
-            background: #e7f5e7;
-            color: #2e7d32;
-            display: none;
-        }
+        .error-msg, .success-msg { padding: 12px; border-radius: 8px; margin-top: 15px; text-align: center; }
+        .error-msg { background: #fee; color: #c00; display: none; }
+        .success-msg { background: #e7f5e7; color: #2e7d32; display: none; }
         .app-main { display: none; }
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            border-bottom: 2px solid #e0e0e0;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .nav-tab {
-            padding: 12px 24px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 3px solid transparent;
-        }
-        .nav-tab.active {
-            color: #005A9C;
-            border-bottom-color: #005A9C;
-        }
+        .nav-tabs { display: flex; gap: 10px; border-bottom: 2px solid #e0e0e0; margin-bottom: 30px; flex-wrap: wrap; }
+        .nav-tab { padding: 12px 24px; border: none; background: none; cursor: pointer; font-weight: 600; color: #666; border-bottom: 3px solid transparent; }
+        .nav-tab.active { color: #005A9C; border-bottom-color: #005A9C; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .card {
-            background: #f9f9f9;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-        .card h3 {
-            color: #005A9C;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        th {
-            background: #005A9C;
-            color: white;
-        }
-        .logout-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 8px 20px;
-            background: rgba(255,255,255,0.2);
-            border: 2px solid white;
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .logout-btn:hover {
-            background: white;
-            color: #005A9C;
-        }
-        .info-box {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 8px;
-            color: #1565c0;
-            margin-bottom: 20px;
-        }
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-        }
-        .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-        }
-        .stats-card h2 { font-size: 3em; margin: 10px 0; }
-        .stats-card p { font-size: 1.1em; opacity: 0.9; }
+        .card { background: #f9f9f9; padding: 25px; border-radius: 12px; margin-bottom: 20px; }
+        .card h3 { color: #005A9C; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background: #005A9C; color: white; }
+        .logout-btn { position: absolute; top: 20px; right: 20px; padding: 8px 20px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .logout-btn:hover { background: white; color: #005A9C; }
+        .info-box { background: #e3f2fd; padding: 15px; border-radius: 8px; color: #1565c0; margin-bottom: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .principal-only { display: none; }
         .class-teacher-only { display: none; }
-        .subject-teacher-only { display: none; }
-        .filter-input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        .student-item, .teacher-item, .subject-item, .grade-item {
-            background: white;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #005A9C;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .item-info {
-            flex: 1;
-        }
-        .item-actions {
-            display: flex;
-            gap: 10px;
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        .attendance-summary {
-            background: #e8f5e8;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            color: #2e7d32;
-            font-weight: bold;
-            text-align: center;
-        }
-        .present { color: #4CAF50; font-weight: bold; }
-        .absent { color: #f44336; font-weight: bold; }
-        .teacher-info {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #ffc107;
-        }
-        .pdf-btn {
-            background: #d32f2f;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-top: 15px;
-        }
-        .pdf-btn:hover {
-            background: #b71c1c;
-        }
-        .serial-number {
-            background: #005A9C;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 10px;
-        }
-        .attendance-percentage {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 5px;
-        }
-        .percentage-good { color: #4CAF50; }
-        .percentage-average { color: #ff9800; }
-        .percentage-poor { color: #f44336; }
-        .restricted-option {
-            color: #999;
-            font-style: italic;
-        }
-        .dashboard-controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-        .chart-title {
-            color: #005A9C;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            font-weight: 600;
-        }
-        .gender-stats {
-            display: flex;
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .gender-stat {
-            flex: 1;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            color: white;
-            font-weight: bold;
-        }
-        .male-stat { background: #2196F3; }
-        .female-stat { background: #E91E63; }
-        .daily-summary {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .summary-item {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .summary-value {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #005A9C;
-            margin: 5px 0;
-        }
-        .summary-label {
-            font-size: 0.9em;
-            color: #666;
-        }
-        
-        @media (max-width: 768px) {
-            .grid-2, .grid-3 { grid-template-columns: 1fr; }
-            table { font-size: 14px; }
-            th, td { padding: 8px; }
-            .student-item, .teacher-item, .subject-item, .grade-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .item-actions {
-                margin-top: 10px;
-                width: 100%;
-                justify-content: flex-end;
-            }
-            .dashboard-controls {
-                flex-direction: column;
-            }
-        }
+        .student-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #005A9C; display: flex; justify-content: space-between; align-items: center; }
+        .loading { text-align: center; padding: 20px; color: #666; }
     </style>
 </head>
 <body>
@@ -394,13 +80,12 @@
                         <label>Register As</label>
                         <select id="registerRole">
                             <option value="subjectTeacher">Subject Teacher</option>
-                            <option value="principal" class="restricted-option" disabled>Principal (Admin) - Contact Administrator</option>
-                            <option value="classTeacher" class="restricted-option" disabled>Class Teacher - Contact Administrator</option>
+                            <option value="principal" disabled>Principal (Admin) - Contact Administrator</option>
+                            <option value="classTeacher" disabled>Class Teacher - Contact Administrator</option>
                         </select>
                     </div>
-                    <div class="info-box" style="margin-bottom: 20px;">
-                        <strong>Note:</strong> Only Subject Teacher accounts can be created through registration. 
-                        For Principal or Class Teacher accounts, please contact the system administrator.
+                    <div class="info-box" style="margin-bottom: 20px; font-size:14px;">
+                        <strong>Note:</strong> Only Subject Teacher accounts can be created through registration.
                     </div>
                     <div class="form-group">
                         <label>Email Address</label>
@@ -410,21 +95,13 @@
                         <label>Password</label>
                         <input type="password" id="registerPassword" placeholder="Create a password (min 6 characters)">
                     </div>
-                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">📝 Create Subject Teacher Account</button>
-                    <button class="btn btn-primary btn-full" id="backToLoginBtn">← Back to Login</button>
+                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">📝 Create Account</button>
+                    <button class="btn btn-primary btn-full" id="backToLoginBtn" style="margin-top:10px;">← Back to Login</button>
                     <div class="error-msg" id="registerError"></div>
                 </div>
 
                 <!-- Login Form -->
                 <div id="loginForm">
-                    <div class="form-group">
-                        <label>Login As</label>
-                        <select id="loginRole">
-                            <option value="principal">Principal (Admin)</option>
-                            <option value="classTeacher">Class Teacher</option>
-                            <option value="subjectTeacher">Subject Teacher</option>
-                        </select>
-                    </div>
                     <div class="form-group">
                         <label>Email Address</label>
                         <input type="email" id="loginEmail" placeholder="Enter your email">
@@ -436,24 +113,12 @@
                     <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
                     <div class="error-msg" id="loginError"></div>
                     
-                    <!-- Registration Section -->
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                         <h3 style="text-align: center; margin-bottom: 15px; color: #333;">New User?</h3>
-                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register as Subject Teacher</button>
-                        <p style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">
-                            Need Principal or Class Teacher access? <br>Contact administrator.
-                        </p>
+                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register</button>
                     </div>
                 </div>
             </div>
-            
-            <footer style="background: #f5f5f5; padding: 20px; text-align: center; border-top: 2px solid #005A9C; margin-top: 40px; border-radius: 0 0 20px 20px;">
-                <p style="color: #666; font-size: 0.9em; line-height: 1.8;">
-                    <strong style="color: #005A9C;">Developer:</strong> Kelum Konara<br>
-                    <strong style="color: #005A9C;">SmartSoft</strong> | The Mobile Apps Developer<br>
-                    📞 <strong>0714469232</strong>
-                </p>
-            </footer>
         </div>
 
         <!-- Main App -->
@@ -463,20 +128,14 @@
             
             <div class="nav-tabs" id="navTabs">
                 <button class="nav-tab active" data-tab="attendance">📋 Attendance</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
-                <button class="nav-tab" data-tab="reports">📊 Reports</button>
-                <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
-                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="grades">🎓 Grades</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
-                <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
+                <button class="nav-tab" data-tab="students">👥 Students</button>
             </div>
 
             <!-- Attendance Tab -->
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject, teacher, period and date to mark attendance (Monday to Friday only)</div>
+                    <div class="info-box">Select class, subject, teacher, period and date to mark attendance.</div>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="selectClass">
@@ -484,73 +143,10 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Select Subject</label>
-                        <select id="selectSubject">
-                            <option value="">Loading subjects...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Select Teacher</label>
-                        <select id="selectTeacher">
-                            <option value="">Loading teachers...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Period</label>
-                        <select id="selectPeriod">
-                            <option value="daily">Daily Attendance</option>
-                            <option value="first">First Period</option>
-                            <option value="second">Second Period</option>
-                            <option value="third">Third Period</option>
-                            <option value="fourth">Fourth Period</option>
-                            <option value="fifth">Fifth Period</option>
-                            <option value="sixth">Sixth Period</option>
-                            <option value="seventh">Seventh Period</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label>Date</label>
                         <input type="date" id="startDate">
                     </div>
                     <button class="btn btn-primary btn-full" id="loadAttendanceBtn">Load Attendance Sheet</button>
-                </div>
-
-                <div class="card">
-                    <h3>Attendance Sheet for <span id="currentDateDisplay"></span> - <span id="currentPeriodDisplay">Daily Attendance</span></h3>
-                    <div id="teacherInfo" class="teacher-info" style="display: none;">
-                        <strong>Teacher Information:</strong> 
-                        <span id="teacherIdDisplay">-</span> - 
-                        <span id="teacherNameDisplay">-</span>
-                    </div>
-                    <div id="attendanceSummary" class="attendance-summary" style="display: none;">
-                        Attendance Summary: <span id="presentCount">0</span>/<span id="totalCount">0</span> students present 
-                        (<span id="attendancePercentage">0</span>%)
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table id="attendanceTable">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Student ID</th>
-                                    <th>Name</th>
-                                    <th>Subject</th>
-                                    <th>Teacher ID</th>
-                                    <th>Teacher Name</th>
-                                    <th>Period</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="attendanceTbody">
-                                <tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Select class to view students</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" id="markAllBtn">✓ Mark All Present</button>
-                        <button class="btn btn-primary" id="saveAttendanceBtn">💾 Save Attendance</button>
-                        <button class="btn btn-danger" id="clearAllBtn">✗ Mark All Absent</button>
-                    </div>
                 </div>
             </div>
 
@@ -589,51 +185,15 @@
 
                 <div class="card">
                     <h3>Student List</h3>
-                    <div class="form-group">
-                        <label>Filter by Class</label>
-                        <select id="filterStudentClass">
-                            <option value="">All Classes</option>
-                        </select>
-                    </div>
-                    <input type="text" class="filter-input" id="studentFilter" placeholder="🔍 Search by Student ID, Name, or Grade...">
                     <div id="studentList" class="loading">Loading students...</div>
                 </div>
-            </div>
-
-            <!-- Reports, Dashboard, Teachers, Subjects, Grades, View Attendance Tabs (kept structure) -->
-            <div class="tab-content" id="reports">
-                <div class="card"><h3>Reports Coming Soon</h3></div>
-            </div>
-            
-            <div class="tab-content" id="dashboard">
-                <div class="card"><h3>Dashboard Coming Soon</h3></div>
-            </div>
-
-            <div class="tab-content" id="teachers">
-                <div class="card"><h3>Teachers Coming Soon</h3></div>
-            </div>
-
-            <div class="tab-content" id="subjects">
-                <div class="card"><h3>Subjects Coming Soon</h3></div>
-            </div>
-
-            <div class="tab-content" id="grades">
-                <div class="card"><h3>Grades Coming Soon</h3></div>
-            </div>
-
-            <div class="tab-content" id="viewAttendance">
-                <div class="card"><h3>View Attendance Coming Soon</h3></div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular v10) replacing Supabase -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        // Your Firebase config added here
+    <!-- STANDARD (COMPAT) JAVASCRIPT - NO MODULES NEEDED -->
+    <script>
+        // Initialize Firebase
         const firebaseConfig = {
           apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
           authDomain: "smart-attendance-44601.firebaseapp.com",
@@ -644,51 +204,44 @@
           measurementId: "G-D68YB8ND7B"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-        const appData = { currentUser: null, userRole: null };
         const roleDisplayMapping = { 'principal': 'Principal (Admin)', 'classTeacher': 'Class Teacher', 'subjectTeacher': 'Subject Teacher' };
 
         document.addEventListener('DOMContentLoaded', () => {
+            console.log("App Started!");
             setupEventListeners();
             setTodayDate();
             checkAuthState();
-            setupRegistrationRestrictions();
         });
 
-        function setupRegistrationRestrictions() {
-            const registerRoleSelect = document.getElementById('registerRole');
-            if (registerRoleSelect) {
-                registerRoleSelect.addEventListener('change', function() {
-                    if (this.value !== 'subjectTeacher') {
-                        this.value = 'subjectTeacher';
-                        alert('Only Subject Teacher accounts can be created through registration.');
-                    }
+        function setupEventListeners() {
+            // Button connections
+            document.getElementById('loginBtn').addEventListener('click', doLogin);
+            document.getElementById('showRegisterBtn').addEventListener('click', showRegistrationForm);
+            document.getElementById('backToLoginBtn').addEventListener('click', showLoginForm);
+            document.getElementById('confirmRegisterBtn').addEventListener('click', doRegistration);
+            document.getElementById('logoutBtn').addEventListener('click', doLogout);
+            document.getElementById('addStudentBtn').addEventListener('click', addStudent);
+            
+            // Tab Navigation
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showTab(this.getAttribute('data-tab'));
                 });
-            }
+            });
         }
 
         function setTodayDate() {
-            const today = new Date();
-            const formattedDate = today.toISOString().split('T')[0];
-            const dateInputs = ['startDate', 'viewDate', 'dashboardDate', 'dailyReportDate'];
-            dateInputs.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.value = formattedDate;
-            });
-            const currentMonth = formattedDate.substring(0, 7);
-            const monthlyReportMonth = document.getElementById('monthlyReportMonth');
-            if (monthlyReportMonth) monthlyReportMonth.value = currentMonth;
-            
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const currentDateDisplay = document.getElementById('currentDateDisplay');
-            if (currentDateDisplay) currentDateDisplay.textContent = today.toLocaleDateString('en-US', options);
+            const today = new Date().toISOString().split('T')[0];
+            const startDate = document.getElementById('startDate');
+            if (startDate) startDate.value = today;
         }
 
         function checkAuthState() {
-            onAuthStateChanged(auth, async (user) => {
+            auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     await getUserRole(user.uid);
                 } else {
@@ -699,20 +252,16 @@
 
         async function getUserRole(userId) {
             try {
-                const docRef = doc(db, "users", userId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    appData.currentUser = { id: userId };
-                    appData.userRole = data.role;
-                    showApp(data.role);
+                const docSnap = await db.collection("users").doc(userId).get();
+                if (docSnap.exists) {
+                    const role = docSnap.data().role;
+                    showApp(role);
                 } else {
-                    // Sign out if no role assigned
-                    await signOut(auth);
+                    await auth.signOut();
                     showLoginScreen();
                 }
             } catch (error) {
-                console.error("Error fetching user role:", error);
+                console.error("Error getting user data", error);
                 showLoginScreen();
             }
         }
@@ -733,37 +282,24 @@
             document.getElementById('registrationForm').style.display = 'block';
         }
 
-        function setupEventListeners() {
-            document.getElementById('loginBtn')?.addEventListener('click', doLogin);
-            document.getElementById('showRegisterBtn')?.addEventListener('click', showRegistrationForm);
-            document.getElementById('backToLoginBtn')?.addEventListener('click', showLoginForm);
-            document.getElementById('confirmRegisterBtn')?.addEventListener('click', doRegistration);
-            document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
-            document.getElementById('addStudentBtn')?.addEventListener('click', addStudent);
-            
-            document.querySelectorAll('.nav-tab').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    showTab(this.getAttribute('data-tab'));
-                });
-            });
-        }
-
         async function doLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             const errorMsg = document.getElementById('loginError');
             
             if (!email || !password) {
-                if (errorMsg) { errorMsg.textContent = 'Please enter both email and password'; errorMsg.style.display = 'block'; }
+                errorMsg.textContent = 'Please enter email and password';
+                errorMsg.style.display = 'block';
                 return;
             }
             
+            errorMsg.style.display = 'none';
             try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                await getUserRole(userCredential.user.uid);
-                if (errorMsg) errorMsg.style.display = 'none';
+                await auth.signInWithEmailAndPassword(email, password);
+                // checkAuthState listener will trigger and log the user in
             } catch (error) {
-                if (errorMsg) { errorMsg.textContent = 'Invalid email or password. Please try again.'; errorMsg.style.display = 'block'; }
+                errorMsg.textContent = 'Invalid credentials or login failed.';
+                errorMsg.style.display = 'block';
             }
         }
 
@@ -773,82 +309,47 @@
             const role = document.getElementById('registerRole').value;
             const errorMsg = document.getElementById('registerError');
             
-            if (!email || !password) {
-                if (errorMsg) { errorMsg.textContent = 'Please enter both email and password'; errorMsg.style.display = 'block'; }
-                return;
-            }
-            if (password.length < 6) {
-                if (errorMsg) { errorMsg.textContent = 'Password should be at least 6 characters'; errorMsg.style.display = 'block'; }
+            if (!email || !password || password.length < 6) {
+                errorMsg.textContent = 'Please provide valid email and password (min 6 chars)';
+                errorMsg.style.display = 'block';
                 return;
             }
 
+            errorMsg.style.display = 'none';
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                // Save user role in firestore
-                await setDoc(doc(db, "users", user.uid), {
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                await db.collection("users").doc(cred.user.uid).set({
                     email: email,
                     role: role
                 });
-
-                if (errorMsg) errorMsg.style.display = 'none';
-                alert('Registration successful! You can now login.');
-                showLoginForm();
+                alert('Registration successful! Logging you in...');
             } catch (error) {
-                if (errorMsg) { errorMsg.textContent = 'Registration failed: ' + error.message; errorMsg.style.display = 'block'; }
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
             }
         }
 
         async function doLogout() {
-            await signOut(auth);
-            appData.currentUser = null;
-            appData.userRole = null;
-            showLoginScreen();
+            await auth.signOut();
         }
 
         function showApp(role) {
-            const loginScreen = document.getElementById('loginScreen');
-            const appContent = document.getElementById('appContent');
-            if (loginScreen) loginScreen.style.display = 'none';
-            if (appContent) appContent.style.display = 'block';
-            
-            const roleBadge = document.getElementById('roleBadge');
-            if (roleBadge) roleBadge.textContent = roleDisplayMapping[role] || role;
-            
-            updateRoleBasedVisibility(role);
-            initializeAppData();
-        }
-
-        function updateRoleBasedVisibility(role) {
-            document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => { el.style.display = 'none'; });
-            if (role === 'principal') {
-                document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => { el.style.display = 'block'; });
-            } else if (role === 'classTeacher') {
-                document.querySelectorAll('.class-teacher-only').forEach(el => { el.style.display = 'block'; });
-            }
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('roleBadge').textContent = roleDisplayMapping[role] || role;
+            loadClassDropdowns();
         }
 
         function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => { tab.classList.remove('active'); });
-            document.querySelectorAll('.nav-tab').forEach(tab => { tab.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             
-            const tabContent = document.getElementById(tabName);
-            if (tabContent) tabContent.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`.nav-tab[data-tab="${tabName}"]`).classList.add('active');
             
-            const navTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
-            if (navTab) navTab.classList.add('active');
-            
-            if (tabName === 'attendance') {
-                loadClassDropdowns();
-            } else if (tabName === 'students') {
+            if (tabName === 'students') {
                 loadStudents();
-                loadClassDropdowns();
             }
-        }
-
-        function initializeAppData() {
-            loadClassDropdowns();
         }
 
         // ==========================
@@ -863,47 +364,43 @@
             const successMsg = document.getElementById('studentSuccess');
 
             if (!studentId || !name || !grade) {
-                alert("Please enter required details!");
+                alert("Please enter all required details!");
                 return;
             }
 
             try {
-                await setDoc(doc(db, "students", studentId), {
+                await db.collection("students").doc(studentId).set({
                     student_id: studentId,
                     name: name,
                     grade: grade,
                     gender: gender
                 });
 
-                if (successMsg) {
-                    successMsg.textContent = "Student successfully added!";
-                    successMsg.style.display = 'block';
-                    setTimeout(() => successMsg.style.display = 'none', 3000);
-                }
+                successMsg.textContent = "Student successfully added!";
+                successMsg.style.display = 'block';
+                setTimeout(() => successMsg.style.display = 'none', 3000);
                 
                 document.getElementById('studentId').value = '';
                 document.getElementById('studentName').value = '';
                 loadStudents();
             } catch (error) {
-                console.error("Error adding student:", error);
                 alert("Error: " + error.message);
             }
         }
 
         async function loadStudents() {
             const studentList = document.getElementById('studentList');
-            if(!studentList) return;
             studentList.innerHTML = "Loading students...";
 
             try {
-                const querySnapshot = await getDocs(collection(db, "students"));
-                if (querySnapshot.empty) {
+                const snapshot = await db.collection("students").get();
+                if (snapshot.empty) {
                     studentList.innerHTML = "<p>No students found.</p>";
                     return;
                 }
 
                 let html = '';
-                querySnapshot.forEach((docSnap) => {
+                snapshot.forEach(docSnap => {
                     const student = docSnap.data();
                     html += `
                         <div class="student-item">
@@ -915,27 +412,19 @@
                 });
                 studentList.innerHTML = html;
             } catch (error) {
-                console.error("Error loading students:", error);
                 studentList.innerHTML = "Error fetching data.";
+                console.error(error);
             }
         }
 
-        async function loadClassDropdowns() {
-            const selectors = [
-                'selectClass', 'viewClass', 'studentGrade', 
-                'filterStudentClass', 'dashboardClass', 
-                'dailyReportClass', 'monthlyReportClass'
-            ];
-            
+        function loadClassDropdowns() {
+            const selectors = ['selectClass', 'studentGrade'];
             selectors.forEach(selector => {
                 const element = document.getElementById(selector);
                 if (element) {
-                    element.innerHTML = selector === 'filterStudentClass' ? 
-                        '<option value="">All Classes</option>' : 
-                        '<option value="">Select Class</option>';
-                    
+                    element.innerHTML = '<option value="">Select Class</option>';
                     const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'];
-                    const classes = ['A', 'B', 'C', 'D', 'E'];
+                    const classes = ['A', 'B', 'C', 'D'];
                     
                     grades.forEach(grade => {
                         classes.forEach(cls => {
