@@ -148,12 +148,20 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class and date to mark attendance.</div>
-                    <div class="form-group">
-                        <label>Select Class</label>
-                        <select id="selectClass">
-                            <option value="">Loading classes...</option>
-                        </select>
+                    <div class="info-box">Select class, subject and date to mark attendance.</div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Select Class</label>
+                            <select id="selectClass">
+                                <option value="">Loading classes...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Subject</label>
+                            <select id="selectSubject">
+                                <option value="">Loading subjects...</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Date</label>
@@ -238,6 +246,17 @@
                 </div>
             </div>
 
+            <!-- Subjects Tab -->
+            <div class="tab-content" id="subjects">
+                <div class="card">
+                    <h3>Sri Lankan Standard Subjects (Grades 6-13) in Database</h3>
+                    <p style="margin-bottom: 15px; color: #666;">These subjects are stored directly in the Firebase Realtime Database and loaded dynamically.</p>
+                    <div id="subjectsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;">
+                        <div class="loading">Loading subjects from database...</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Other Tabs Placeholders -->
             <div class="tab-content" id="reports">
                 <div class="card"><h3>📊 Reports Dashboard</h3><p>Report generation features will be available here.</p></div>
@@ -253,7 +272,6 @@
             </div>
             <div class="tab-content" id="teachers"><div class="card"><h3>👨‍🏫 Teachers Management</h3><p>Teacher management portal.</p></div></div>
             <div class="tab-content" id="grades"><div class="card"><h3>🎓 Grades & Classes</h3><p>Manage classes here.</p></div></div>
-            <div class="tab-content" id="subjects"><div class="card"><h3>📚 Subjects</h3><p>Subject configuration here.</p></div></div>
             <div class="tab-content" id="viewAttendance"><div class="card"><h3>👀 View Attendance Records</h3><p>Past attendance history.</p></div></div>
         </div>
     </div>
@@ -280,12 +298,49 @@
         let appUserRole = 'subjectTeacher'; 
         let isRegistering = false; 
 
+        // Standard Sri Lankan Subjects for Grades 6-13
+        const defaultSlSubjects = [
+            // Grades 6 - 11 Subjects
+            "සිංහල භාෂාව හා සාහිත්‍යය", "දෙමළ භාෂාව හා සාහිත්‍යය", "ඉංග්‍රීසි භාෂාව", 
+            "ගණිතය", "විද්‍යාව", "ඉතිහාසය", 
+            "බුද්ධ ධර්මය", "කතෝලික ධර්මය / ක්‍රිස්තියානි", "ඉස්ලාම් ධර්මය", "හින්දු ධර්මය", 
+            "භූගෝල විද්‍යාව", "පුරවැසි අධ්‍යාපනය", "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය", 
+            "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)", "සංගීතය", "නැටුම්", "චිත්‍ර", "නාට්‍ය හා රංග කලාව", "ව්‍යවහාරික තාක්ෂණවේදය (PTS)",
+            
+            // Grades 12 - 13 (A/L) Streams
+            "සංයුක්ත ගණිතය", "භෞතික විද්‍යාව", "රසායන විද්‍යාව", "ජීව විද්‍යාව", 
+            "කෘෂි විද්‍යාව", "ආර්ථික විද්‍යාව", "ව්‍යාපාර අධ්‍යයනය", "ගිණුම්කරණය", 
+            "ව්‍යාපාර සංඛ්‍යානය", "රාජ්‍ය විද්‍යාව", "තර්කशास्त्रය හා විද්‍යා දර්ශනය", 
+            "ඉංජිනේරු තාක්ෂණවේදය (ET)", "ජීව පද්ධති තාක්ෂණවේදය (BST)", "තාක්ෂණය සඳහා විද්‍යාව (SFT)", 
+            "සාමාන්‍ය ඉංග්‍රීසි", "පොදු සාමාන්‍ය පරීක්ෂණය"
+        ];
+
         document.addEventListener('DOMContentLoaded', () => {
+            initializeDatabaseSubjects();
             setupEventListeners();
             setTodayDate();
             checkAuthState();
             setupRegistrationRestrictions();
         });
+
+        // Automatically populate database with standard SL subjects if not present
+        async function initializeDatabaseSubjects() {
+            try {
+                const subRef = db.ref('subjects');
+                const snapshot = await subRef.once('value');
+                if (!snapshot.exists()) {
+                    let subjectsObj = {};
+                    defaultSlSubjects.forEach((sub, index) => {
+                        let key = 'sub_' + (index + 1);
+                        subjectsObj[key] = { name: sub };
+                    });
+                    await subRef.set(subjectsObj);
+                    console.log("Sri Lankan standard subjects added to database successfully.");
+                }
+            } catch (err) {
+                console.error("Error initializing subjects in DB:", err);
+            }
+        }
 
         function setupRegistrationRestrictions() {
             const registerRoleSelect = document.getElementById('registerRole');
@@ -448,7 +503,7 @@
                 document.querySelectorAll('.nav-tab.class-teacher-only').forEach(el => el.style.display = 'block');
             }
             
-            loadClassDropdowns();
+            loadClassAndSubjectDropdowns();
             showTab('attendance'); 
         }
 
@@ -466,6 +521,8 @@
                 loadStudents();
             } else if (tabName === 'dashboard') {
                 updateDashboardStats();
+            } else if (tabName === 'subjects') {
+                renderSubjectsList();
             }
         }
 
@@ -551,9 +608,10 @@
             }
         }
 
-        function loadClassDropdowns() {
-            const selectors = ['selectClass', 'studentGrade'];
-            selectors.forEach(selector => {
+        async function loadClassAndSubjectDropdowns() {
+            // 1. Classes dropdown setup (6-11 with A-E, 12-13 with A1, A2, etc.)
+            const classSelectors = ['selectClass', 'studentGrade'];
+            classSelectors.forEach(selector => {
                 const element = document.getElementById(selector);
                 if (element) {
                     element.innerHTML = '<option value="">Select Class</option>';
@@ -580,6 +638,49 @@
                     }
                 }
             });
+
+            // 2. Subjects dropdown setup from Database
+            const subElement = document.getElementById('selectSubject');
+            if (subElement) {
+                subElement.innerHTML = '<option value="">Select Subject</option>';
+                try {
+                    const snap = await db.ref('subjects').once('value');
+                    if (snap.exists()) {
+                        snap.forEach(child => {
+                            const subName = child.val().name;
+                            const opt = document.createElement('option');
+                            opt.value = subName;
+                            opt.textContent = subName;
+                            subElement.appendChild(opt);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error loading subjects dropdown:", e);
+                }
+            }
+        }
+
+        async function renderSubjectsList() {
+            const listEl = document.getElementById('subjectsList');
+            if(!listEl) return;
+            listEl.innerHTML = "Loading subjects from database...";
+            try {
+                const snapshot = await db.ref('subjects').once('value');
+                if(!snapshot.exists()) {
+                    listEl.innerHTML = "<p>No subjects found.</p>";
+                    return;
+                }
+                let html = '';
+                let idx = 1;
+                snapshot.forEach(child => {
+                    const subName = child.val().name;
+                    html += `<div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #005A9C;"><strong>${idx++}.</strong> ${subName}</div>`;
+                });
+                listEl.innerHTML = html;
+            } catch (error) {
+                listEl.innerHTML = "<p style='color:red;'>Error loading subjects.</p>";
+                console.error(error);
+            }
         }
         
         async function updateDashboardStats() {
@@ -593,8 +694,9 @@
 
         async function loadAttendanceSheet() {
             const selectedClass = document.getElementById('selectClass').value;
-            if(!selectedClass) {
-                alert("Please select a class first!");
+            const selectedSubject = document.getElementById('selectSubject').value;
+            if(!selectedClass || !selectedSubject) {
+                alert("කරුණාකර පන්තිය සහ විෂය යන දෙකම තෝරන්න!");
                 return;
             }
             
@@ -605,7 +707,7 @@
             try {
                 const snapshot = await db.ref('students').orderByChild('grade').equalTo(selectedClass).once('value');
                 if(!snapshot.exists()){
-                    tbody.innerHTML = "<tr><td colspan='4'>No students found in this class.</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='4'>මෙම පන්තියේ සිසුන් හමු නොවීය.</td></tr>";
                     return;
                 }
                 
@@ -629,7 +731,7 @@
                 tbody.innerHTML = html;
             } catch (error) {
                 console.error(error);
-                tbody.innerHTML = "<tr><td colspan='4'>Error loading students.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='4'>දත්ත ලබා ගැනීමේදී දෝෂයක් ඇතිවිය.</td></tr>";
             }
         }
     </script>
