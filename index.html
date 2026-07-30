@@ -59,7 +59,7 @@
         .principal-only { display: none; }
         .class-teacher-only { display: none; }
         .student-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #005A9C; display: flex; justify-content: space-between; align-items: center; }
-        .loading { text-align: center; padding: 20px; color: #666; }
+        .loading { text-align: center; padding: 20px; color: #666; font-weight: bold; }
         .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; }
         .stats-card h2 { font-size: 3em; margin: 10px 0; }
         .stats-card p { font-size: 1.1em; opacity: 0.9; }
@@ -84,12 +84,8 @@
                         <label>Register As</label>
                         <select id="registerRole">
                             <option value="subjectTeacher">Subject Teacher</option>
-                            <option value="principal" disabled>Principal (Admin) - Contact Administrator</option>
-                            <option value="classTeacher" disabled>Class Teacher - Contact Administrator</option>
+                            <option value="principal">Principal (Admin)</option>
                         </select>
-                    </div>
-                    <div class="info-box" style="margin-bottom: 20px; font-size:14px;">
-                        <strong>Note:</strong> Only Subject Teacher accounts can be created through registration.
                     </div>
                     <div class="form-group">
                         <label>Email Address</label>
@@ -145,7 +141,7 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject, teacher, period and date to mark attendance.</div>
+                    <div class="info-box">Select class and date to mark attendance.</div>
                     <div class="form-group">
                         <label>Select Class</label>
                         <select id="selectClass">
@@ -240,11 +236,13 @@
     </div>
 
     <script>
-        // Initialize Firebase with Realtime Database URL
+        // =======================================================
+        // FULLY CONFIGURED FIREBASE SETTINGS (ASIA-SOUTHEAST1)
+        // =======================================================
         const firebaseConfig = {
           apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
           authDomain: "smart-attendance-44601.firebaseapp.com",
-          databaseURL: "https://smart-attendance-44601-default-rtdb.firebaseio.com",
+          databaseURL: "https://smart-attendance-44601-default-rtdb.asia-southeast1.firebasedatabase.app",
           projectId: "smart-attendance-44601",
           storageBucket: "smart-attendance-44601.firebasestorage.app",
           messagingSenderId: "1094964796464",
@@ -256,7 +254,8 @@
         const db = firebase.database(); 
 
         const roleDisplayMapping = { 'principal': 'Principal (Admin)', 'classTeacher': 'Class Teacher', 'subjectTeacher': 'Subject Teacher' };
-        let appUserRole = 'subjectTeacher'; // default
+        let appUserRole = 'subjectTeacher'; 
+        let isRegistering = false; 
 
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
@@ -288,9 +287,9 @@
 
         function checkAuthState() {
             auth.onAuthStateChanged(async (user) => {
-                if (user) {
+                if (user && !isRegistering) {
                     await getUserRole(user.uid);
-                } else {
+                } else if (!user) {
                     showLoginScreen();
                 }
             });
@@ -308,6 +307,7 @@
                 }
             } catch (error) {
                 console.error("Error getting user data", error);
+                alert("Database Connection Error. කරුණාකර ඔබගේ අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කරන්න.");
                 showLoginScreen();
             }
         }
@@ -359,14 +359,21 @@
                 return;
             }
             errorMsg.style.display = 'none';
+            
+            isRegistering = true; 
+            
             try {
                 const cred = await auth.createUserWithEmailAndPassword(email, password);
                 await db.ref('users/' + cred.user.uid).set({
                     email: email,
                     role: role
                 });
-                alert('Registration successful! Logging you in...');
+                isRegistering = false;
+                alert('Registration successful!');
+                appUserRole = role;
+                showApp(role);
             } catch (error) {
+                isRegistering = false;
                 errorMsg.textContent = error.message;
                 errorMsg.style.display = 'block';
             }
@@ -393,7 +400,7 @@
             }
             
             loadClassDropdowns();
-            showTab('attendance'); // Default tab
+            showTab('attendance'); 
         }
 
         function showTab(tabName) {
