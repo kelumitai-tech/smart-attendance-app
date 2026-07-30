@@ -38,6 +38,8 @@
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
         .btn-small { padding: 6px 12px; font-size: 13px; }
+        .pdf-btn { background: #d32f2f; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; transition: all 0.3s; }
+        .pdf-btn:hover { background: #b71c1c; }
         .error-msg, .success-msg { padding: 12px; border-radius: 8px; margin-top: 15px; text-align: center; }
         .error-msg { background: #fee; color: #c00; display: none; }
         .success-msg { background: #e7f5e7; color: #2e7d32; display: none; }
@@ -186,7 +188,7 @@
                         </table>
                     </div>
                     <div style="margin-top: 20px;">
-                        <button class="btn btn-primary" onclick="alert('Attendance Saved Successfully!')">💾 Save Attendance</button>
+                        <button class="btn btn-primary" onclick="saveAttendance()">💾 Save Attendance</button>
                     </div>
                 </div>
             </div>
@@ -246,6 +248,30 @@
                 </div>
             </div>
 
+            <!-- Reports Tab -->
+            <div class="tab-content" id="reports">
+                <div class="card">
+                    <h3>📊 Daily Attendance Report</h3>
+                    <div class="info-box">Generate and download attendance reports by date and class.</div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Select Date</label>
+                            <input type="date" id="reportDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Select Class</label>
+                            <select id="reportClass">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="generateReportBtn">📈 Generate Report Summary</button>
+                    <button class="pdf-btn" id="downloadPdfBtn">📄 Download PDF Report</button>
+                    
+                    <div id="reportOutput" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
             <!-- Subjects Tab -->
             <div class="tab-content" id="subjects">
                 <div class="card">
@@ -258,9 +284,6 @@
             </div>
 
             <!-- Other Tabs Placeholders -->
-            <div class="tab-content" id="reports">
-                <div class="card"><h3>📊 Reports Dashboard</h3><p>Report generation features will be available here.</p></div>
-            </div>
             <div class="tab-content" id="dashboard">
                 <div class="card"><h3>🎯 Principal Dashboard</h3>
                     <div class="grid-3">
@@ -357,6 +380,8 @@
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             document.getElementById('addStudentBtn').addEventListener('click', addStudent);
             document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendanceSheet);
+            document.getElementById('generateReportBtn').addEventListener('click', generateReportSummary);
+            document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdfReport);
             
             document.querySelectorAll('.nav-tab').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -369,6 +394,8 @@
             const today = new Date().toISOString().split('T')[0];
             const startDate = document.getElementById('startDate');
             if (startDate) startDate.value = today;
+            const reportDate = document.getElementById('reportDate');
+            if (reportDate) reportDate.value = today;
         }
 
         function checkAuthState() {
@@ -517,6 +544,8 @@
                 updateDashboardStats();
             } else if (tabName === 'subjects') {
                 renderSubjectsList();
+            } else if (tabName === 'reports') {
+                loadReportDropdowns();
             }
         }
 
@@ -602,15 +631,13 @@
             }
         }
 
-        async function loadClassAndSubjectDropdowns() {
-            // 1. Classes dropdown setup (Grades 6-11 with A-G classes, Grades 12-13 with A1, A2, etc.)
+        function loadClassAndSubjectDropdowns() {
             const classSelectors = ['selectClass', 'studentGrade'];
             classSelectors.forEach(selector => {
                 const element = document.getElementById(selector);
                 if (element) {
                     element.innerHTML = '<option value="">Select Class</option>';
                     
-                    // Grades 6 to 11 with classes A to G
                     for (let g = 6; g <= 11; g++) {
                         ['A', 'B', 'C', 'D', 'E', 'F', 'G'].forEach(cls => {
                             const option = document.createElement('option');
@@ -620,7 +647,6 @@
                         });
                     }
 
-                    // Grades 12 to 13 with specific class streams
                     const seniorClasses = ['A1', 'A2', 'C1', 'C2', 'T1', 'T2', 'S1', 'S2', 'M1', 'M2'];
                     for (let g = 12; g <= 13; g++) {
                         seniorClasses.forEach(cls => {
@@ -633,12 +659,10 @@
                 }
             });
 
-            // 2. Subjects dropdown setup from Database
             const subElement = document.getElementById('selectSubject');
             if (subElement) {
                 subElement.innerHTML = '<option value="">Select Subject</option>';
-                try {
-                    const snap = await db.ref('subjects').once('value');
+                db.ref('subjects').once('value').then(snap => {
                     if (snap.exists()) {
                         snap.forEach(child => {
                             const subName = child.val().name;
@@ -648,18 +672,39 @@
                             subElement.appendChild(opt);
                         });
                     }
-                } catch (e) {
-                    console.error("Error loading subjects dropdown:", e);
+                });
+            }
+        }
+
+        function loadReportDropdowns() {
+            const reportClass = document.getElementById('reportClass');
+            if (reportClass) {
+                reportClass.innerHTML = '<option value="">All Classes</option>';
+                for (let g = 6; g <= 11; g++) {
+                    ['A', 'B', 'C', 'D', 'E', 'F', 'G'].forEach(cls => {
+                        const option = document.createElement('option');
+                        option.value = `Grade ${g} - ${cls}`;
+                        option.textContent = `Grade ${g} - ${cls}`;
+                        reportClass.appendChild(option);
+                    });
+                }
+                const seniorClasses = ['A1', 'A2', 'C1', 'C2', 'T1', 'T2', 'S1', 'S2', 'M1', 'M2'];
+                for (let g = 12; g <= 13; g++) {
+                    seniorClasses.forEach(cls => {
+                        const option = document.createElement('option');
+                        option.value = `Grade ${g} - ${cls}`;
+                        option.textContent = `Grade ${g} - ${cls}`;
+                        reportClass.appendChild(option);
+                    });
                 }
             }
         }
 
-        async function renderSubjectsList() {
+        function renderSubjectsList() {
             const listEl = document.getElementById('subjectsList');
             if(!listEl) return;
             listEl.innerHTML = "Loading subjects from database...";
-            try {
-                const snapshot = await db.ref('subjects').once('value');
+            db.ref('subjects').once('value').then(snapshot => {
                 if(!snapshot.exists()) {
                     listEl.innerHTML = "<p>No subjects found.</p>";
                     return;
@@ -671,10 +716,7 @@
                     html += `<div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #005A9C;"><strong>${idx++}.</strong> ${subName}</div>`;
                 });
                 listEl.innerHTML = html;
-            } catch (error) {
-                listEl.innerHTML = "<p style='color:red;'>Error loading subjects.</p>";
-                console.error(error);
-            }
+            });
         }
         
         async function updateDashboardStats() {
@@ -709,12 +751,12 @@
                 snapshot.forEach(child => {
                     const st = child.val();
                     html += `
-                        <tr>
+                        <tr data-studentid="${st.student_id}">
                             <td>${st.student_id}</td>
                             <td>${st.name}</td>
                             <td>${st.grade}</td>
                             <td>
-                                <select style="padding:5px; border-radius:4px;">
+                                <select class="att-status" style="padding:5px; border-radius:4px;">
                                     <option value="Present">Present</option>
                                     <option value="Absent">Absent</option>
                                 </select>
@@ -726,6 +768,165 @@
             } catch (error) {
                 console.error(error);
                 tbody.innerHTML = "<tr><td colspan='4'>දත්ත ලබා ගැනීමේදී දෝෂයක් ඇතිවිය.</td></tr>";
+            }
+        }
+
+        async function saveAttendance() {
+            const selectedClass = document.getElementById('selectClass').value;
+            const selectedSubject = document.getElementById('selectSubject').value;
+            const date = document.getElementById('startDate').value;
+
+            if(!selectedClass || !selectedSubject || !date) {
+                alert("විස්තර සියල්ල සම්පූර්ණ කරන්න!");
+                return;
+            }
+
+            const rows = document.querySelectorAll('#attendanceTbody tr');
+            if(rows.length === 0) {
+                alert("සුරැකීමට දත්ත නොමැත!");
+                return;
+            }
+
+            let updates = {};
+            rows.forEach(row => {
+                const studentId = row.getAttribute('data-studentid');
+                const status = row.querySelector('.att-status').value;
+                if(studentId) {
+                    const path = `attendance/${date}/${selectedClass.replace(/[\.#$\/\[\]]/g, '_')}/${selectedSubject.replace(/[\.#$\/\[\]]/g, '_')}/${studentId}`;
+                    updates[path] = {
+                        student_id: studentId,
+                        date: date,
+                        class: selectedClass,
+                        subject: selectedSubject,
+                        status: status
+                    };
+                }
+            });
+
+            try {
+                await db.ref().update(updates);
+                alert("පැමිණීම සාර්ථකව සුරකින ලදී!");
+            } catch(err) {
+                alert("දෝෂයක් ඇතිවිය: " + err.message);
+            }
+        }
+
+        async function generateReportSummary() {
+            const date = document.getElementById('reportDate').value;
+            const cls = document.getElementById('reportClass').value;
+            const output = document.getElementById('reportOutput');
+
+            if(!date) {
+                alert("කරුණාකර දිනයක් තෝරන්න!");
+                return;
+            }
+
+            output.innerHTML = "<div class='loading'>වාර්තාව සකස් කරමින් පවතී...</div>";
+
+            try {
+                const snapshot = await db.ref('attendance/' + date).once('value');
+                if(!snapshot.exists()) {
+                    output.innerHTML = "<div class='info-box'>මෙම දිනය සඳහා පැමිණීමේ වාර්තා කිසිවක් හමු නොවීය.</div>";
+                    return;
+                }
+
+                let totalPresent = 0;
+                let totalAbsent = 0;
+                let detailsHtml = "";
+
+                snapshot.forEach(classSnap => {
+                    const className = classSnap.key.replace(/_/g, ' ');
+                    if(cls && className !== cls) return;
+
+                    classSnap.forEach(subSnap => {
+                        const subName = subSnap.key.replace(/_/g, ' ');
+                        subSnap.forEach(stSnap => {
+                            const rec = stSnap.val();
+                            if(rec.status === 'Present') totalPresent++;
+                            else totalAbsent++;
+                        });
+                    });
+                });
+
+                output.innerHTML = `
+                    <div class="card" style="background: white; border-left: 4px solid #005A9C;">
+                        <h4>දිනය: ${date} ${cls ? '(' + cls + ')' : ''}</h4>
+                        <p style="margin-top: 10px;">සපැමිණි ගණන (Present): <strong style="color: green;">${totalPresent}</strong></p>
+                        <p>පැමිණ නැති ගණන (Absent): <strong style="color: red;">${totalAbsent}</strong></p>
+                        <p>මුළු වාර්තා සංඛ්‍යාව: <strong>${totalPresent + totalAbsent}</strong></p>
+                    </div>
+                `;
+            } catch(err) {
+                output.innerHTML = "<div class='error-msg' style='display:block;'>වාර්තාව සැකසීමේදී දෝෂයක් ඇතිවිය.</div>";
+            }
+        }
+
+        async function downloadPdfReport() {
+            const date = document.getElementById('reportDate').value;
+            const cls = document.getElementById('reportClass').value;
+
+            if(!date) {
+                alert("කරුණාකර දිනයක් තෝරන්න!");
+                return;
+            }
+
+            try {
+                const snapshot = await db.ref('attendance/' + date).once('value');
+                if(!snapshot.exists()) {
+                    alert("මෙම දිනය සඳහා වාර්තා කිසිවක් නොමැත!");
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(18);
+                doc.text("Smart Attendance Report", 14, 20);
+                
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Date: ${date}`, 14, 28);
+                if(cls) doc.text(`Class: ${cls}`, 14, 35);
+
+                let tableData = [];
+                let index = 1;
+
+                snapshot.forEach(classSnap => {
+                    const className = classSnap.key.replace(/_/g, ' ');
+                    if(cls && className !== cls) return;
+
+                    classSnap.forEach(subSnap => {
+                        const subName = subSnap.key.replace(/_/g, ' ');
+                        subSnap.forEach(stSnap => {
+                            const rec = stSnap.val();
+                            tableData.push([
+                                index++,
+                                rec.student_id,
+                                rec.class,
+                                rec.subject,
+                                rec.status
+                            ]);
+                        });
+                    });
+                });
+
+                if(tableData.length === 0) {
+                    alert("අදාළ පන්තිය සඳහා දත්ත හමු නොවීය!");
+                    return;
+                }
+
+                doc.autoTable({
+                    startY: cls ? 42 : 38,
+                    head: [['#', 'Student ID', 'Class', 'Subject', 'Status']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [0, 90, 156] }
+                });
+
+                doc.save(`Attendance_Report_${date}.pdf`);
+            } catch(err) {
+                alert("PDF සැකසීමේදී දෝෂයක් ඇතිවිය: " + err.message);
             }
         }
     </script>
