@@ -37,6 +37,7 @@
         .btn-primary:hover { background: #004a80; transform: translateY(-2px); }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
+        .btn-small { padding: 6px 12px; font-size: 13px; }
         .error-msg, .success-msg { padding: 12px; border-radius: 8px; margin-top: 15px; text-align: center; }
         .error-msg { background: #fee; color: #c00; display: none; }
         .success-msg { background: #e7f5e7; color: #2e7d32; display: none; }
@@ -58,7 +59,6 @@
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
         .principal-only { display: none; }
         .class-teacher-only { display: none; }
-        .student-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #005A9C; display: flex; justify-content: space-between; align-items: center; }
         .loading { text-align: center; padding: 20px; color: #666; font-weight: bold; }
         .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; }
         .stats-card h2 { font-size: 3em; margin: 10px 0; }
@@ -217,8 +217,24 @@
                 </div>
 
                 <div class="card">
-                    <h3>Student List</h3>
-                    <div id="studentList" class="loading">Loading students...</div>
+                    <h3>Student List (<span id="studentCount">0</span>)</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Class</th>
+                                    <th>Gender</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                <tr><td colspan="6" style="text-align: center; padding: 20px;">Loading students...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -381,10 +397,8 @@
         async function doRegistration() {
             const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value.trim();
-            const role = document.getElementById('registerRole').value;
             const errorMsg = document.getElementById('registerError');
             
-            // Force role to subjectTeacher from public registration for safety
             const finalRole = 'subjectTeacher';
             
             if (!email || !password || password.length < 6) {
@@ -488,29 +502,52 @@
         }
 
         async function loadStudents() {
-            const studentList = document.getElementById('studentList');
-            studentList.innerHTML = "Loading students...";
+            const tbody = document.getElementById('studentTableBody');
+            const countSpan = document.getElementById('studentCount');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px;'>Loading students...</td></tr>";
+            
             try {
                 const snapshot = await db.ref('students').once('value');
                 if (!snapshot.exists()) {
-                    studentList.innerHTML = "<p>No students found.</p>";
+                    tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px;'>No students found.</td></tr>";
+                    if(countSpan) countSpan.textContent = 0;
                     return;
                 }
                 let html = '';
+                let index = 1;
                 snapshot.forEach(childSnap => {
                     const student = childSnap.val();
+                    const key = childSnap.key;
                     html += `
-                        <div class="student-item">
-                            <div class="item-info">
-                                <strong>${student.name}</strong> (${student.student_id})<br>
-                                <small>Class: ${student.grade} | Gender: ${student.gender}</small>
-                            </div>
-                        </div>`;
+                        <tr>
+                            <td>${index++}</td>
+                            <td>${student.student_id}</td>
+                            <td><strong>${student.name}</strong></td>
+                            <td>${student.grade}</td>
+                            <td>${student.gender}</td>
+                            <td>
+                                <button onclick="deleteStudent('${key}')" class="btn btn-danger btn-small">Delete</button>
+                            </td>
+                        </tr>
+                    `;
                 });
-                studentList.innerHTML = html;
+                tbody.innerHTML = html;
+                if(countSpan) countSpan.textContent = index - 1;
             } catch (error) {
-                studentList.innerHTML = "Error fetching data.";
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px; color: red;'>Error fetching data.</td></tr>";
                 console.error(error);
+            }
+        }
+
+        async function deleteStudent(studentKey) {
+            if(confirm("Are you sure you want to delete this student?")) {
+                try {
+                    await db.ref('students/' + studentKey).remove();
+                    loadStudents();
+                } catch (error) {
+                    alert("Error deleting student: " + error.message);
+                }
             }
         }
 
