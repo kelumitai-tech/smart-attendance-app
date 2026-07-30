@@ -37,6 +37,7 @@
         .btn-primary:hover { background: #004a80; transform: translateY(-2px); }
         .btn-secondary { background: #4CAF50; color: white; }
         .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
         .btn-small { padding: 6px 12px; font-size: 13px; }
         .pdf-btn { background: #d32f2f; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; transition: all 0.3s; }
         .pdf-btn:hover { background: #b71c1c; }
@@ -66,6 +67,7 @@
         .stats-card h2 { font-size: 3em; margin: 10px 0; }
         .stats-card p { font-size: 1.1em; opacity: 0.9; }
         .restricted-option { color: #999; font-style: italic; }
+        .footer-credit { text-align: center; padding: 20px; color: #666; font-size: 0.9em; border-top: 1px solid #e0e0e0; margin-top: 40px; }
     </style>
 </head>
 <body>
@@ -127,6 +129,10 @@
                         <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register as Subject Teacher</button>
                     </div>
                 </div>
+            </div>
+
+            <div class="footer-credit">
+                Developer - Kelum Konara | Smart soft | 0714469232
             </div>
         </div>
 
@@ -272,13 +278,35 @@
                 </div>
             </div>
 
-            <!-- Subjects Tab -->
+            <!-- Subjects Management Tab -->
             <div class="tab-content" id="subjects">
                 <div class="card">
-                    <h3>Sri Lankan Standard Subjects (Grades 6-13) in Database</h3>
-                    <p style="margin-bottom: 15px; color: #666;">These subjects are stored directly in the Firebase Realtime Database and loaded dynamically.</p>
-                    <div id="subjectsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;">
-                        <div class="loading">Loading subjects from database...</div>
+                    <h3 id="subjectFormTitle">Add New Subject</h3>
+                    <input type="hidden" id="editSubjectKey" value="">
+                    <div class="form-group">
+                        <label>Subject Name</label>
+                        <input type="text" id="subjectNameInput" placeholder="Enter subject name">
+                    </div>
+                    <button class="btn btn-primary btn-full" id="saveSubjectBtn">💾 Save Subject</button>
+                    <button class="btn btn-warning btn-full" id="cancelEditBtn" style="display:none;">❌ Cancel Edit</button>
+                    <div class="success-msg" id="subjectSuccess"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Subjects List (<span id="subjectCount">0</span>)</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Subject Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subjectsTableBody">
+                                <tr><td colspan="3" style="text-align: center; padding: 20px;">Loading subjects...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -296,6 +324,10 @@
             <div class="tab-content" id="teachers"><div class="card"><h3>👨‍🏫 Teachers Management</h3><p>Teacher management portal.</p></div></div>
             <div class="tab-content" id="grades"><div class="card"><h3>🎓 Grades & Classes</h3><p>Manage classes here.</p></div></div>
             <div class="tab-content" id="viewAttendance"><div class="card"><h3>👀 View Attendance Records</h3><p>Past attendance history.</p></div></div>
+
+            <div class="footer-credit">
+                Developer - Kelum Konara | Smart soft | 0714469232
+            </div>
         </div>
     </div>
 
@@ -382,6 +414,8 @@
             document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendanceSheet);
             document.getElementById('generateReportBtn').addEventListener('click', generateReportSummary);
             document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdfReport);
+            document.getElementById('saveSubjectBtn').addEventListener('click', saveSubject);
+            document.getElementById('cancelEditBtn').addEventListener('click', resetSubjectForm);
             
             document.querySelectorAll('.nav-tab').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -543,7 +577,7 @@
             } else if (tabName === 'dashboard') {
                 updateDashboardStats();
             } else if (tabName === 'subjects') {
-                renderSubjectsList();
+                loadSubjectsManagement();
             } else if (tabName === 'reports') {
                 loadReportDropdowns();
             }
@@ -631,7 +665,112 @@
             }
         }
 
-        function loadClassAndSubjectDropdowns() {
+        // =======================================================
+        // SUBJECTS MANAGEMENT FUNCTIONS (ADD, EDIT, DELETE)
+        // =======================================================
+        async function loadSubjectsManagement() {
+            const tbody = document.getElementById('subjectsTableBody');
+            const countSpan = document.getElementById('subjectCount');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='3' style='text-align: center; padding: 20px;'>Loading subjects...</td></tr>";
+            
+            try {
+                const snapshot = await db.ref('subjects').once('value');
+                if(!snapshot.exists()) {
+                    tbody.innerHTML = "<tr><td colspan='3' style='text-align: center; padding: 20px;'>No subjects found.</td></tr>";
+                    if(countSpan) countSpan.textContent = 0;
+                    return;
+                }
+                let html = '';
+                let idx = 1;
+                snapshot.forEach(child => {
+                    const key = child.key;
+                    const subName = child.val().name;
+                    html += `
+                        <tr>
+                            <td>${idx++}</td>
+                            <td><strong>${subName}</strong></td>
+                            <td>
+                                <button onclick="editSubject('${key}', '${subName}')" class="btn btn-warning btn-small">Edit</button>
+                                <button onclick="deleteSubject('${key}')" class="btn btn-danger btn-small">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+                if(countSpan) countSpan.textContent = idx - 1;
+            } catch (error) {
+                tbody.innerHTML = "<tr><td colspan='3' style='text-align: center; padding: 20px; color: red;'>Error loading subjects.</td></tr>";
+                console.error(error);
+            }
+        }
+
+        async function saveSubject() {
+            const nameInput = document.getElementById('subjectNameInput');
+            const editKeyInput = document.getElementById('editSubjectKey');
+            const successMsg = document.getElementById('subjectSuccess');
+            
+            const subName = nameInput.value.trim();
+            const editKey = editKeyInput.value.trim();
+
+            if(!subName) {
+                alert("කරුණාකර විෂය නම ඇතුළත් කරන්න!");
+                return;
+            }
+
+            try {
+                if(editKey) {
+                    // Update existing subject
+                    await db.ref('subjects/' + editKey).set({ name: subName });
+                    successMsg.textContent = "විෂය සාර්ථකව යාවත්කාලීන කරන ලදී!";
+                } else {
+                    // Add new subject with unique key
+                    const newRef = db.ref('subjects').push();
+                    await newRef.set({ name: subName });
+                    successMsg.textContent = "විෂය සාර්ථකව එකතු කරන ලදී!";
+                }
+
+                successMsg.style.display = 'block';
+                setTimeout(() => successMsg.style.display = 'none', 3000);
+
+                resetSubjectForm();
+                loadSubjectsManagement();
+                loadClassAndSubjectDropdowns(); // Refresh dropdowns
+            } catch(error) {
+                alert("දෝෂයක් ඇතිවිය: " + error.message);
+            }
+        }
+
+        function editSubject(key, name) {
+            document.getElementById('editSubjectKey').value = key;
+            document.getElementById('subjectNameInput').value = name;
+            document.getElementById('subjectFormTitle').textContent = "Edit Subject";
+            document.getElementById('saveSubjectBtn').textContent = "💾 Update Subject";
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            document.getElementById('subjectNameInput').focus();
+        }
+
+        function resetSubjectForm() {
+            document.getElementById('editSubjectKey').value = '';
+            document.getElementById('subjectNameInput').value = '';
+            document.getElementById('subjectFormTitle').textContent = "Add New Subject";
+            document.getElementById('saveSubjectBtn').textContent = "💾 Save Subject";
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        async function deleteSubject(key) {
+            if(confirm("මෙම විෂය ඉවත් කිරීමට අවශ්‍ය බව විශ්වාසද?")) {
+                try {
+                    await db.ref('subjects/' + key).remove();
+                    loadSubjectsManagement();
+                    loadClassAndSubjectDropdowns();
+                } catch(error) {
+                    alert("විෂය මැකීමේදී දෝෂයක් ඇතිවිය: " + error.message);
+                }
+            }
+        }
+
+        async function loadClassAndSubjectDropdowns() {
             const classSelectors = ['selectClass', 'studentGrade'];
             classSelectors.forEach(selector => {
                 const element = document.getElementById(selector);
@@ -662,7 +801,8 @@
             const subElement = document.getElementById('selectSubject');
             if (subElement) {
                 subElement.innerHTML = '<option value="">Select Subject</option>';
-                db.ref('subjects').once('value').then(snap => {
+                try {
+                    const snap = await db.ref('subjects').once('value');
                     if (snap.exists()) {
                         snap.forEach(child => {
                             const subName = child.val().name;
@@ -672,7 +812,9 @@
                             subElement.appendChild(opt);
                         });
                     }
-                });
+                } catch (e) {
+                    console.error("Error loading subjects dropdown:", e);
+                }
             }
         }
 
@@ -698,25 +840,6 @@
                     });
                 }
             }
-        }
-
-        function renderSubjectsList() {
-            const listEl = document.getElementById('subjectsList');
-            if(!listEl) return;
-            listEl.innerHTML = "Loading subjects from database...";
-            db.ref('subjects').once('value').then(snapshot => {
-                if(!snapshot.exists()) {
-                    listEl.innerHTML = "<p>No subjects found.</p>";
-                    return;
-                }
-                let html = '';
-                let idx = 1;
-                snapshot.forEach(child => {
-                    const subName = child.val().name;
-                    html += `<div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #005A9C;"><strong>${idx++}.</strong> ${subName}</div>`;
-                });
-                listEl.innerHTML = html;
-            });
         }
         
         async function updateDashboardStats() {
@@ -832,14 +955,12 @@
 
                 let totalPresent = 0;
                 let totalAbsent = 0;
-                let detailsHtml = "";
 
                 snapshot.forEach(classSnap => {
                     const className = classSnap.key.replace(/_/g, ' ');
                     if(cls && className !== cls) return;
 
                     classSnap.forEach(subSnap => {
-                        const subName = subSnap.key.replace(/_/g, ' ');
                         subSnap.forEach(stSnap => {
                             const rec = stSnap.val();
                             if(rec.status === 'Present') totalPresent++;
@@ -897,7 +1018,6 @@
                     if(cls && className !== cls) return;
 
                     classSnap.forEach(subSnap => {
-                        const subName = subSnap.key.replace(/_/g, ' ');
                         subSnap.forEach(stSnap => {
                             const rec = stSnap.val();
                             tableData.push([
