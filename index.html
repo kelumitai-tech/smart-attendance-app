@@ -300,14 +300,11 @@
 
         // Standard Sri Lankan Subjects for Grades 6-13
         const defaultSlSubjects = [
-            // Grades 6 - 11 Subjects
             "සිංහල භාෂාව හා සාහිත්‍යය", "දෙමළ භාෂාව හා සාහිත්‍යය", "ඉංග්‍රීසි භාෂාව", 
             "ගණිතය", "විද්‍යාව", "ඉතිහාසය", 
             "බුද්ධ ධර්මය", "කතෝලික ධර්මය / ක්‍රිස්තියානි", "ඉස්ලාම් ධර්මය", "හින්දු ධර්මය", 
             "භූගෝල විද්‍යාව", "පුරවැසි අධ්‍යාපනය", "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය", 
             "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)", "සංගීතය", "නැටුම්", "චිත්‍ර", "නාට්‍ය හා රංග කලාව", "ව්‍යවහාරික තාක්ෂණවේදය (PTS)",
-            
-            // Grades 12 - 13 (A/L) Streams
             "සංයුක්ත ගණිතය", "භෞතික විද්‍යාව", "රසායන විද්‍යාව", "ජීව විද්‍යාව", 
             "කෘෂි විද්‍යාව", "ආර්ථික විද්‍යාව", "ව්‍යාපාර අධ්‍යයනය", "ගිණුම්කරණය", 
             "ව්‍යාපාර සංඛ්‍යානය", "රාජ්‍ය විද්‍යාව", "තර්කशास्त्रය හා විද්‍යා දර්ශනය", 
@@ -323,7 +320,6 @@
             setupRegistrationRestrictions();
         });
 
-        // Automatically populate database with standard SL subjects if not present
         async function initializeDatabaseSubjects() {
             try {
                 const subRef = db.ref('subjects');
@@ -335,7 +331,6 @@
                         subjectsObj[key] = { name: sub };
                     });
                     await subRef.set(subjectsObj);
-                    console.log("Sri Lankan standard subjects added to database successfully.");
                 }
             } catch (err) {
                 console.error("Error initializing subjects in DB:", err);
@@ -491,7 +486,6 @@
             document.getElementById('appContent').style.display = 'block';
             document.getElementById('roleBadge').textContent = roleDisplayMapping[role] || role;
             
-            // ROLE BASED ACCESS CONTROL
             document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'none');
             
             if (role === 'principal') {
@@ -609,16 +603,16 @@
         }
 
         async function loadClassAndSubjectDropdowns() {
-            // 1. Classes dropdown setup (6-11 with A-E, 12-13 with A1, A2, etc.)
+            // 1. Classes dropdown setup (Grades 6-11 with A-G classes, Grades 12-13 with A1, A2, etc.)
             const classSelectors = ['selectClass', 'studentGrade'];
             classSelectors.forEach(selector => {
                 const element = document.getElementById(selector);
                 if (element) {
                     element.innerHTML = '<option value="">Select Class</option>';
                     
-                    // Grades 6 to 11 with classes A to E
+                    // Grades 6 to 11 with classes A to G
                     for (let g = 6; g <= 11; g++) {
-                        ['A', 'B', 'C', 'D', 'E'].forEach(cls => {
+                        ['A', 'B', 'C', 'D', 'E', 'F', 'G'].forEach(cls => {
                             const option = document.createElement('option');
                             option.value = `Grade ${g} - ${cls}`;
                             option.textContent = `Grade ${g} - ${cls}`;
