@@ -12,10 +12,10 @@
     <!-- Chart.js for dashboard charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Firebase Compat SDK (Works flawlessly on local file:// execution) -->
+    <!-- Firebase Compat SDK - REALTIME DATABASE -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -191,12 +191,12 @@
         </div>
     </div>
 
-    <!-- STANDARD (COMPAT) JAVASCRIPT - NO MODULES NEEDED -->
     <script>
-        // Initialize Firebase
+        // Initialize Firebase with Realtime Database URL
         const firebaseConfig = {
           apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
           authDomain: "smart-attendance-44601.firebaseapp.com",
+          databaseURL: "https://smart-attendance-44601-default-rtdb.firebaseio.com",
           projectId: "smart-attendance-44601",
           storageBucket: "smart-attendance-44601.firebasestorage.app",
           messagingSenderId: "1094964796464",
@@ -206,19 +206,18 @@
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const db = firebase.firestore();
+        const db = firebase.database(); // Using Realtime Database instead of Firestore
 
         const roleDisplayMapping = { 'principal': 'Principal (Admin)', 'classTeacher': 'Class Teacher', 'subjectTeacher': 'Subject Teacher' };
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("App Started!");
+            console.log("App Started with Realtime Database!");
             setupEventListeners();
             setTodayDate();
             checkAuthState();
         });
 
         function setupEventListeners() {
-            // Button connections
             document.getElementById('loginBtn').addEventListener('click', doLogin);
             document.getElementById('showRegisterBtn').addEventListener('click', showRegistrationForm);
             document.getElementById('backToLoginBtn').addEventListener('click', showLoginForm);
@@ -226,7 +225,6 @@
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             document.getElementById('addStudentBtn').addEventListener('click', addStudent);
             
-            // Tab Navigation
             document.querySelectorAll('.nav-tab').forEach(btn => {
                 btn.addEventListener('click', function() {
                     showTab(this.getAttribute('data-tab'));
@@ -252,9 +250,9 @@
 
         async function getUserRole(userId) {
             try {
-                const docSnap = await db.collection("users").doc(userId).get();
-                if (docSnap.exists) {
-                    const role = docSnap.data().role;
+                const snapshot = await db.ref('users/' + userId).once('value');
+                if (snapshot.exists()) {
+                    const role = snapshot.val().role;
                     showApp(role);
                 } else {
                     await auth.signOut();
@@ -296,7 +294,6 @@
             errorMsg.style.display = 'none';
             try {
                 await auth.signInWithEmailAndPassword(email, password);
-                // checkAuthState listener will trigger and log the user in
             } catch (error) {
                 errorMsg.textContent = 'Invalid credentials or login failed.';
                 errorMsg.style.display = 'block';
@@ -318,7 +315,7 @@
             errorMsg.style.display = 'none';
             try {
                 const cred = await auth.createUserWithEmailAndPassword(email, password);
-                await db.collection("users").doc(cred.user.uid).set({
+                await db.ref('users/' + cred.user.uid).set({
                     email: email,
                     role: role
                 });
@@ -352,10 +349,6 @@
             }
         }
 
-        // ==========================
-        // FIRESTORE DATABASE ACTIONS
-        // ==========================
-
         async function addStudent() {
             const studentId = document.getElementById('studentId').value;
             const name = document.getElementById('studentName').value;
@@ -369,7 +362,7 @@
             }
 
             try {
-                await db.collection("students").doc(studentId).set({
+                await db.ref('students/' + studentId).set({
                     student_id: studentId,
                     name: name,
                     grade: grade,
@@ -393,15 +386,15 @@
             studentList.innerHTML = "Loading students...";
 
             try {
-                const snapshot = await db.collection("students").get();
-                if (snapshot.empty) {
+                const snapshot = await db.ref('students').once('value');
+                if (!snapshot.exists()) {
                     studentList.innerHTML = "<p>No students found.</p>";
                     return;
                 }
 
                 let html = '';
-                snapshot.forEach(docSnap => {
-                    const student = docSnap.data();
+                snapshot.forEach(childSnap => {
+                    const student = childSnap.val();
                     html += `
                         <div class="student-item">
                             <div class="item-info">
