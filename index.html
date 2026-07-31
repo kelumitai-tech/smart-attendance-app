@@ -940,7 +940,6 @@
                 const stName = row.querySelector('.st-name').innerText;
                 const status = row.querySelector('.att-status').value;
                 if(studentId) {
-                    // Structure: attendance / date / class / period / subject / student
                     const safeClass = selectedClass.replace(/[\.#$\/\[\]]/g, '_');
                     const safePeriod = "Period_" + selectedPeriod;
                     const safeSubject = selectedSubject.replace(/[\.#$\/\[\]]/g, '_');
