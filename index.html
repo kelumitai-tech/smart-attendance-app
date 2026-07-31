@@ -201,12 +201,12 @@
         <div class="content app-main" id="appContent">
             
             <div class="nav-tabs" id="navTabs">
-                <button class="nav-tab active" data-tab="attendance">📋 Mark Att.</button>
+                <button class="nav-tab active" data-tab="attendance">📋 Mark Attendance</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
-                <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Att.</button>
+                <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
-                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers & Leaves</button>
+                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
@@ -214,7 +214,7 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select a Class first to view its specific subjects.</div>
+                    <div class="info-box">Select class first to filter relevant subjects. Then select Subject, Period and Date.</div>
                     <div class="grid-3">
                         <div class="form-group">
                             <label>Select Class</label>
@@ -232,7 +232,6 @@
                             <label>Select Period</label>
                             <select id="selectPeriod">
                                 <option value="">Select Period</option>
-                                <option value="Daily Attendance" style="font-weight: bold; color: #005A9C;">🏫 Daily School Attendance</option>
                                 <option value="1">1st Period</option>
                                 <option value="2">2nd Period</option>
                                 <option value="3">3rd Period</option>
@@ -479,12 +478,18 @@
                     
                     <div class="grid-2">
                         <div class="form-group">
-                            <label>Subject Category</label>
+                            <label>Subject Category / Grade</label>
                             <select id="subjectCategoryInput">
                                 <option value="General (පොදු)">General (පොදු)</option>
-                                <option value="Grades 6 - 9">Grades 6 - 9</option>
-                                <option value="Grades 10 - 11">Grades 10 - 11</option>
-                                <option value="Grades 12 - 13">Grades 12 - 13</option>
+                                <option value="Grades 6 - 9 (Core)">Grades 6 - 9 (Core)</option>
+                                <option value="සෞන්දර්ය විෂයයන් (Aesthetics)">සෞන්දර්ය විෂයයන් (Aesthetics)</option>
+                                <option value="Grades 10 - 11 (Core)">Grades 10 - 11 (Core)</option>
+                                <option value="Grades 10 - 11 (කාණ්ඩ විෂයයන්)">Grades 10 - 11 (කාණ්ඩ විෂයයන්)</option>
+                                <option value="A/L - විද්‍යා ධාරාව">A/L - විද්‍යා ධාරාව</option>
+                                <option value="A/L - වාණිජ ධාරාව">A/L - වාණිජ ධාරාව</option>
+                                <option value="A/L - කලා ධාරාව">A/L - කලා ධාරාව</option>
+                                <option value="A/L - තාක්ෂණ ධාරාව">A/L - තාක්ෂණ ධාරාව</option>
+                                <option value="A/L - Common">A/L - Common</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
@@ -575,56 +580,81 @@
 
         let allSubjectsList = []; // Global array to store subjects for dynamic filtering
 
-        // Standard Sri Lankan Subjects Grouped by Category
+        // Standard Sri Lankan Subjects Grouped by Extended Categories
         const defaultSlSubjects = [
             { category: "General (පොදු)", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
             
-            { category: "Grades 6 - 9", name: "සිංහල භාෂාව හා සාහිත්‍යය" },
-            { category: "Grades 6 - 9", name: "දෙමළ භාෂාව හා සාහිත්‍යය" },
-            { category: "Grades 6 - 9", name: "ඉංග්‍රීසි භාෂාව" },
-            { category: "Grades 6 - 9", name: "ගණිතය" },
-            { category: "Grades 6 - 9", name: "විද්‍යාව" },
-            { category: "Grades 6 - 9", name: "ඉතිහාසය" },
-            { category: "Grades 6 - 9", name: "බුද්ධ ධර්මය" },
-            { category: "Grades 6 - 9", name: "භූගෝල විද්‍යාව" },
-            { category: "Grades 6 - 9", name: "පුරවැසි අධ්‍යාපනය" },
-            { category: "Grades 6 - 9", name: "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය" },
-            { category: "Grades 6 - 9", name: "සෞන්දර්ය (සංගීතය/නැටුම්/චිත්‍ර)" },
-            { category: "Grades 6 - 9", name: "ව්‍යවහාරික තාක්ෂණවේදය (PTS)" },
+            { category: "Grades 6 - 9 (Core)", name: "සිංහල භාෂාව හා සාහිත්‍යය" },
+            { category: "Grades 6 - 9 (Core)", name: "දෙමළ භාෂාව හා සාහිත්‍යය" },
+            { category: "Grades 6 - 9 (Core)", name: "ඉංග්‍රීසි භාෂාව" },
+            { category: "Grades 6 - 9 (Core)", name: "ගණිතය" },
+            { category: "Grades 6 - 9 (Core)", name: "විද්‍යාව" },
+            { category: "Grades 6 - 9 (Core)", name: "ඉතිහාසය" },
+            { category: "Grades 6 - 9 (Core)", name: "බුද්ධ ධර්මය" },
+            { category: "Grades 6 - 9 (Core)", name: "හින්දු ධර්මය" },
+            { category: "Grades 6 - 9 (Core)", name: "ඉස්ලාම් ධර්මය" },
+            { category: "Grades 6 - 9 (Core)", name: "කතෝලික ධර්මය / ක්‍රිස්තියානි" },
+            { category: "Grades 6 - 9 (Core)", name: "භූගෝල විද්‍යාව" },
+            { category: "Grades 6 - 9 (Core)", name: "පුරවැසි අධ්‍යාපනය" },
+            { category: "Grades 6 - 9 (Core)", name: "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය" },
+            { category: "Grades 6 - 9 (Core)", name: "ව්‍යවහාරික තාක්ෂණවේදය (PTS)" },
 
-            { category: "Grades 10 - 11", name: "සිංහල භාෂාව හා සාහිත්‍යය (O/L)" },
-            { category: "Grades 10 - 11", name: "ගණිතය (O/L)" },
-            { category: "Grades 10 - 11", name: "විද්‍යාව (O/L)" },
-            { category: "Grades 10 - 11", name: "ඉතිහාසය (O/L)" },
-            { category: "Grades 10 - 11", name: "ආගම (O/L)" },
-            { category: "Grades 10 - 11", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
-            { category: "Grades 10 - 11", name: "ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය" },
-            { category: "Grades 10 - 11", name: "කෘෂිකර්මය" },
-            { category: "Grades 10 - 11", name: "සෞන්දර්ය විෂයයන් (O/L)" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "සංගීතය" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "නැටුම්" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "චිත්‍ර" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "නාට්‍ය හා රංග කලාව" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "දෙමළ සාහිත්‍යය" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "ඉංග්‍රීසි සාහිත්‍යය" },
 
-            { category: "Grades 12 - 13", name: "සංයුක්ත ගණිතය" },
-            { category: "Grades 12 - 13", name: "භෞතික විද්‍යාව" },
-            { category: "Grades 12 - 13", name: "රසායන විද්‍යාව" },
-            { category: "Grades 12 - 13", name: "ජීව විද්‍යාව" },
-            { category: "Grades 12 - 13", name: "තාක්ෂණය සඳහා විද්‍යාව (SFT)" },
-            { category: "Grades 12 - 13", name: "ඉංජිනේරු තාක්ෂණවේදය (ET)" },
-            { category: "Grades 12 - 13", name: "ජීව පද්ධති තාක්ෂණවේදය (BST)" },
-            { category: "Grades 12 - 13", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (A/L ICT)" },
-            { category: "Grades 12 - 13", name: "ආර්ථික විද්‍යාව" },
-            { category: "Grades 12 - 13", name: "ව්‍යාපාර අධ්‍යයනය" },
-            { category: "Grades 12 - 13", name: "ගිණුම්කරණය" },
-            { category: "Grades 12 - 13", name: "කලා විෂයයන් (Arts)" },
-            { category: "Grades 12 - 13", name: "සාමාන්‍ය ඉංග්‍රීසි" }
+            { category: "Grades 10 - 11 (Core)", name: "සිංහල භාෂාව හා සාහිත්‍යය (O/L)" },
+            { category: "Grades 10 - 11 (Core)", name: "ගණිතය (O/L)" },
+            { category: "Grades 10 - 11 (Core)", name: "විද්‍යාව (O/L)" },
+            { category: "Grades 10 - 11 (Core)", name: "ඉතිහාසය (O/L)" },
+            { category: "Grades 10 - 11 (Core)", name: "ආගම (O/L)" },
+            { category: "Grades 10 - 11 (Core)", name: "ඉංග්‍රීසි (O/L)" },
+            
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "කෘෂිකර්මය" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "ගෘහ ආර්ථික විද්‍යාව" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "පුරවැසි අධ්‍යාපනය (O/L කාණ්ඩ)" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "භූගෝල විද්‍යාව (O/L කාණ්ඩ)" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය (O/L කාණ්ඩ)" },
+
+            { category: "A/L - විද්‍යා ධාරාව", name: "සංයුක්ත ගණිතය" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "භෞතික විද්‍යාව" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "රසායන විද්‍යාව" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "ජීව විද්‍යාව" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "කෘෂි විද්‍යාව" },
+            
+            { category: "A/L - තාක්ෂණ ධාරාව", name: "තාක්ෂණය සඳහා විද්‍යාව (SFT)" },
+            { category: "A/L - තාක්ෂණ ධාරාව", name: "ඉංජිනේරු තාක්ෂණවේදය (ET)" },
+            { category: "A/L - තාක්ෂණ ධාරාව", name: "ජීව පද්ධති තාක්ෂණවේදය (BST)" },
+            { category: "A/L - තාක්ෂණ ධාරාව", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
+
+            { category: "A/L - වාණිජ ධාරාව", name: "ආර්ථික විද්‍යාව" },
+            { category: "A/L - වාණිජ ධාරාව", name: "ව්‍යාපාර අධ්‍යයනය" },
+            { category: "A/L - වාණිජ ධාරාව", name: "ගිණුම්කරණය" },
+            { category: "A/L - වාණිජ ධාරාව", name: "ව්‍යාපාර සංඛ්‍යානය" },
+
+            { category: "A/L - කලා ධාරාව", name: "රාජ්‍ය විද්‍යාව" },
+            { category: "A/L - කලා ධාරාව", name: "තර්කශාස්ත්‍රය හා විද්‍යා දර්ශනය" },
+            { category: "A/L - කලා ධාරාව", name: "භූගෝල විද්‍යාව (A/L)" },
+            { category: "A/L - කලා ධාරාව", name: "බෞද්ධ සංස්කෘතිය" },
+            { category: "A/L - කලා ධාරාව", name: "ඉතිහාසය (A/L)" },
+
+            { category: "A/L - Common", name: "සාමාන්‍ය ඉංග්‍රීසි" },
+            { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
+            initializeDatabaseSubjects();
             setupEventListeners();
             setTodayDate();
             checkAuthState();
             setupRegistrationRestrictions();
         });
 
-        // This migrates old DB format to new formatted subjects if needed
         async function initializeDatabaseSubjects() {
             try {
                 const subRef = db.ref('subjects');
@@ -637,8 +667,7 @@
                     let data = snapshot.val();
                     let firstKey = Object.keys(data)[0];
                     let firstVal = data[firstKey];
-                    // If it's the old flat string format, OR missing category, we MUST update it
-                    if (typeof firstVal === 'string' || !firstVal.category) {
+                    if (typeof firstVal === 'string' || !firstVal.category || firstVal.category === "Grades 6 - 9") {
                         needsUpdate = true;
                     }
                 }
@@ -650,7 +679,6 @@
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
-                    console.log("Database subjects migrated to Category Format.");
                 }
             } catch (err) {
                 console.error("Error initializing subjects in DB:", err);
@@ -1295,15 +1323,20 @@
                 subjectEl.innerHTML = '<option value="">All Subjects</option>';
             }
 
-            // Extract grade number from selected class (e.g. "Grade 6 - A" -> 6)
-            let targetCategory = "All";
+            // Determine Target Category based on Grade number
+            let targetCategories = ["All"];
             if(selectedClass) {
                 const match = selectedClass.match(/(\d+)/); 
                 if(match) {
+                    targetCategories = ["General (පොදු)", "General"];
                     const grade = parseInt(match[1]);
-                    if(grade >= 6 && grade <= 9) targetCategory = "Grades 6 - 9";
-                    else if(grade >= 10 && grade <= 11) targetCategory = "Grades 10 - 11";
-                    else if(grade >= 12 && grade <= 13) targetCategory = "Grades 12 - 13";
+                    if(grade >= 6 && grade <= 9) {
+                        targetCategories.push("Grades 6 - 9 (Core)", "සෞන්දර්ය විෂයයන් (Aesthetics)");
+                    } else if(grade >= 10 && grade <= 11) {
+                        targetCategories.push("Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "සෞන්දර්ය විෂයයන් (Aesthetics)");
+                    } else if(grade >= 12 && grade <= 13) {
+                        targetCategories.push("A/L - විද්‍යා ධාරාව", "A/L - තාක්ෂණ ධාරාව", "A/L - වාණිජ ධාරාව", "A/L - කලා ධාරාව", "A/L - Common");
+                    }
                 }
             }
 
@@ -1311,11 +1344,9 @@
             
             allSubjectsList.forEach(sub => {
                 let show = false;
-                if (targetCategory === "All") {
+                if (targetCategories.includes("All")) {
                     show = true;
-                } else if (sub.category.includes("General") || sub.category.includes("පොදු")) {
-                    show = true; 
-                } else if (sub.category === targetCategory) {
+                } else if (targetCategories.includes(sub.category)) {
                     show = true;
                 }
 
@@ -1325,7 +1356,14 @@
                 }
             });
 
-            const catOrder = ["General (පොදු)", "General", "Grades 6 - 9", "Grades 10 - 11", "Grades 12 - 13", "Other"];
+            const catOrder = [
+                "General (පොදු)", "General", 
+                "Grades 6 - 9 (Core)", 
+                "Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", 
+                "සෞන්දර්ය විෂයයන් (Aesthetics)", 
+                "A/L - විද්‍යා ධාරාව", "A/L - තාක්ෂණ ධාරාව", "A/L - වාණිජ ධාරාව", "A/L - කලා ධාරාව", "A/L - Common", 
+                "Other"
+            ];
             
             catOrder.forEach(cat => {
                 if(subjectsByCategory[cat] && subjectsByCategory[cat].length > 0) {
@@ -1356,17 +1394,18 @@
             }
         }
 
-        async function loadClassAndSubjectDropdowns() {
-            // Populate Classes
+        function loadClassAndSubjectDropdowns() {
             const classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
             classSelectors.forEach(selector => {
                 const element = document.getElementById(selector);
                 if (element) {
-                    const currentValue = element.value;
+                    const currentValue = element.value; 
+                    
                     element.innerHTML = '<option value="">All Classes</option>';
                     if(selector === 'selectClass' || selector === 'studentGrade') {
                         element.innerHTML = '<option value="">Select Class</option>';
                     }
+                    
                     for (let g = 6; g <= 11; g++) {
                         ['A', 'B', 'C', 'D', 'E', 'F', 'G'].forEach(cls => {
                             const option = document.createElement('option');
@@ -1388,8 +1427,22 @@
                 }
             });
 
-            // Ensure DB has categorized structure before loading
-            await initializeDatabaseSubjects();
+            // Bind change events to Class dropdowns so Subjects update dynamically
+            const sc = document.getElementById('selectClass');
+            if(sc && !sc.dataset.bound) {
+                sc.addEventListener('change', () => filterSubjectsDropdown('selectClass', 'selectSubject'));
+                sc.dataset.bound = "true";
+            }
+            const rc = document.getElementById('reportClass');
+            if(rc && !rc.dataset.bound) {
+                rc.addEventListener('change', () => filterSubjectsDropdown('reportClass', 'reportSubject'));
+                rc.dataset.bound = "true";
+            }
+            const vc = document.getElementById('viewClass');
+            if(vc && !vc.dataset.bound) {
+                vc.addEventListener('change', () => filterSubjectsDropdown('viewClass', 'viewSubject'));
+                vc.dataset.bound = "true";
+            }
 
             db.ref('subjects').once('value').then(snap => {
                 allSubjectsList = [];
@@ -1401,25 +1454,7 @@
                         allSubjectsList.push({ key: child.key, name: subName, category: subCat });
                     });
                 }
-
-                // Bind Change Events for Filtering
-                const sc = document.getElementById('selectClass');
-                if(sc && !sc.dataset.bound) {
-                    sc.addEventListener('change', () => filterSubjectsDropdown('selectClass', 'selectSubject'));
-                    sc.dataset.bound = "true";
-                }
-                const rc = document.getElementById('reportClass');
-                if(rc && !rc.dataset.bound) {
-                    rc.addEventListener('change', () => filterSubjectsDropdown('reportClass', 'reportSubject'));
-                    rc.dataset.bound = "true";
-                }
-                const vc = document.getElementById('viewClass');
-                if(vc && !vc.dataset.bound) {
-                    vc.addEventListener('change', () => filterSubjectsDropdown('viewClass', 'viewSubject'));
-                    vc.dataset.bound = "true";
-                }
-
-                // Initial Load
+                // Initial render for all dropdowns
                 filterSubjectsDropdown('selectClass', 'selectSubject');
                 filterSubjectsDropdown('reportClass', 'reportSubject');
                 filterSubjectsDropdown('viewClass', 'viewSubject');
@@ -1506,7 +1541,6 @@
                         <tr data-safestudentid="${safeStudentId}" data-studentid="${st.student_id}">
                             <td>${st.student_id}</td>
                             <td class="st-name" style="white-space:normal;">${st.name}</td>
-                            <td>${st.grade.replace('Grade ','')}</td>
                             <td>
                                 <select class="att-status" style="padding:5px; border-radius:4px;">
                                     <option value="Present">Present</option>
@@ -1665,7 +1699,7 @@
                             tableHtml += `
                                 <tr>
                                     <td>${cName.replace('Grade ','')}</td>
-                                    <td>${pName === 'Daily Attendance' ? pName : 'Period ' + pName}</td>
+                                    <td>${pName === 'Daily Attendance' ? 'Daily' : 'Period ' + pName}</td>
                                     <td style="white-space:normal; font-size:0.9em;">${sName}</td>
                                     <td style="color: green; font-weight: bold;">${p}</td>
                                     <td style="color: red; font-weight: bold;">${a}</td>
@@ -1729,7 +1763,7 @@
                                 const rec = stSnap.val();
                                 const stName = rec.name || "Unknown";
                                 const statusColor = rec.status === 'Present' ? 'green' : 'red';
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? rec.period : `Period ${rec.period || periodName}`;
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : rec.period || periodName;
                                 html += `
                                     <tr>
                                         <td>${rec.student_id}</td>
@@ -1798,7 +1832,7 @@
 
                             subSnap.forEach(stSnap => {
                                 const rec = stSnap.val();
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? rec.period : `Period ${rec.period || periodName}`;
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : `Period ${rec.period || periodName}`;
                                 tableData.push([
                                     index++,
                                     rec.student_id,
