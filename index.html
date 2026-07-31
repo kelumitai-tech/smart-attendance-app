@@ -666,12 +666,16 @@
                     needsUpdate = true;
                 } else {
                     let data = snapshot.val();
-                    let firstKey = Object.keys(data)[0];
-                    let firstVal = data[firstKey];
-                    // Overwrite if old structure is found
-                    if (typeof firstVal === 'string' || !firstVal.category || firstVal.category === "Grades 6 - 9") {
-                        needsUpdate = true;
+                    let hasOldData = false;
+                    for (let key in data) {
+                        if (typeof data[key] === 'string') {
+                            hasOldData = true; break;
+                        }
+                        if (data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11") {
+                            hasOldData = true; break;
+                        }
                     }
+                    if (hasOldData) needsUpdate = true;
                 }
 
                 if (needsUpdate) {
@@ -681,6 +685,7 @@
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
+                    console.log("Database subjects updated successfully!");
                 }
             } catch (err) {
                 console.error("Error initializing subjects in DB:", err);
@@ -1326,20 +1331,19 @@
                 subjectEl.innerHTML = '<option value="">All Subjects</option>';
             }
 
-            // Advanced parsing of selected Class string (e.g. "Grade 10 - A")
             let targetCategories = ["All"];
             if(selectedClass) {
                 const match = selectedClass.match(/(\d+)/); 
                 if(match) {
-                    targetCategories = ["General", "General (පොදු)"]; 
+                    targetCategories = ["General (පොදු)", "General"]; 
                     const grade = parseInt(match[1]);
                     
                     if(grade >= 6 && grade <= 9) {
-                        targetCategories.push("Grades 6 - 9 (Core)", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
+                        targetCategories.push("Grades 6 - 9 (Core)", "Grades 6 - 9", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
                     } else if(grade >= 10 && grade <= 11) {
-                        targetCategories.push("Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
+                        targetCategories.push("Grades 10 - 11 (Core)", "Grades 10 - 11", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
                     } else if(grade >= 12 && grade <= 13) {
-                        targetCategories.push("A/L - විද්‍යා ධාරාව", "A/L - Science", "A/L - තාක්ෂණ ධාරාව", "A/L - Tech", "A/L - වාණිජ ධාරාව", "A/L - Commerce", "A/L - කලා ධාරාව", "A/L - Arts", "A/L - Common");
+                        targetCategories.push("A/L - විද්‍යා ධාරාව", "A/L - Science", "A/L - තාක්ෂණ ධාරාව", "A/L - Tech", "A/L - වාණිජ ධාරාව", "A/L - Commerce", "A/L - කලා ධාරාව", "A/L - Arts", "A/L - Common", "Grades 12 - 13");
                     }
                 }
             }
@@ -1362,17 +1366,17 @@
                 }
             });
 
-            // Specific display order for the dropdown
             const catOrder = [
                 "General (පොදු)", "General", 
-                "Grades 6 - 9 (Core)", 
-                "Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)",
+                "Grades 6 - 9 (Core)", "Grades 6 - 9",
+                "Grades 10 - 11 (Core)", "Grades 10 - 11", 
+                "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)",
                 "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics",
                 "A/L - විද්‍යා ධාරාව", "A/L - Science", 
                 "A/L - තාක්ෂණ ධාරාව", "A/L - Tech", 
                 "A/L - වාණිජ ධාරාව", "A/L - Commerce", 
                 "A/L - කලා ධාරාව", "A/L - Arts", 
-                "A/L - Common", "Other"
+                "A/L - Common", "Grades 12 - 13", "Other"
             ];
             
             catOrder.forEach(cat => {
@@ -1389,7 +1393,6 @@
                 }
             });
             
-            // Add any missing custom categories
             for(let cat in subjectsByCategory) {
                 if(!catOrder.includes(cat)) {
                     const optgroup = document.createElement('optgroup');
@@ -1556,6 +1559,7 @@
                         <tr data-safestudentid="${safeStudentId}" data-studentid="${st.student_id}">
                             <td>${st.student_id}</td>
                             <td class="st-name" style="white-space:normal;">${st.name}</td>
+                            <td>${st.grade.replace('Grade ','')}</td>
                             <td>
                                 <select class="att-status" style="padding:5px; border-radius:4px;">
                                     <option value="Present">Present</option>
@@ -1597,7 +1601,7 @@
                 
                 if(safeStudentId) {
                     const safeClass = getSafeKey(selectedClass);
-                    const safePeriod = "Period_" + selectedPeriod;
+                    const safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
                     const safeSubject = getSafeKey(selectedSubject);
                     
                     const path = `attendance/${date}/${safeClass}/${safePeriod}/${safeSubject}/${safeStudentId}`;
@@ -1650,7 +1654,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '');
+                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
 
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1714,7 +1718,7 @@
                             tableHtml += `
                                 <tr>
                                     <td>${cName.replace('Grade ','')}</td>
-                                    <td>Period ${pName}</td>
+                                    <td>${pName === 'Daily School Attendance' ? 'Daily' : 'Period ' + pName}</td>
                                     <td style="white-space:normal; font-size:0.9em;">${sName}</td>
                                     <td style="color: green; font-weight: bold;">${p}</td>
                                     <td style="color: red; font-weight: bold;">${a}</td>
@@ -1753,12 +1757,12 @@
                 return;
             }
 
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align: center;'>Loading records...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>Loading records...</td></tr>";
 
             try {
                 const snapshot = await db.ref('attendance/' + date).once('value');
                 if(!snapshot.exists()) {
-                    tbody.innerHTML = "<tr><td colspan='5' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
                     return;
                 }
 
@@ -1768,7 +1772,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '');
+                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
                         
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1778,13 +1782,14 @@
                                 const rec = stSnap.val();
                                 const stName = rec.name || "Unknown";
                                 const statusColor = rec.status === 'Present' ? 'green' : 'red';
-                                const pNameDisplay = `Period ${rec.period || periodName}`;
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : rec.period || periodName;
                                 html += `
                                     <tr>
                                         <td>${rec.student_id}</td>
                                         <td style="white-space:normal;">${stName}</td>
                                         <td>${rec.class.replace('Grade ','')}</td>
                                         <td>${pNameDisplay}</td>
+                                        <td>${rec.subject}</td>
                                         <td style="color:${statusColor}; font-weight:bold;">${rec.status}</td>
                                     </tr>
                                 `;
@@ -1793,10 +1798,10 @@
                     });
                 });
 
-                if(!html) html = "<tr><td colspan='5' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
+                if(!html) html = "<tr><td colspan='6' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
                 tbody.innerHTML = html;
             } catch(err) {
-                tbody.innerHTML = "<tr><td colspan='5' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
             }
         }
 
@@ -1838,7 +1843,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '');
+                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
                         
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1846,7 +1851,7 @@
 
                             subSnap.forEach(stSnap => {
                                 const rec = stSnap.val();
-                                const pNameDisplay = `Period ${rec.period || periodName}`;
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : `Period ${rec.period || periodName}`;
                                 tableData.push([
                                     index++,
                                     rec.student_id,
