@@ -148,6 +148,7 @@
                 <!-- View Attendance is strictly for Admin/Principal -->
                 <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
+                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers & Leaves</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
@@ -173,6 +174,7 @@
                             <label>Select Period</label>
                             <select id="selectPeriod">
                                 <option value="">Select Period</option>
+                                <option value="Daily Attendance" style="font-weight: bold; color: #005A9C;">🏫 Daily School Attendance</option>
                                 <option value="1">1st Period</option>
                                 <option value="2">2nd Period</option>
                                 <option value="3">3rd Period</option>
@@ -342,6 +344,71 @@
                 </div>
             </div>
 
+            <!-- Teachers & Leaves Management Tab (Admin Only) -->
+            <div class="tab-content" id="teachers">
+                <div class="card">
+                    <h3>👨‍🏫 Add New Teacher</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Teacher ID</label>
+                            <input type="text" id="addTeacherId" placeholder="e.g., T001">
+                        </div>
+                        <div class="form-group">
+                            <label>Teacher Name</label>
+                            <input type="text" id="addTeacherName" placeholder="Enter full name">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="saveNewTeacherBtn">Add Teacher</button>
+                    <div class="success-msg" id="teacherSuccessMsg"></div>
+                </div>
+
+                <div class="card">
+                    <h3>📅 Mark Teacher Attendance & Leaves</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="teacherAttDate">
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadTeacherAttendanceSheet()">Load Teachers</button>
+                    
+                    <div id="teacherAttendanceDiv" style="display:none; margin-top: 20px;">
+                        <table id="teacherAttTable">
+                            <thead>
+                                <tr>
+                                    <th>Teacher ID</th>
+                                    <th>Name</th>
+                                    <th>Status / Leave Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherAttTbody">
+                            </tbody>
+                        </table>
+                        <button class="btn btn-primary" style="margin-top: 15px;" onclick="saveTeacherAttendance()">💾 Save Teacher Attendance</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📋 Teacher Leave Summary (Current Month & Year)</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Month Leave (Casual/Sick/Duty)</th>
+                                    <th>Year Leave (Casual/Sick/Duty)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherListTbody">
+                                <tr><td colspan="5" class="loading">Loading teachers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Subjects Management Tab -->
             <div class="tab-content" id="subjects">
                 <div class="card">
@@ -380,8 +447,15 @@
                 <div class="card"><h3>🎯 Principal Dashboard</h3>
                     <div class="grid-3">
                         <div class="stats-card"><p>Total Students</p><h2 id="totalStudentsCount">0</h2></div>
-                        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"><p>Total Teachers</p><h2>Active</h2></div>
-                        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"><p>System Status</p><h2>Online</h2></div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"><p>Today's Present Teachers</p><h2 id="presentTeachersCount">0</h2></div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"><p>Today's Absent Teachers</p><h2 id="absentTeachersCount">0</h2></div>
+                    </div>
+                    
+                    <div class="card" style="margin-top: 20px; background: #fff;">
+                        <h3 style="color: #c62828;">📌 Today's Absent Teachers & Reasons</h3>
+                        <div id="absentTeachersList" style="margin-top: 15px;">
+                            <p>Loading data...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -470,12 +544,17 @@
             document.getElementById('backToLoginBtn').addEventListener('click', showLoginForm);
             document.getElementById('confirmRegisterBtn').addEventListener('click', doRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
+            
             document.getElementById('addStudentBtn').addEventListener('click', addStudent);
             document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendanceSheet);
+            
             document.getElementById('generateReportBtn').addEventListener('click', generateReportSummary);
             document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdfReport);
+            
             document.getElementById('saveSubjectBtn').addEventListener('click', saveSubject);
             document.getElementById('cancelEditBtn').addEventListener('click', resetSubjectForm);
+
+            document.getElementById('saveNewTeacherBtn').addEventListener('click', saveNewTeacher);
             
             document.querySelectorAll('.nav-tab').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -486,12 +565,11 @@
 
         function setTodayDate() {
             const today = new Date().toISOString().split('T')[0];
-            const startDate = document.getElementById('startDate');
-            if (startDate) startDate.value = today;
-            const reportDate = document.getElementById('reportDate');
-            if (reportDate) reportDate.value = today;
-            const viewDate = document.getElementById('viewDate');
-            if (viewDate) viewDate.value = today;
+            const ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = today;
+            });
         }
 
         function checkAuthState() {
@@ -636,9 +714,14 @@
                 updateDashboardStats();
             } else if (tabName === 'subjects') {
                 loadSubjectsManagement();
+            } else if (tabName === 'teachers') {
+                loadTeachersAndLeaves();
             }
         }
 
+        // ==========================================
+        // STUDENT FUNCTIONS
+        // ==========================================
         async function addStudent() {
             const studentId = document.getElementById('studentId').value;
             const name = document.getElementById('studentName').value;
@@ -718,6 +801,206 @@
             }
         }
 
+        // ==========================================
+        // TEACHER FUNCTIONS
+        // ==========================================
+        async function saveNewTeacher() {
+            const tid = document.getElementById('addTeacherId').value.trim();
+            const tname = document.getElementById('addTeacherName').value.trim();
+            const msg = document.getElementById('teacherSuccessMsg');
+
+            if(!tid || !tname) {
+                alert("Teacher ID and Name are required!");
+                return;
+            }
+
+            try {
+                await db.ref('teachers/' + tid).set({
+                    teacher_id: tid,
+                    name: tname
+                });
+                msg.textContent = "Teacher added successfully!";
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display='none', 3000);
+                
+                document.getElementById('addTeacherId').value = '';
+                document.getElementById('addTeacherName').value = '';
+                loadTeachersAndLeaves();
+            } catch(e) {
+                alert("Error adding teacher: " + e.message);
+            }
+        }
+
+        async function loadTeachersAndLeaves() {
+            const tbody = document.getElementById('teacherListTbody');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Loading...</td></tr>";
+
+            const today = new Date();
+            const currentYear = today.getFullYear().toString();
+            const currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
+            const monthPrefix = `${currentYear}-${currentMonth}`;
+
+            try {
+                const [teachersSnap, attSnap] = await Promise.all([
+                    db.ref('teachers').once('value'),
+                    db.ref('teacher_attendance').once('value')
+                ]);
+
+                if(!teachersSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No teachers found.</td></tr>";
+                    return;
+                }
+
+                let attData = {}; 
+                
+                if(attSnap.exists()){
+                    attSnap.forEach(dateSnap => {
+                        const d = dateSnap.key; 
+                        const isCurrentYear = d.startsWith(currentYear);
+                        const isCurrentMonth = d.startsWith(monthPrefix);
+                        
+                        if(isCurrentYear) {
+                            dateSnap.forEach(tSnap => {
+                                const tid = tSnap.key;
+                                const status = tSnap.val().status; 
+                                
+                                if(!attData[tid]) attData[tid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                                
+                                if(status === 'Casual Leave') {
+                                    attData[tid].year.Casual++;
+                                    if(isCurrentMonth) attData[tid].month.Casual++;
+                                } else if (status === 'Sick Leave') {
+                                    attData[tid].year.Sick++;
+                                    if(isCurrentMonth) attData[tid].month.Sick++;
+                                } else if (status === 'Duty Leave') {
+                                    attData[tid].year.Duty++;
+                                    if(isCurrentMonth) attData[tid].month.Duty++;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                let html = '';
+                teachersSnap.forEach(child => {
+                    const t = child.val();
+                    const tid = t.teacher_id;
+                    const stats = attData[tid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                    
+                    const monthStr = `Casual: <strong>${stats.month.Casual}</strong> | Sick: <strong>${stats.month.Sick}</strong> | Duty: <strong>${stats.month.Duty}</strong>`;
+                    const yearStr = `Casual: <strong>${stats.year.Casual}</strong> | Sick: <strong>${stats.year.Sick}</strong> | Duty: <strong>${stats.year.Duty}</strong>`;
+                    
+                    html += `<tr>
+                        <td>${tid}</td>
+                        <td><strong>${t.name}</strong></td>
+                        <td style="font-size: 0.9em; color: #555;">${monthStr}</td>
+                        <td style="font-size: 0.9em; color: #555;">${yearStr}</td>
+                        <td><button onclick="deleteTeacher('${child.key}')" class="btn btn-danger btn-small">Delete</button></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = "<tr><td colspan='5' style='color:red;'>Error loading teachers</td></tr>";
+            }
+        }
+
+        async function deleteTeacher(tid) {
+            if(confirm("Are you sure you want to remove this teacher?")) {
+                try {
+                    await db.ref('teachers/' + tid).remove();
+                    loadTeachersAndLeaves();
+                } catch(e) {
+                    alert("Error: " + e.message);
+                }
+            }
+        }
+
+        async function loadTeacherAttendanceSheet() {
+            const date = document.getElementById('teacherAttDate').value;
+            if(!date) { alert("Please select date!"); return; }
+
+            document.getElementById('teacherAttendanceDiv').style.display = 'block';
+            const tbody = document.getElementById('teacherAttTbody');
+            tbody.innerHTML = "<tr><td colspan='3'>Loading...</td></tr>";
+
+            try {
+                const [tSnap, attSnap] = await Promise.all([
+                    db.ref('teachers').once('value'),
+                    db.ref(`teacher_attendance/${date}`).once('value')
+                ]);
+
+                if(!tSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='3'>No teachers registered yet.</td></tr>";
+                    return;
+                }
+
+                const existingAtt = attSnap.exists() ? attSnap.val() : {};
+                let html = '';
+
+                tSnap.forEach(child => {
+                    const t = child.val();
+                    const tid = t.teacher_id;
+                    const currentStatus = existingAtt[tid] ? existingAtt[tid].status : 'Present';
+
+                    html += `
+                        <tr data-tid="${tid}">
+                            <td>${tid}</td>
+                            <td class="t-name"><strong>${t.name}</strong></td>
+                            <td>
+                                <select class="t-status" style="padding: 5px; border-radius: 4px; width: 100%;">
+                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present (පැමිණ ඇත)</option>
+                                    <option value="Casual Leave" ${currentStatus==='Casual Leave'?'selected':''}>Absent - Casual Leave (අනියම් නිවාඩු)</option>
+                                    <option value="Sick Leave" ${currentStatus==='Sick Leave'?'selected':''}>Absent - Sick Leave (අසනීප නිවාඩු)</option>
+                                    <option value="Duty Leave" ${currentStatus==='Duty Leave'?'selected':''}>Absent - Duty Leave (රාජකාරී නිවාඩු)</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = "<tr><td colspan='3' style='color:red;'>Error fetching data.</td></tr>";
+            }
+        }
+
+        async function saveTeacherAttendance() {
+            const date = document.getElementById('teacherAttDate').value;
+            if(!date) return;
+
+            const rows = document.querySelectorAll('#teacherAttTbody tr');
+            if(rows.length === 0) return;
+
+            let updates = {};
+            rows.forEach(row => {
+                const tid = row.getAttribute('data-tid');
+                if(tid) {
+                    const tname = row.querySelector('.t-name').innerText;
+                    const status = row.querySelector('.t-status').value;
+                    updates[`teacher_attendance/${date}/${tid}`] = {
+                        teacher_id: tid,
+                        name: tname,
+                        status: status,
+                        date: date
+                    };
+                }
+            });
+
+            try {
+                await db.ref().update(updates);
+                alert("Teacher Attendance Saved Successfully!");
+                loadTeachersAndLeaves(); 
+                updateDashboardStats();
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        // ==========================================
+        // SUBJECT FUNCTIONS
+        // ==========================================
         async function loadSubjectsManagement() {
             const tbody = document.getElementById('subjectsTableBody');
             const countSpan = document.getElementById('subjectCount');
@@ -865,12 +1148,50 @@
         }
         
         async function updateDashboardStats() {
-            const snapshot = await db.ref('students').once('value');
-            let count = 0;
-            if(snapshot.exists()){
-                snapshot.forEach(() => { count++; });
+            try {
+                // 1. Students Count
+                const stSnap = await db.ref('students').once('value');
+                let stCount = 0;
+                if(stSnap.exists()) stSnap.forEach(() => { stCount++; });
+                document.getElementById('totalStudentsCount').textContent = stCount;
+
+                // 2. Teachers Dashboard Logic
+                const today = new Date().toISOString().split('T')[0];
+                const tAttSnap = await db.ref(`teacher_attendance/${today}`).once('value');
+                
+                let pCount = 0;
+                let aCount = 0;
+                let absentHtml = '';
+
+                if(tAttSnap.exists()) {
+                    tAttSnap.forEach(tSnap => {
+                        const rec = tSnap.val();
+                        if(rec.status === 'Present') {
+                            pCount++;
+                        } else {
+                            aCount++;
+                            absentHtml += `
+                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
+                                <strong>${rec.name} (${rec.teacher_id})</strong><br>
+                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
+                            </div>`;
+                        }
+                    });
+                }
+
+                document.getElementById('presentTeachersCount').textContent = pCount;
+                document.getElementById('absentTeachersCount').textContent = aCount;
+
+                if(aCount === 0) {
+                    absentHtml = "<p style='color: green;'>✅ All assigned teachers are present today (or no records marked yet).</p>";
+                }
+                
+                const absentListDiv = document.getElementById('absentTeachersList');
+                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
+
+            } catch (error) {
+                console.error("Dashboard update error", error);
             }
-            document.getElementById('totalStudentsCount').textContent = count;
         }
 
         async function loadAttendanceSheet() {
@@ -941,7 +1262,7 @@
                 const status = row.querySelector('.att-status').value;
                 if(studentId) {
                     const safeClass = selectedClass.replace(/[\.#$\/\[\]]/g, '_');
-                    const safePeriod = "Period_" + selectedPeriod;
+                    const safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
                     const safeSubject = selectedSubject.replace(/[\.#$\/\[\]]/g, '_');
                     
                     const path = `attendance/${date}/${safeClass}/${safePeriod}/${safeSubject}/${studentId}`;
@@ -994,7 +1315,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '');
+                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
 
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1059,7 +1380,7 @@
                             tableHtml += `
                                 <tr>
                                     <td>${cName}</td>
-                                    <td>Period ${pName}</td>
+                                    <td>${pName === 'Daily School Attendance' ? pName : 'Period ' + pName}</td>
                                     <td>${sName}</td>
                                     <td style="color: green; font-weight: bold;">${p}</td>
                                     <td style="color: red; font-weight: bold;">${a}</td>
@@ -1113,7 +1434,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '');
+                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
                         
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1123,12 +1444,13 @@
                                 const rec = stSnap.val();
                                 const stName = rec.name || "Unknown";
                                 const statusColor = rec.status === 'Present' ? 'green' : 'red';
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? rec.period : `Period ${rec.period || periodName}`;
                                 html += `
                                     <tr>
                                         <td>${rec.student_id}</td>
                                         <td>${stName}</td>
                                         <td>${rec.class}</td>
-                                        <td>Period ${rec.period || periodName}</td>
+                                        <td>${pNameDisplay}</td>
                                         <td>${rec.subject}</td>
                                         <td style="color:${statusColor}; font-weight:bold;">${rec.status}</td>
                                     </tr>
@@ -1183,7 +1505,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '');
+                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
                         
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1191,11 +1513,12 @@
 
                             subSnap.forEach(stSnap => {
                                 const rec = stSnap.val();
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? rec.period : `Period ${rec.period || periodName}`;
                                 tableData.push([
                                     index++,
                                     rec.student_id,
                                     rec.class,
-                                    `Period ${rec.period || periodName}`,
+                                    pNameDisplay,
                                     rec.subject,
                                     rec.status
                                 ]);
