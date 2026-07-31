@@ -206,7 +206,7 @@
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Att.</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
-                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers</button>
+                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers & Leaves</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
@@ -214,7 +214,7 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject and period to mark attendance. (Select class to filter subjects).</div>
+                    <div class="info-box">Select class first to filter relevant subjects. Then select Subject, Period and Date.</div>
                     <div class="grid-3">
                         <div class="form-group">
                             <label>Select Class</label>
@@ -225,13 +225,14 @@
                         <div class="form-group">
                             <label>Select Subject</label>
                             <select id="selectSubject">
-                                <option value="">Loading subjects...</option>
+                                <option value="">Select Subject</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Select Period</label>
                             <select id="selectPeriod">
                                 <option value="">Select Period</option>
+                                <option value="Daily Attendance" style="font-weight: bold; color: #005A9C;">🏫 Daily School Attendance</option>
                                 <option value="1">1st Period</option>
                                 <option value="2">2nd Period</option>
                                 <option value="3">3rd Period</option>
@@ -472,7 +473,7 @@
             <div class="tab-content" id="subjects">
                 <div class="card">
                     <h3 id="subjectFormTitle">Add New Subject</h3>
-                    <div class="info-box">Subjects are categorized into Grade levels for easy finding in dropdowns.</div>
+                    <div class="info-box">Subjects are categorized into Grade levels for easy filtering.</div>
                     
                     <input type="hidden" id="editSubjectKey" value="">
                     
@@ -571,8 +572,8 @@
         const roleDisplayMapping = { 'principal': 'Principal (Admin)', 'classTeacher': 'Class Teacher', 'subjectTeacher': 'Subject Teacher' };
         let appUserRole = 'subjectTeacher'; 
         let isRegistering = false; 
-        
-        let allSubjectsList = []; // Array to keep all subjects in memory for dynamic filtering
+
+        let allSubjectsList = []; // Global array to store subjects for dynamic filtering
 
         // Standard Sri Lankan Subjects Grouped by Category
         const defaultSlSubjects = [
@@ -1146,7 +1147,7 @@
 
 
         // ==========================================
-        // SUBJECT FUNCTIONS (DYNAMIC FILTERING)
+        // SUBJECT FUNCTIONS & DYNAMIC FILTERING
         // ==========================================
         async function loadSubjectsManagement() {
             const tbody = document.getElementById('subjectsTableBody');
@@ -1263,17 +1264,23 @@
             }
         }
 
+        // Logic to dynamically filter subjects based on the selected class
         function filterSubjectsDropdown(classElId, subjectElId) {
             const classEl = document.getElementById(classElId);
             const subjectEl = document.getElementById(subjectElId);
             if(!classEl || !subjectEl) return;
 
             const selectedClass = classEl.value;
-            subjectEl.innerHTML = '<option value="">All Subjects</option>';
+            
+            // Clear current subjects
+            subjectEl.innerHTML = '';
             if(subjectElId === 'selectSubject') {
                 subjectEl.innerHTML = '<option value="">Select Subject</option>';
+            } else {
+                subjectEl.innerHTML = '<option value="">All Subjects</option>';
             }
 
+            // Determine Target Category based on Grade number
             let targetCategory = "All";
             if(selectedClass) {
                 const match = selectedClass.match(/Grade (\d+)/);
@@ -1286,12 +1293,13 @@
             }
 
             const subjectsByCategory = {};
+            
             allSubjectsList.forEach(sub => {
                 let show = false;
                 if (targetCategory === "All") {
                     show = true;
-                } else if (sub.category === "General" || sub.category === "General (පොදු)") {
-                    show = true; // Always show General subjects (e.g. Daily Attendance)
+                } else if (sub.category === "General (පොදු)" || sub.category === "General") {
+                    show = true; // Always show General subjects (e.g., Daily Attendance)
                 } else if (sub.category === targetCategory) {
                     show = true;
                 }
@@ -1334,14 +1342,18 @@
         }
 
         function loadClassAndSubjectDropdowns() {
+            // Load Classes
             const classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
             classSelectors.forEach(selector => {
                 const element = document.getElementById(selector);
                 if (element) {
+                    const currentValue = element.value; // Keep previously selected value if any
+                    
                     element.innerHTML = '<option value="">All Classes</option>';
                     if(selector === 'selectClass' || selector === 'studentGrade') {
                         element.innerHTML = '<option value="">Select Class</option>';
                     }
+                    
                     for (let g = 6; g <= 11; g++) {
                         ['A', 'B', 'C', 'D', 'E', 'F', 'G'].forEach(cls => {
                             const option = document.createElement('option');
@@ -1359,29 +1371,14 @@
                             element.appendChild(option);
                         });
                     }
+                    if(currentValue) element.value = currentValue;
                 }
             });
 
-            // Bind change events for dynamic subject filtering
-            const sc = document.getElementById('selectClass');
-            if(sc && !sc.dataset.bound) {
-                sc.addEventListener('change', () => filterSubjectsDropdown('selectClass', 'selectSubject'));
-                sc.dataset.bound = true;
-            }
-            const rc = document.getElementById('reportClass');
-            if(rc && !rc.dataset.bound) {
-                rc.addEventListener('change', () => filterSubjectsDropdown('reportClass', 'reportSubject'));
-                rc.dataset.bound = true;
-            }
-            const vc = document.getElementById('viewClass');
-            if(vc && !vc.dataset.bound) {
-                vc.addEventListener('change', () => filterSubjectsDropdown('viewClass', 'viewSubject'));
-                vc.dataset.bound = true;
-            }
-
+            // Fetch subjects and bind dynamic filtering
             db.ref('subjects').once('value').then(snap => {
+                allSubjectsList = [];
                 if (snap.exists()) {
-                    allSubjectsList = [];
                     snap.forEach(child => {
                         const val = child.val();
                         let subName = val.name || val;
@@ -1389,12 +1386,29 @@
                         if(typeof val === 'string') subName = val;
                         allSubjectsList.push({ key: child.key, name: subName, category: subCat });
                     });
-                    
-                    // Initial render for all dropdowns
-                    filterSubjectsDropdown('selectClass', 'selectSubject');
-                    filterSubjectsDropdown('reportClass', 'reportSubject');
-                    filterSubjectsDropdown('viewClass', 'viewSubject');
                 }
+
+                // Bind change events to Class dropdowns so Subjects update dynamically
+                const sc = document.getElementById('selectClass');
+                if(sc && !sc.dataset.bound) {
+                    sc.addEventListener('change', () => filterSubjectsDropdown('selectClass', 'selectSubject'));
+                    sc.dataset.bound = "true";
+                }
+                const rc = document.getElementById('reportClass');
+                if(rc && !rc.dataset.bound) {
+                    rc.addEventListener('change', () => filterSubjectsDropdown('reportClass', 'reportSubject'));
+                    rc.dataset.bound = "true";
+                }
+                const vc = document.getElementById('viewClass');
+                if(vc && !vc.dataset.bound) {
+                    vc.addEventListener('change', () => filterSubjectsDropdown('viewClass', 'viewSubject'));
+                    vc.dataset.bound = "true";
+                }
+
+                // Initialize the subject dropdowns
+                filterSubjectsDropdown('selectClass', 'selectSubject');
+                filterSubjectsDropdown('reportClass', 'reportSubject');
+                filterSubjectsDropdown('viewClass', 'viewSubject');
             });
         }
         
@@ -1478,7 +1492,7 @@
                         <tr data-safestudentid="${safeStudentId}" data-studentid="${st.student_id}">
                             <td>${st.student_id}</td>
                             <td class="st-name" style="white-space:normal;">${st.name}</td>
-                            <td>${st.grade}</td>
+                            <td>${st.grade.replace('Grade ','')}</td>
                             <td>
                                 <select class="att-status" style="padding:5px; border-radius:4px;">
                                     <option value="Present">Present</option>
@@ -1637,7 +1651,7 @@
                             tableHtml += `
                                 <tr>
                                     <td>${cName.replace('Grade ','')}</td>
-                                    <td>Period ${pName}</td>
+                                    <td>${pName}</td>
                                     <td style="white-space:normal; font-size:0.9em;">${sName}</td>
                                     <td style="color: green; font-weight: bold;">${p}</td>
                                     <td style="color: red; font-weight: bold;">${a}</td>
@@ -1701,7 +1715,7 @@
                                 const rec = stSnap.val();
                                 const stName = rec.name || "Unknown";
                                 const statusColor = rec.status === 'Present' ? 'green' : 'red';
-                                const pNameDisplay = `Period ${rec.period || periodName}`;
+                                const pNameDisplay = rec.period || periodName;
                                 html += `
                                     <tr>
                                         <td>${rec.student_id}</td>
@@ -1770,7 +1784,7 @@
 
                             subSnap.forEach(stSnap => {
                                 const rec = stSnap.val();
-                                const pNameDisplay = `Period ${rec.period || periodName}`;
+                                const pNameDisplay = rec.period || periodName;
                                 tableData.push([
                                     index++,
                                     rec.student_id,
