@@ -43,6 +43,11 @@
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; background: white; outline: none; transition: border 0.3s; }
         .form-group input:focus, .form-group select:focus { border-color: #005A9C; }
         
+        /* CHECKBOX GRID FOR OPTIONAL SUBJECTS */
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+        .checkbox-grid label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: normal; cursor: pointer; color: #444; }
+        .checkbox-grid input[type="checkbox"] { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+
         /* OPTGROUP STYLING */
         select optgroup { font-weight: bold; color: #005A9C; background: #e3f2fd; font-size: 15px; }
         select option { font-weight: normal; color: #333; background: #fff; font-size: 14px; }
@@ -232,6 +237,7 @@
                             <label>Select Period</label>
                             <select id="selectPeriod">
                                 <option value="">Select Period</option>
+                                <option value="Daily Attendance" style="font-weight: bold; color: #005A9C;">🏫 Daily School Attendance</option>
                                 <option value="1">1st Period</option>
                                 <option value="2">2nd Period</option>
                                 <option value="3">3rd Period</option>
@@ -295,7 +301,7 @@
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Grade & Class</label>
-                            <select id="studentGrade">
+                            <select id="studentGrade" onchange="loadOptionalSubjectsForStudent()">
                                 <option value="">Loading classes...</option>
                             </select>
                         </div>
@@ -307,7 +313,16 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-full" id="addStudentBtn">Add Student</button>
+                    
+                    <!-- DYNAMIC OPTIONAL SUBJECTS FOR STUDENT -->
+                    <div class="form-group" id="optionalSubjectsGroup" style="display:none; background: #e8f4fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; margin-top: 10px;">
+                        <label style="color: #005A9C; margin-bottom: 10px; font-size: 1.05em;">📚 Select Optional / A/L Subjects for this Student</label>
+                        <div id="optionalSubjectsList" class="checkbox-grid">
+                            <!-- Checkboxes injected dynamically based on Grade -->
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-full" id="addStudentBtn" style="margin-top:15px;">Add Student</button>
                     <div class="success-msg" id="studentSuccess"></div>
                 </div>
 
@@ -321,11 +336,12 @@
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Class</th>
+                                    <th>Optional Subjects</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="studentTableBody">
-                                <tr><td colspan="5" style="text-align: center; padding: 20px;">Loading students...</td></tr>
+                                <tr><td colspan="6" style="text-align: center; padding: 20px;">Loading students...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -586,7 +602,7 @@
         let appUserRole = 'subjectTeacher'; 
         let isRegistering = false; 
 
-        let allSubjectsList = []; 
+        let allSubjectsList = []; // Global array to store subjects for dynamic filtering
 
         // Standard Sri Lankan Subjects Grouped by Extended Categories
         const defaultSlSubjects = [
@@ -900,6 +916,54 @@
         }
 
         // ==========================================
+        // DYNAMIC OPTIONAL SUBJECTS LOADER
+        // ==========================================
+        function loadOptionalSubjectsForStudent() {
+            const gradeVal = document.getElementById('studentGrade').value;
+            const container = document.getElementById('optionalSubjectsGroup');
+            const listDiv = document.getElementById('optionalSubjectsList');
+            
+            listDiv.innerHTML = '';
+            if(!gradeVal) {
+                container.style.display = 'none';
+                return;
+            }
+
+            const match = gradeVal.match(/(\d+)/);
+            if(!match) {
+                container.style.display = 'none';
+                return;
+            }
+
+            const grade = parseInt(match[1]);
+            let targetCategories = [];
+
+            if(grade >= 6 && grade <= 9) {
+                targetCategories = ["සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics"];
+            } else if(grade >= 10 && grade <= 11) {
+                targetCategories = ["සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)"];
+            } else if(grade >= 12 && grade <= 13) {
+                targetCategories = ["A/L - විද්‍යා ධාරාව", "A/L - තාක්ෂණ ධාරාව", "A/L - වාණිජ ධාරාව", "A/L - කලා ධාරාව", "A/L - Common", "A/L - Science", "A/L - Tech", "A/L - Commerce", "A/L - Arts"];
+            }
+
+            const filteredSubjects = allSubjectsList.filter(sub => targetCategories.includes(sub.category));
+
+            if(filteredSubjects.length > 0) {
+                container.style.display = 'block';
+                filteredSubjects.forEach(sub => {
+                    listDiv.innerHTML += `
+                        <label>
+                            <input type="checkbox" class="student-opt-sub" value="${sub.name}">
+                            ${sub.name}
+                        </label>
+                    `;
+                });
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // ==========================================
         // STUDENT FUNCTIONS
         // ==========================================
         async function addStudent() {
@@ -914,6 +978,12 @@
                 return;
             }
 
+            // Get selected optional subjects
+            const optSubs = [];
+            document.querySelectorAll('.student-opt-sub:checked').forEach(chk => {
+                optSubs.push(chk.value);
+            });
+
             const safeStudentId = getSafeKey(studentId);
 
             try {
@@ -921,7 +991,8 @@
                     student_id: studentId,
                     name: name,
                     grade: grade,
-                    gender: gender
+                    gender: gender,
+                    optional_subjects: optSubs // Save optional subjects
                 });
 
                 successMsg.textContent = "Student successfully added!";
@@ -930,6 +1001,8 @@
                 
                 document.getElementById('studentId').value = '';
                 document.getElementById('studentName').value = '';
+                document.querySelectorAll('.student-opt-sub').forEach(chk => chk.checked = false);
+                document.getElementById('optionalSubjectsGroup').style.display = 'none';
                 loadStudents();
             } catch (error) {
                 alert("Error: " + error.message);
@@ -940,12 +1013,12 @@
             const tbody = document.getElementById('studentTableBody');
             const countSpan = document.getElementById('studentCount');
             if(!tbody) return;
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align: center; padding: 20px;'>Loading students...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px;'>Loading students...</td></tr>";
             
             try {
                 const snapshot = await db.ref('students').once('value');
                 if (!snapshot.exists()) {
-                    tbody.innerHTML = "<tr><td colspan='5' style='text-align: center; padding: 20px;'>No students found.</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px;'>No students found.</td></tr>";
                     if(countSpan) countSpan.textContent = 0;
                     return;
                 }
@@ -954,12 +1027,15 @@
                 snapshot.forEach(childSnap => {
                     const student = childSnap.val();
                     const key = childSnap.key; 
+                    const optSubsStr = (student.optional_subjects && student.optional_subjects.length > 0) ? student.optional_subjects.join('<br> • ') : '<span style="color:#999;">Core Only</span>';
+                    
                     html += `
                         <tr>
                             <td>${index++}</td>
                             <td>${student.student_id}</td>
                             <td><strong>${student.name}</strong></td>
                             <td>${student.grade}</td>
+                            <td style="white-space:normal; font-size:0.85em; color:#005A9C;">${optSubsStr}</td>
                             <td><button onclick="deleteStudent('${key}')" class="btn btn-danger btn-small">Delete</button></td>
                         </tr>
                     `;
@@ -967,7 +1043,7 @@
                 tbody.innerHTML = html;
                 if(countSpan) countSpan.textContent = index - 1;
             } catch (error) {
-                tbody.innerHTML = "<tr><td colspan='5' style='text-align: center; color: red;'>Error fetching data.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>Error fetching data.</td></tr>";
             }
         }
 
@@ -1203,7 +1279,7 @@
         }
 
         // ==========================================
-        // SUBJECT FUNCTIONS & DYNAMIC FILTERING
+        // SUBJECT FUNCTIONS
         // ==========================================
         async function loadSubjectsManagement() {
             const tbody = document.getElementById('subjectsTableBody');
@@ -1334,20 +1410,19 @@
                 subjectEl.innerHTML = '<option value="">All Subjects</option>';
             }
 
-            // Extract grade number
             let targetCategories = ["All"];
             if(selectedClass) {
                 const match = selectedClass.match(/(\d+)/); 
                 if(match) {
-                    targetCategories = ["General (පොදු)", "General"]; 
+                    targetCategories = ["General", "General (පොදු)"]; 
                     const grade = parseInt(match[1]);
                     
                     if(grade >= 6 && grade <= 9) {
                         targetCategories.push("Grades 6 - 9 (Core)", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
                     } else if(grade >= 10 && grade <= 11) {
-                        targetCategories.push("Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
+                        targetCategories.push("Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
                     } else if(grade >= 12 && grade <= 13) {
-                        targetCategories.push("A/L - විද්‍යා ධාරාව", "A/L - තාක්ෂණ ධාරාව", "A/L - වාණිජ ධාරාව", "A/L - කලා ධාරාව", "A/L - Common");
+                        targetCategories.push("A/L - විද්‍යා ධාරාව", "A/L - Science", "A/L - තාක්ෂණ ධාරාව", "A/L - Tech", "A/L - වාණිජ ධාරාව", "A/L - Commerce", "A/L - කලා ධාරාව", "A/L - Arts", "A/L - Common");
                     }
                 }
             }
@@ -1370,14 +1445,16 @@
                 }
             });
 
-            // Specific display order for the dropdown
             const catOrder = [
                 "General (පොදු)", "General", 
                 "Grades 6 - 9 (Core)", 
-                "Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", 
+                "Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)",
                 "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics",
-                "A/L - විද්‍යා ධාරාව", "A/L - තාක්ෂණ ධාරාව", "A/L - වාණිජ ධාරාව", "A/L - කලා ධාරාව", "A/L - Common", 
-                "Other"
+                "A/L - විද්‍යා ධාරාව", "A/L - Science", 
+                "A/L - තාක්ෂණ ධාරාව", "A/L - Tech", 
+                "A/L - වාණිජ ධාරාව", "A/L - Commerce", 
+                "A/L - කලා ධාරාව", "A/L - Arts", 
+                "A/L - Common", "Other"
             ];
             
             catOrder.forEach(cat => {
@@ -1394,7 +1471,6 @@
                 }
             });
             
-            // Any other missing categories
             for(let cat in subjectsByCategory) {
                 if(!catOrder.includes(cat)) {
                     const optgroup = document.createElement('optgroup');
@@ -1450,11 +1526,11 @@
                         const val = child.val();
                         let subName = val.name || val;
                         let subCat = val.category || 'Other';
+                        if(typeof val === 'string') subName = val;
                         allSubjectsList.push({ key: child.key, name: subName, category: subCat });
                     });
                 }
 
-                // Bind change events to Class dropdowns so Subjects update dynamically
                 const sc = document.getElementById('selectClass');
                 if(sc && !sc.dataset.bound) {
                     sc.addEventListener('change', () => filterSubjectsDropdown('selectClass', 'selectSubject'));
@@ -1471,7 +1547,6 @@
                     vc.dataset.bound = "true";
                 }
 
-                // Initial Load for Subject Dropdowns
                 filterSubjectsDropdown('selectClass', 'selectSubject');
                 filterSubjectsDropdown('reportClass', 'reportSubject');
                 filterSubjectsDropdown('viewClass', 'viewSubject');
@@ -1480,13 +1555,11 @@
         
         async function updateDashboardStats() {
             try {
-                // Students Count
                 const stSnap = await db.ref('students').once('value');
                 let stCount = 0;
                 if(stSnap.exists()) stSnap.forEach(() => { stCount++; });
                 document.getElementById('totalStudentsCount').textContent = stCount;
 
-                // Teachers Dashboard Logic
                 const today = new Date().toISOString().split('T')[0];
                 const tAttSnap = await db.ref(`teacher_attendance/${today}`).once('value');
                 
@@ -1528,8 +1601,6 @@
         // ==========================================
         // ATTENDANCE MARKING & REPORTS
         // ==========================================
-        
-        // Mark All Function
         function markAllStatusChanged() {
             const val = document.getElementById('markAllStatus').value;
             if(!val) return;
@@ -1593,7 +1664,7 @@
                     `;
                 });
                 tbody.innerHTML = html;
-                document.getElementById('markAllStatus').value = ""; // reset header dropdown
+                document.getElementById('markAllStatus').value = ""; 
             } catch (error) {
                 tbody.innerHTML = "<tr><td colspan='3'>දත්ත ලබා ගැනීමේදී දෝෂයක් ඇතිවිය.</td></tr>";
             }
@@ -1633,7 +1704,7 @@
                     const path = `attendance/${date}/${safeClass}/${safePeriod}/${safeSubject}/${safeStudentId}`;
                     
                     if(status === 'N/A') {
-                        updates[path] = null; // Removes record from DB if previously marked but now N/A
+                        updates[path] = null; 
                     } else {
                         hasValidData = true;
                         updates[path] = {
@@ -1704,7 +1775,6 @@
 
                             subSnap.forEach(stSnap => {
                                 const rec = stSnap.val();
-                                // N/A is already excluded since it's not saved in DB, but just in case:
                                 if(rec.status === 'Present') {
                                     summaryData[className][subName][periodName].present++;
                                     totalPresent++;
