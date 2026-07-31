@@ -481,15 +481,15 @@
                         <div class="form-group">
                             <label>Subject Category</label>
                             <select id="subjectCategoryInput">
-                                <option value="General">General (පොදු)</option>
+                                <option value="General (පොදු)">General (පොදු)</option>
                                 <option value="Grades 6 - 9 (Core)">Grades 6 - 9 (Core)</option>
-                                <option value="Aesthetics">සෞන්දර්ය විෂයයන් (Aesthetics)</option>
+                                <option value="සෞන්දර්ය විෂයයන් (Aesthetics)">සෞන්දර්ය විෂයයන් (Aesthetics)</option>
                                 <option value="Grades 10 - 11 (Core)">Grades 10 - 11 (Core)</option>
-                                <option value="Grades 10 - 11 (Basket)">Grades 10 - 11 (කාණ්ඩ විෂයයන්)</option>
-                                <option value="A/L - Science">A/L - විද්‍යා ධාරාව</option>
-                                <option value="A/L - Commerce">A/L - වාණිජ ධාරාව</option>
-                                <option value="A/L - Arts">A/L - කලා ධාරාව</option>
-                                <option value="A/L - Tech">A/L - තාක්ෂණ ධාරාව</option>
+                                <option value="Grades 10 - 11 (කාණ්ඩ විෂයයන්)">Grades 10 - 11 (කාණ්ඩ විෂයයන්)</option>
+                                <option value="A/L - විද්‍යා ධාරාව">A/L - විද්‍යා ධාරාව</option>
+                                <option value="A/L - වාණිජ ධාරාව">A/L - වාණිජ ධාරාව</option>
+                                <option value="A/L - කලා ධාරාව">A/L - කලා ධාරාව</option>
+                                <option value="A/L - තාක්ෂණ ධාරාව">A/L - තාක්ෂණ ධාරාව</option>
                                 <option value="A/L - Common">A/L - Common</option>
                                 <option value="Other">Other</option>
                             </select>
@@ -583,7 +583,7 @@
 
         // Standard Sri Lankan Subjects Grouped by Extended Categories
         const defaultSlSubjects = [
-            { category: "General", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
+            { category: "General (පොදු)", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
             
             { category: "Grades 6 - 9 (Core)", name: "සිංහල භාෂාව හා සාහිත්‍යය" },
             { category: "Grades 6 - 9 (Core)", name: "දෙමළ භාෂාව හා සාහිත්‍යය" },
@@ -600,10 +600,12 @@
             { category: "Grades 6 - 9 (Core)", name: "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය" },
             { category: "Grades 6 - 9 (Core)", name: "ව්‍යවහාරික තාක්ෂණවේදය (PTS)" },
 
-            { category: "Aesthetics", name: "සංගීතය" },
-            { category: "Aesthetics", name: "නැටුම්" },
-            { category: "Aesthetics", name: "චිත්‍ර" },
-            { category: "Aesthetics", name: "නාට්‍ය හා රංග කලාව" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "සංගීතය" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "නැටුම්" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "චිත්‍ර" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "නාට්‍ය හා රංග කලාව" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "දෙමළ සාහිත්‍යය" },
+            { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "ඉංග්‍රීසි සාහිත්‍යය" },
 
             { category: "Grades 10 - 11 (Core)", name: "සිංහල භාෂාව හා සාහිත්‍යය (O/L)" },
             { category: "Grades 10 - 11 (Core)", name: "ගණිතය (O/L)" },
@@ -612,45 +614,48 @@
             { category: "Grades 10 - 11 (Core)", name: "ආගම (O/L)" },
             { category: "Grades 10 - 11 (Core)", name: "ඉංග්‍රීසි (O/L)" },
             
-            { category: "Grades 10 - 11 (Basket)", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
-            { category: "Grades 10 - 11 (Basket)", name: "ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය" },
-            { category: "Grades 10 - 11 (Basket)", name: "කෘෂිකර්මය" },
-            { category: "Grades 10 - 11 (Basket)", name: "ගෘහ ආර්ථික විද්‍යාව" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "කෘෂිකර්මය" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "ගෘහ ආර්ථික විද්‍යාව" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "පුරවැසි අධ්‍යාපනය (O/L කාණ්ඩ)" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "භූගෝල විද්‍යාව (O/L කාණ්ඩ)" },
+            { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය (O/L කාණ්ඩ)" },
 
-            { category: "A/L - Science", name: "සංයුක්ත ගණිතය" },
-            { category: "A/L - Science", name: "භෞතික විද්‍යාව" },
-            { category: "A/L - Science", name: "රසායන විද්‍යාව" },
-            { category: "A/L - Science", name: "ජීව විද්‍යාව" },
-            { category: "A/L - Science", name: "කෘෂි විද්‍යාව" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "සංයුක්ත ගණිතය" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "භෞතික විද්‍යාව" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "රසායන විද්‍යාව" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "ජීව විද්‍යාව" },
+            { category: "A/L - විද්‍යා ධාරාව", name: "කෘෂි විද්‍යාව" },
             
-            { category: "A/L - Tech", name: "තාක්ෂණය සඳහා විද්‍යාව (SFT)" },
-            { category: "A/L - Tech", name: "ඉංජිනේරු තාක්ෂණවේදය (ET)" },
-            { category: "A/L - Tech", name: "ජීව පද්ධති තාක්ෂණවේදය (BST)" },
-            { category: "A/L - Tech", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
+            { category: "A/L - තාක්ෂණ ධාරාව", name: "තාක්ෂණය සඳහා විද්‍යාව (SFT)" },
+            { category: "A/L - තාක්ෂණ ධාරාව", name: "ඉංජිනේරු තාක්ෂණවේදය (ET)" },
+            { category: "A/L - තාක්ෂණ ධාරාව", name: "ජීව පද්ධති තාක්ෂණවේදය (BST)" },
+            { category: "A/L - තාක්ෂණ ධාරාව", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
 
-            { category: "A/L - Commerce", name: "ආර්ථික විද්‍යාව" },
-            { category: "A/L - Commerce", name: "ව්‍යාපාර අධ්‍යයනය" },
-            { category: "A/L - Commerce", name: "ගිණුම්කරණය" },
-            { category: "A/L - Commerce", name: "ව්‍යාපාර සංඛ්‍යානය" },
+            { category: "A/L - වාණිජ ධාරාව", name: "ආර්ථික විද්‍යාව" },
+            { category: "A/L - වාණිජ ධාරාව", name: "ව්‍යාපාර අධ්‍යයනය" },
+            { category: "A/L - වාණිජ ධාරාව", name: "ගිණුම්කරණය" },
+            { category: "A/L - වාණිජ ධාරාව", name: "ව්‍යාපාර සංඛ්‍යානය" },
 
-            { category: "A/L - Arts", name: "රාජ්‍ය විද්‍යාව" },
-            { category: "A/L - Arts", name: "තර්කශාස්ත්‍රය හා විද්‍යා දර්ශනය" },
-            { category: "A/L - Arts", name: "භූගෝල විද්‍යාව (A/L)" },
-            { category: "A/L - Arts", name: "ඉතිහාසය (A/L)" },
+            { category: "A/L - කලා ධාරාව", name: "රාජ්‍ය විද්‍යාව" },
+            { category: "A/L - කලා ධාරාව", name: "තර්කශාස්ත්‍රය හා විද්‍යා දර්ශනය" },
+            { category: "A/L - කලා ධාරාව", name: "භූගෝල විද්‍යාව (A/L)" },
+            { category: "A/L - කලා ධාරාව", name: "බෞද්ධ සංස්කෘතිය" },
+            { category: "A/L - කලා ධාරාව", name: "ඉතිහාසය (A/L)" },
 
             { category: "A/L - Common", name: "සාමාන්‍ය ඉංග්‍රීසි" },
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeDatabaseSubjects();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeDatabaseSubjects();
             setupEventListeners();
             setTodayDate();
             checkAuthState();
             setupRegistrationRestrictions();
         });
 
-        // This migrates old DB format to new formatted subjects
         async function initializeDatabaseSubjects() {
             try {
                 const subRef = db.ref('subjects');
@@ -663,7 +668,7 @@
                     let data = snapshot.val();
                     let firstKey = Object.keys(data)[0];
                     let firstVal = data[firstKey];
-                    // If it's the old flat string format, OR missing category, OR old simple category, update it
+                    // Overwrite if old structure is found
                     if (typeof firstVal === 'string' || !firstVal.category || firstVal.category === "Grades 6 - 9") {
                         needsUpdate = true;
                     }
@@ -676,7 +681,6 @@
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
-                    console.log("Database subjects migrated to New Fine-Grained Category Format.");
                 }
             } catch (err) {
                 console.error("Error initializing subjects in DB:", err);
@@ -967,7 +971,7 @@
         }
 
         // ==========================================
-        // TEACHER FUNCTIONS (Leaves & Search)
+        // TEACHER FUNCTIONS
         // ==========================================
         async function saveNewTeacher() {
             const tid = document.getElementById('addTeacherId').value.trim();
@@ -1188,7 +1192,7 @@
 
 
         // ==========================================
-        // SUBJECT FUNCTIONS & DYNAMIC FILTERING
+        // SUBJECT FUNCTIONS
         // ==========================================
         async function loadSubjectsManagement() {
             const tbody = document.getElementById('subjectsTableBody');
@@ -1305,7 +1309,9 @@
             }
         }
 
-        // Logic to dynamically filter subjects based on the selected class
+        // ==========================================
+        // DYNAMIC FILTERING (Classes -> Subjects)
+        // ==========================================
         function filterSubjectsDropdown(classElId, subjectElId) {
             const classEl = document.getElementById(classElId);
             const subjectEl = document.getElementById(subjectElId);
@@ -1313,7 +1319,6 @@
 
             const selectedClass = classEl.value;
             
-            // Clear current subjects
             subjectEl.innerHTML = '';
             if(subjectElId === 'selectSubject') {
                 subjectEl.innerHTML = '<option value="">Select Subject</option>';
@@ -1321,12 +1326,12 @@
                 subjectEl.innerHTML = '<option value="">All Subjects</option>';
             }
 
-            // Determine Target Category based on Grade number
+            // Advanced parsing of selected Class string (e.g. "Grade 10 - A")
             let targetCategories = ["All"];
             if(selectedClass) {
                 const match = selectedClass.match(/(\d+)/); 
                 if(match) {
-                    targetCategories = ["General", "General (පොදු)"]; // General is always shown
+                    targetCategories = ["General", "General (පොදු)"]; 
                     const grade = parseInt(match[1]);
                     
                     if(grade >= 6 && grade <= 9) {
@@ -1359,7 +1364,7 @@
 
             // Specific display order for the dropdown
             const catOrder = [
-                "General", "General (පොදු)", 
+                "General (පොදු)", "General", 
                 "Grades 6 - 9 (Core)", 
                 "Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)",
                 "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics",
@@ -1384,6 +1389,7 @@
                 }
             });
             
+            // Add any missing custom categories
             for(let cat in subjectsByCategory) {
                 if(!catOrder.includes(cat)) {
                     const optgroup = document.createElement('optgroup');
@@ -1550,7 +1556,6 @@
                         <tr data-safestudentid="${safeStudentId}" data-studentid="${st.student_id}">
                             <td>${st.student_id}</td>
                             <td class="st-name" style="white-space:normal;">${st.name}</td>
-                            <td>${st.grade.replace('Grade ','')}</td>
                             <td>
                                 <select class="att-status" style="padding:5px; border-radius:4px;">
                                     <option value="Present">Present</option>
@@ -1709,7 +1714,7 @@
                             tableHtml += `
                                 <tr>
                                     <td>${cName.replace('Grade ','')}</td>
-                                    <td>${pName === 'Daily Attendance' ? 'Daily' : 'Period ' + pName}</td>
+                                    <td>Period ${pName}</td>
                                     <td style="white-space:normal; font-size:0.9em;">${sName}</td>
                                     <td style="color: green; font-weight: bold;">${p}</td>
                                     <td style="color: red; font-weight: bold;">${a}</td>
@@ -1748,12 +1753,12 @@
                 return;
             }
 
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>Loading records...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align: center;'>Loading records...</td></tr>";
 
             try {
                 const snapshot = await db.ref('attendance/' + date).once('value');
                 if(!snapshot.exists()) {
-                    tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='5' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
                     return;
                 }
 
@@ -1773,14 +1778,13 @@
                                 const rec = stSnap.val();
                                 const stName = rec.name || "Unknown";
                                 const statusColor = rec.status === 'Present' ? 'green' : 'red';
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : rec.period || periodName;
+                                const pNameDisplay = `Period ${rec.period || periodName}`;
                                 html += `
                                     <tr>
                                         <td>${rec.student_id}</td>
                                         <td style="white-space:normal;">${stName}</td>
                                         <td>${rec.class.replace('Grade ','')}</td>
                                         <td>${pNameDisplay}</td>
-                                        <td>${rec.subject}</td>
                                         <td style="color:${statusColor}; font-weight:bold;">${rec.status}</td>
                                     </tr>
                                 `;
@@ -1789,10 +1793,10 @@
                     });
                 });
 
-                if(!html) html = "<tr><td colspan='6' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
+                if(!html) html = "<tr><td colspan='5' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
                 tbody.innerHTML = html;
             } catch(err) {
-                tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
             }
         }
 
