@@ -44,7 +44,7 @@
         .form-group input:focus, .form-group select:focus { border-color: #005A9C; }
         
         /* OPTGROUP STYLING - Categorized Subjects */
-        select optgroup { font-weight: bold; color: #005A9C; background: #f0f8ff; font-size: 15px; }
+        select optgroup { font-weight: bold; color: #005A9C; background: #e3f2fd; font-size: 15px; }
         select option { font-weight: normal; color: #333; background: #fff; font-size: 14px; }
 
         /* BUTTONS */
@@ -193,7 +193,7 @@
             </div>
 
             <div class="footer-credit">
-                Developer - Kelum Konara | Smart soft | 0714469232
+                Developer - Kelum Koonara | Smart soft | 0714469232
             </div>
         </div>
 
@@ -214,7 +214,7 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject (or Daily Attendance), period and date to mark attendance.</div>
+                    <div class="info-box">Select class, subject and period to mark attendance. (Select class to filter subjects).</div>
                     <div class="grid-3">
                         <div class="form-group">
                             <label>Select Class</label>
@@ -400,7 +400,7 @@
                 </div>
             </div>
 
-            <!-- Teachers Tab (Admin Only) -->
+            <!-- Teachers & Leaves Management Tab (Admin Only) -->
             <div class="tab-content" id="teachers">
                 <div class="card">
                     <h3>👨‍🏫 Add New Teacher</h3>
@@ -419,21 +419,49 @@
                 </div>
 
                 <div class="card">
-                    <h3>🔍 Search & View Teachers (<span id="teacherCount">0</span>)</h3>
-                    <div class="form-group">
-                        <input type="text" id="searchTeacherInput" class="search-bar" placeholder="Search by Teacher Name or ID..." onkeyup="filterTeachers()">
+                    <h3>📅 Mark Teacher Attendance & Leaves</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="teacherAttDate">
+                        </div>
+                        <div class="form-group" style="display:flex; align-items:flex-end;">
+                            <button class="btn btn-secondary btn-full" onclick="loadTeacherAttendanceSheet()">Load Teachers</button>
+                        </div>
                     </div>
+                    
+                    <div id="teacherAttendanceDiv" style="display:none; margin-top: 15px;">
+                        <div class="table-responsive">
+                            <table id="teacherAttTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Status / Leave Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teacherAttTbody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="btn btn-primary btn-full" style="margin-top: 15px;" onclick="saveTeacherAttendance()">💾 Save Teacher Attendance</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📋 Search & View Teachers & Leaves</h3>
+                    <input type="text" id="searchTeacherInput" class="search-bar" placeholder="Search by Name or ID..." onkeyup="filterTeachers()">
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Teacher ID</th>
-                                    <th>Name</th>
+                                    <th>ID & Name</th>
+                                    <th>M. Leave</th>
+                                    <th>Y. Leave</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="teacherListTbody">
-                                <tr><td colspan="3" class="loading">Loading teachers...</td></tr>
+                                <tr><td colspan="4" class="loading">Loading teachers...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -450,9 +478,9 @@
                     
                     <div class="grid-2">
                         <div class="form-group">
-                            <label>Subject Category</label>
+                            <label>Subject Category / Grade</label>
                             <select id="subjectCategoryInput">
-                                <option value="General">General (පොදු)</option>
+                                <option value="General (පොදු)">General (පොදු)</option>
                                 <option value="Grades 6 - 9">Grades 6 - 9</option>
                                 <option value="Grades 10 - 11">Grades 10 - 11</option>
                                 <option value="Grades 12 - 13">Grades 12 - 13</option>
@@ -495,8 +523,15 @@
                 <div class="card"><h3>🎯 Principal Dashboard</h3>
                     <div class="grid-3">
                         <div class="stats-card"><p>Total Students</p><h2 id="totalStudentsCount">0</h2></div>
-                        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"><p>Total Teachers</p><h2 id="totalTeachersCount">0</h2></div>
-                        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"><p>System Status</p><h2>Online</h2></div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"><p>Present Teachers</p><h2 id="presentTeachersCount">0</h2></div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"><p>Absent Teachers</p><h2 id="absentTeachersCount">0</h2></div>
+                    </div>
+                    
+                    <div class="card" style="margin-top: 15px; background: #fff; border: 1px solid #ffcdd2;">
+                        <h3 style="color: #c62828; font-size:1.1em;">📌 Today's Absent Teachers & Reasons</h3>
+                        <div id="absentTeachersList" style="margin-top: 10px;">
+                            <p class="loading">Loading data...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -510,7 +545,6 @@
     <script>
         // =======================================================
         // HELPER: Sanitize Keys for Firebase
-        // Firebase keys cannot contain . # $ [ or ]
         // =======================================================
         function getSafeKey(str) {
             if (!str) return "";
@@ -537,10 +571,12 @@
         const roleDisplayMapping = { 'principal': 'Principal (Admin)', 'classTeacher': 'Class Teacher', 'subjectTeacher': 'Subject Teacher' };
         let appUserRole = 'subjectTeacher'; 
         let isRegistering = false; 
+        
+        let allSubjectsList = []; // Array to keep all subjects in memory for dynamic filtering
 
         // Standard Sri Lankan Subjects Grouped by Category
         const defaultSlSubjects = [
-            { category: "General", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
+            { category: "General (පොදු)", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
             
             { category: "Grades 6 - 9", name: "සිංහල භාෂාව හා සාහිත්‍යය" },
             { category: "Grades 6 - 9", name: "දෙමළ භාෂාව හා සාහිත්‍යය" },
@@ -648,7 +684,7 @@
 
         function setTodayDate() {
             const today = new Date().toISOString().split('T')[0];
-            const ids = ['startDate', 'reportDate', 'viewDate'];
+            const ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate'];
             ids.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = today;
@@ -801,7 +837,7 @@
             } else if (tabName === 'subjects') {
                 loadSubjectsManagement();
             } else if (tabName === 'teachers') {
-                loadTeachers();
+                loadTeachersAndLeaves();
             }
         }
 
@@ -889,7 +925,7 @@
         }
 
         // ==========================================
-        // TEACHER FUNCTIONS (Simple Search/Add)
+        // TEACHER FUNCTIONS
         // ==========================================
         async function saveNewTeacher() {
             const tid = document.getElementById('addTeacherId').value.trim();
@@ -914,48 +950,85 @@
                 
                 document.getElementById('addTeacherId').value = '';
                 document.getElementById('addTeacherName').value = '';
-                loadTeachers();
+                loadTeachersAndLeaves();
             } catch(e) {
                 alert("Error adding teacher: " + e.message);
             }
         }
 
-        async function loadTeachers() {
+        async function loadTeachersAndLeaves() {
             const tbody = document.getElementById('teacherListTbody');
-            const countSpan = document.getElementById('teacherCount');
             if(!tbody) return;
-            tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>Loading...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Loading...</td></tr>";
+
+            const today = new Date();
+            const currentYear = today.getFullYear().toString();
+            const currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
+            const monthPrefix = `${currentYear}-${currentMonth}`;
 
             try {
-                const teachersSnap = await db.ref('teachers').once('value');
+                const [teachersSnap, attSnap] = await Promise.all([
+                    db.ref('teachers').once('value'),
+                    db.ref('teacher_attendance').once('value')
+                ]);
 
                 if(!teachersSnap.exists()){
-                    tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No teachers found.</td></tr>";
-                    if(countSpan) countSpan.textContent = 0;
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No teachers found.</td></tr>";
                     return;
                 }
 
+                let attData = {}; 
+                
+                if(attSnap.exists()){
+                    attSnap.forEach(dateSnap => {
+                        const d = dateSnap.key; 
+                        const isCurrentYear = d.startsWith(currentYear);
+                        const isCurrentMonth = d.startsWith(monthPrefix);
+                        
+                        if(isCurrentYear) {
+                            dateSnap.forEach(tSnap => {
+                                const safeTid = tSnap.key; 
+                                const status = tSnap.val().status; 
+                                
+                                if(!attData[safeTid]) attData[safeTid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                                
+                                if(status === 'Casual Leave') {
+                                    attData[safeTid].year.Casual++;
+                                    if(isCurrentMonth) attData[safeTid].month.Casual++;
+                                } else if (status === 'Sick Leave') {
+                                    attData[safeTid].year.Sick++;
+                                    if(isCurrentMonth) attData[safeTid].month.Sick++;
+                                } else if (status === 'Duty Leave') {
+                                    attData[safeTid].year.Duty++;
+                                    if(isCurrentMonth) attData[safeTid].month.Duty++;
+                                }
+                            });
+                        }
+                    });
+                }
+
                 let html = '';
-                let count = 0;
                 teachersSnap.forEach(child => {
                     const t = child.val();
                     const tid = t.teacher_id;
                     const safeTid = child.key;
+                    const stats = attData[safeTid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                    
+                    const monthStr = `C:<strong>${stats.month.Casual}</strong> | S:<strong>${stats.month.Sick}</strong> | D:<strong>${stats.month.Duty}</strong>`;
+                    const yearStr = `C:<strong>${stats.year.Casual}</strong> | S:<strong>${stats.year.Sick}</strong> | D:<strong>${stats.year.Duty}</strong>`;
                     
                     html += `<tr>
-                        <td>${tid}</td>
-                        <td><strong>${t.name}</strong></td>
-                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Delete</button></td>
+                        <td><strong>${t.name}</strong><br><small style="color:#666;">${tid}</small></td>
+                        <td style="font-size: 0.85em;">${monthStr}</td>
+                        <td style="font-size: 0.85em;">${yearStr}</td>
+                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Del</button></td>
                     </tr>`;
-                    count++;
                 });
                 tbody.innerHTML = html;
-                if(countSpan) countSpan.textContent = count;
-                
-                filterTeachers(); // Re-apply filter if active
+                filterTeachers(); 
             } catch(e) {
                 console.error(e);
-                tbody.innerHTML = "<tr><td colspan='3' style='color:red;'>Error loading teachers</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading teachers</td></tr>";
             }
         }
 
@@ -963,7 +1036,7 @@
             if(confirm("Are you sure you want to remove this teacher?")) {
                 try {
                     await db.ref('teachers/' + safeTid).remove();
-                    loadTeachers();
+                    loadTeachersAndLeaves();
                 } catch(e) {
                     alert("Error: " + e.message);
                 }
@@ -977,10 +1050,9 @@
             const rows = document.querySelectorAll('#teacherListTbody tr');
             
             rows.forEach(row => {
-                if(row.cells.length >= 2) {
-                    const idText = row.cells[0].innerText.toLowerCase();
-                    const nameText = row.cells[1].innerText.toLowerCase();
-                    if(idText.includes(filter) || nameText.includes(filter)) {
+                if(row.cells.length >= 1) {
+                    const text = row.cells[0].innerText.toLowerCase();
+                    if(text.includes(filter)) {
                         row.style.display = '';
                     } else {
                         row.style.display = 'none';
@@ -989,8 +1061,92 @@
             });
         }
 
+        async function loadTeacherAttendanceSheet() {
+            const date = document.getElementById('teacherAttDate').value;
+            if(!date) { alert("Please select date!"); return; }
+
+            document.getElementById('teacherAttendanceDiv').style.display = 'block';
+            const tbody = document.getElementById('teacherAttTbody');
+            tbody.innerHTML = "<tr><td colspan='2'>Loading...</td></tr>";
+
+            try {
+                const [tSnap, attSnap] = await Promise.all([
+                    db.ref('teachers').once('value'),
+                    db.ref(`teacher_attendance/${date}`).once('value')
+                ]);
+
+                if(!tSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='2'>No teachers registered yet.</td></tr>";
+                    return;
+                }
+
+                const existingAtt = attSnap.exists() ? attSnap.val() : {};
+                let html = '';
+
+                tSnap.forEach(child => {
+                    const t = child.val();
+                    const tid = t.teacher_id;
+                    const safeTid = child.key;
+                    const currentStatus = existingAtt[safeTid] ? existingAtt[safeTid].status : 'Present';
+
+                    html += `
+                        <tr data-safetid="${safeTid}" data-tid="${tid}">
+                            <td class="t-name"><strong>${t.name}</strong><br><small>${tid}</small></td>
+                            <td>
+                                <select class="t-status" style="padding: 5px; border-radius: 4px; width: 100%;">
+                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present (පැමිණ ඇත)</option>
+                                    <option value="Casual Leave" ${currentStatus==='Casual Leave'?'selected':''}>Absent - Casual Leave (අනියම් නිවාඩු)</option>
+                                    <option value="Sick Leave" ${currentStatus==='Sick Leave'?'selected':''}>Absent - Sick Leave (අසනීප නිවාඩු)</option>
+                                    <option value="Duty Leave" ${currentStatus==='Duty Leave'?'selected':''}>Absent - Duty Leave (රාජකාරී නිවාඩු)</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = "<tr><td colspan='2' style='color:red;'>Error fetching data.</td></tr>";
+            }
+        }
+
+        async function saveTeacherAttendance() {
+            const date = document.getElementById('teacherAttDate').value;
+            if(!date) return;
+
+            const rows = document.querySelectorAll('#teacherAttTbody tr');
+            if(rows.length === 0) return;
+
+            let updates = {};
+            rows.forEach(row => {
+                const safeTid = row.getAttribute('data-safetid');
+                const tid = row.getAttribute('data-tid');
+                
+                if(safeTid) {
+                    const tname = row.querySelector('.t-name strong').innerText;
+                    const status = row.querySelector('.t-status').value;
+                    updates[`teacher_attendance/${date}/${safeTid}`] = {
+                        teacher_id: tid,
+                        name: tname,
+                        status: status,
+                        date: date
+                    };
+                }
+            });
+
+            try {
+                await db.ref().update(updates);
+                alert("Teacher Attendance Saved Successfully!");
+                loadTeachersAndLeaves(); 
+                updateDashboardStats();
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+
         // ==========================================
-        // SUBJECT FUNCTIONS
+        // SUBJECT FUNCTIONS (DYNAMIC FILTERING)
         // ==========================================
         async function loadSubjectsManagement() {
             const tbody = document.getElementById('subjectsTableBody');
@@ -1107,6 +1263,76 @@
             }
         }
 
+        function filterSubjectsDropdown(classElId, subjectElId) {
+            const classEl = document.getElementById(classElId);
+            const subjectEl = document.getElementById(subjectElId);
+            if(!classEl || !subjectEl) return;
+
+            const selectedClass = classEl.value;
+            subjectEl.innerHTML = '<option value="">All Subjects</option>';
+            if(subjectElId === 'selectSubject') {
+                subjectEl.innerHTML = '<option value="">Select Subject</option>';
+            }
+
+            let targetCategory = "All";
+            if(selectedClass) {
+                const match = selectedClass.match(/Grade (\d+)/);
+                if(match) {
+                    const grade = parseInt(match[1]);
+                    if(grade >= 6 && grade <= 9) targetCategory = "Grades 6 - 9";
+                    else if(grade >= 10 && grade <= 11) targetCategory = "Grades 10 - 11";
+                    else if(grade >= 12 && grade <= 13) targetCategory = "Grades 12 - 13";
+                }
+            }
+
+            const subjectsByCategory = {};
+            allSubjectsList.forEach(sub => {
+                let show = false;
+                if (targetCategory === "All") {
+                    show = true;
+                } else if (sub.category === "General" || sub.category === "General (පොදු)") {
+                    show = true; // Always show General subjects (e.g. Daily Attendance)
+                } else if (sub.category === targetCategory) {
+                    show = true;
+                }
+
+                if (show) {
+                    if(!subjectsByCategory[sub.category]) subjectsByCategory[sub.category] = [];
+                    subjectsByCategory[sub.category].push(sub.name);
+                }
+            });
+
+            const catOrder = ["General", "General (පොදු)", "Grades 6 - 9", "Grades 10 - 11", "Grades 12 - 13", "Other"];
+            
+            catOrder.forEach(cat => {
+                if(subjectsByCategory[cat] && subjectsByCategory[cat].length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = cat;
+                    subjectsByCategory[cat].forEach(subName => {
+                        const opt = document.createElement('option');
+                        opt.value = subName;
+                        opt.textContent = subName;
+                        optgroup.appendChild(opt);
+                    });
+                    subjectEl.appendChild(optgroup);
+                }
+            });
+            
+            for(let cat in subjectsByCategory) {
+                if(!catOrder.includes(cat)) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = cat;
+                    subjectsByCategory[cat].forEach(subName => {
+                        const opt = document.createElement('option');
+                        opt.value = subName;
+                        opt.textContent = subName;
+                        optgroup.appendChild(opt);
+                    });
+                    subjectEl.appendChild(optgroup);
+                }
+            }
+        }
+
         function loadClassAndSubjectDropdowns() {
             const classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
             classSelectors.forEach(selector => {
@@ -1136,58 +1362,38 @@
                 }
             });
 
-            const subSelectors = ['selectSubject', 'reportSubject', 'viewSubject'];
+            // Bind change events for dynamic subject filtering
+            const sc = document.getElementById('selectClass');
+            if(sc && !sc.dataset.bound) {
+                sc.addEventListener('change', () => filterSubjectsDropdown('selectClass', 'selectSubject'));
+                sc.dataset.bound = true;
+            }
+            const rc = document.getElementById('reportClass');
+            if(rc && !rc.dataset.bound) {
+                rc.addEventListener('change', () => filterSubjectsDropdown('reportClass', 'reportSubject'));
+                rc.dataset.bound = true;
+            }
+            const vc = document.getElementById('viewClass');
+            if(vc && !vc.dataset.bound) {
+                vc.addEventListener('change', () => filterSubjectsDropdown('viewClass', 'viewSubject'));
+                vc.dataset.bound = true;
+            }
+
             db.ref('subjects').once('value').then(snap => {
                 if (snap.exists()) {
-                    const subjectsByCategory = {};
-                    
+                    allSubjectsList = [];
                     snap.forEach(child => {
                         const val = child.val();
                         let subName = val.name || val;
                         let subCat = val.category || 'Other';
                         if(typeof val === 'string') subName = val;
-                        
-                        if(!subjectsByCategory[subCat]) subjectsByCategory[subCat] = [];
-                        subjectsByCategory[subCat].push(subName);
+                        allSubjectsList.push({ key: child.key, name: subName, category: subCat });
                     });
-
-                    subSelectors.forEach(selector => {
-                        const element = document.getElementById(selector);
-                        if(element) {
-                            element.innerHTML = '<option value="">All Subjects</option>';
-                            if(selector === 'selectSubject') element.innerHTML = '<option value="">Select Subject</option>';
-                            
-                            const catOrder = ["General", "Grades 6 - 9", "Grades 10 - 11", "Grades 12 - 13", "Other"];
-                            
-                            catOrder.forEach(cat => {
-                                if(subjectsByCategory[cat] && subjectsByCategory[cat].length > 0) {
-                                    const optgroup = document.createElement('optgroup');
-                                    optgroup.label = cat;
-                                    subjectsByCategory[cat].forEach(subName => {
-                                        const opt = document.createElement('option');
-                                        opt.value = subName;
-                                        opt.textContent = subName;
-                                        optgroup.appendChild(opt);
-                                    });
-                                    element.appendChild(optgroup);
-                                }
-                            });
-                            
-                            for(let cat in subjectsByCategory) {
-                                if(!catOrder.includes(cat)) {
-                                    const optgroup = document.createElement('optgroup');
-                                    optgroup.label = cat;
-                                    subjectsByCategory[cat].forEach(subName => {
-                                        const opt = document.createElement('option');
-                                        opt.value = subName;
-                                        opt.textContent = subName;
-                                        optgroup.appendChild(opt);
-                                    });
-                                    element.appendChild(optgroup);
-                                }
-                            }
-                        }
-                    });
+                    
+                    // Initial render for all dropdowns
+                    filterSubjectsDropdown('selectClass', 'selectSubject');
+                    filterSubjectsDropdown('reportClass', 'reportSubject');
+                    filterSubjectsDropdown('viewClass', 'viewSubject');
                 }
             });
         }
@@ -1200,12 +1406,39 @@
                 if(stSnap.exists()) stSnap.forEach(() => { stCount++; });
                 document.getElementById('totalStudentsCount').textContent = stCount;
 
-                // Teachers Count
-                const tSnap = await db.ref('teachers').once('value');
-                let tCount = 0;
-                if(tSnap.exists()) tSnap.forEach(() => { tCount++; });
-                const tEl = document.getElementById('totalTeachersCount');
-                if(tEl) tEl.textContent = tCount;
+                // Teachers Dashboard Logic
+                const today = new Date().toISOString().split('T')[0];
+                const tAttSnap = await db.ref(`teacher_attendance/${today}`).once('value');
+                
+                let pCount = 0;
+                let aCount = 0;
+                let absentHtml = '';
+
+                if(tAttSnap.exists()) {
+                    tAttSnap.forEach(tSnap => {
+                        const rec = tSnap.val();
+                        if(rec.status === 'Present') {
+                            pCount++;
+                        } else {
+                            aCount++;
+                            absentHtml += `
+                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
+                                <strong>${rec.name}</strong><br>
+                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
+                            </div>`;
+                        }
+                    });
+                }
+
+                document.getElementById('presentTeachersCount').textContent = pCount;
+                document.getElementById('absentTeachersCount').textContent = aCount;
+
+                if(aCount === 0) {
+                    absentHtml = "<p style='color: green; font-size:0.9em;'>✅ All assigned teachers are present today (or no records marked).</p>";
+                }
+                
+                const absentListDiv = document.getElementById('absentTeachersList');
+                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
 
             } catch (error) {
                 console.error("Dashboard update error", error);
