@@ -214,7 +214,7 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class first to filter relevant subjects. Then select Subject, Period and Date.</div>
+                    <div class="info-box">Select a Class first to view its specific subjects.</div>
                     <div class="grid-3">
                         <div class="form-group">
                             <label>Select Class</label>
@@ -479,7 +479,7 @@
                     
                     <div class="grid-2">
                         <div class="form-group">
-                            <label>Subject Category / Grade</label>
+                            <label>Subject Category</label>
                             <select id="subjectCategoryInput">
                                 <option value="General (පොදු)">General (පොදු)</option>
                                 <option value="Grades 6 - 9">Grades 6 - 9</option>
@@ -618,24 +618,39 @@
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
-            initializeDatabaseSubjects();
             setupEventListeners();
             setTodayDate();
             checkAuthState();
             setupRegistrationRestrictions();
         });
 
+        // This migrates old DB format to new formatted subjects if needed
         async function initializeDatabaseSubjects() {
             try {
                 const subRef = db.ref('subjects');
                 const snapshot = await subRef.once('value');
+                let needsUpdate = false;
+
                 if (!snapshot.exists()) {
+                    needsUpdate = true;
+                } else {
+                    let data = snapshot.val();
+                    let firstKey = Object.keys(data)[0];
+                    let firstVal = data[firstKey];
+                    // If it's the old flat string format, OR missing category, we MUST update it
+                    if (typeof firstVal === 'string' || !firstVal.category) {
+                        needsUpdate = true;
+                    }
+                }
+
+                if (needsUpdate) {
                     let subjectsObj = {};
                     defaultSlSubjects.forEach((sub, index) => {
                         let key = 'sub_' + (index + 1);
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
+                    console.log("Database subjects migrated to Category Format.");
                 }
             } catch (err) {
                 console.error("Error initializing subjects in DB:", err);
@@ -1145,9 +1160,8 @@
             }
         }
 
-
         // ==========================================
-        // SUBJECT FUNCTIONS & DYNAMIC FILTERING
+        // SUBJECT FUNCTIONS
         // ==========================================
         async function loadSubjectsManagement() {
             const tbody = document.getElementById('subjectsTableBody');
@@ -1264,7 +1278,9 @@
             }
         }
 
-        // Logic to dynamically filter subjects based on the selected class
+        // ==========================================
+        // DYNAMIC FILTERING (Classes -> Subjects)
+        // ==========================================
         function filterSubjectsDropdown(classElId, subjectElId) {
             const classEl = document.getElementById(classElId);
             const subjectEl = document.getElementById(subjectElId);
@@ -1272,7 +1288,6 @@
 
             const selectedClass = classEl.value;
             
-            // Clear current subjects
             subjectEl.innerHTML = '';
             if(subjectElId === 'selectSubject') {
                 subjectEl.innerHTML = '<option value="">Select Subject</option>';
@@ -1280,10 +1295,10 @@
                 subjectEl.innerHTML = '<option value="">All Subjects</option>';
             }
 
-            // Determine Target Category based on Grade number
+            // Extract grade number from selected class (e.g. "Grade 6 - A" -> 6)
             let targetCategory = "All";
             if(selectedClass) {
-                const match = selectedClass.match(/Grade (\d+)/);
+                const match = selectedClass.match(/(\d+)/); 
                 if(match) {
                     const grade = parseInt(match[1]);
                     if(grade >= 6 && grade <= 9) targetCategory = "Grades 6 - 9";
@@ -1298,8 +1313,8 @@
                 let show = false;
                 if (targetCategory === "All") {
                     show = true;
-                } else if (sub.category === "General (පොදු)" || sub.category === "General") {
-                    show = true; // Always show General subjects (e.g., Daily Attendance)
+                } else if (sub.category.includes("General") || sub.category.includes("පොදු")) {
+                    show = true; 
                 } else if (sub.category === targetCategory) {
                     show = true;
                 }
@@ -1310,7 +1325,7 @@
                 }
             });
 
-            const catOrder = ["General", "General (පොදු)", "Grades 6 - 9", "Grades 10 - 11", "Grades 12 - 13", "Other"];
+            const catOrder = ["General (පොදු)", "General", "Grades 6 - 9", "Grades 10 - 11", "Grades 12 - 13", "Other"];
             
             catOrder.forEach(cat => {
                 if(subjectsByCategory[cat] && subjectsByCategory[cat].length > 0) {
@@ -1341,19 +1356,17 @@
             }
         }
 
-        function loadClassAndSubjectDropdowns() {
-            // Load Classes
+        async function loadClassAndSubjectDropdowns() {
+            // Populate Classes
             const classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
             classSelectors.forEach(selector => {
                 const element = document.getElementById(selector);
                 if (element) {
-                    const currentValue = element.value; // Keep previously selected value if any
-                    
+                    const currentValue = element.value;
                     element.innerHTML = '<option value="">All Classes</option>';
                     if(selector === 'selectClass' || selector === 'studentGrade') {
                         element.innerHTML = '<option value="">Select Class</option>';
                     }
-                    
                     for (let g = 6; g <= 11; g++) {
                         ['A', 'B', 'C', 'D', 'E', 'F', 'G'].forEach(cls => {
                             const option = document.createElement('option');
@@ -1375,7 +1388,9 @@
                 }
             });
 
-            // Fetch subjects and bind dynamic filtering
+            // Ensure DB has categorized structure before loading
+            await initializeDatabaseSubjects();
+
             db.ref('subjects').once('value').then(snap => {
                 allSubjectsList = [];
                 if (snap.exists()) {
@@ -1383,12 +1398,11 @@
                         const val = child.val();
                         let subName = val.name || val;
                         let subCat = val.category || 'Other';
-                        if(typeof val === 'string') subName = val;
                         allSubjectsList.push({ key: child.key, name: subName, category: subCat });
                     });
                 }
 
-                // Bind change events to Class dropdowns so Subjects update dynamically
+                // Bind Change Events for Filtering
                 const sc = document.getElementById('selectClass');
                 if(sc && !sc.dataset.bound) {
                     sc.addEventListener('change', () => filterSubjectsDropdown('selectClass', 'selectSubject'));
@@ -1405,7 +1419,7 @@
                     vc.dataset.bound = "true";
                 }
 
-                // Initialize the subject dropdowns
+                // Initial Load
                 filterSubjectsDropdown('selectClass', 'selectSubject');
                 filterSubjectsDropdown('reportClass', 'reportSubject');
                 filterSubjectsDropdown('viewClass', 'viewSubject');
@@ -1651,7 +1665,7 @@
                             tableHtml += `
                                 <tr>
                                     <td>${cName.replace('Grade ','')}</td>
-                                    <td>${pName}</td>
+                                    <td>${pName === 'Daily Attendance' ? pName : 'Period ' + pName}</td>
                                     <td style="white-space:normal; font-size:0.9em;">${sName}</td>
                                     <td style="color: green; font-weight: bold;">${p}</td>
                                     <td style="color: red; font-weight: bold;">${a}</td>
@@ -1715,7 +1729,7 @@
                                 const rec = stSnap.val();
                                 const stName = rec.name || "Unknown";
                                 const statusColor = rec.status === 'Present' ? 'green' : 'red';
-                                const pNameDisplay = rec.period || periodName;
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? rec.period : `Period ${rec.period || periodName}`;
                                 html += `
                                     <tr>
                                         <td>${rec.student_id}</td>
@@ -1784,7 +1798,7 @@
 
                             subSnap.forEach(stSnap => {
                                 const rec = stSnap.val();
-                                const pNameDisplay = rec.period || periodName;
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? rec.period : `Period ${rec.period || periodName}`;
                                 tableData.push([
                                     index++,
                                     rec.student_id,
