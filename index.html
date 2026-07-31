@@ -68,6 +68,7 @@
         .stats-card p { font-size: 1.1em; opacity: 0.9; }
         .restricted-option { color: #999; font-style: italic; }
         .footer-credit { text-align: center; padding: 20px; color: #666; font-size: 0.9em; border-top: 1px solid #e0e0e0; margin-top: 40px; }
+        .search-bar { width: 100%; padding: 12px; border: 2px solid #005A9C; border-radius: 8px; font-size: 16px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -145,7 +146,6 @@
                 <button class="nav-tab active" data-tab="attendance">📋 Attendance</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
-                <!-- View Attendance is strictly for Admin/Principal -->
                 <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
                 <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers & Leaves</button>
@@ -389,7 +389,8 @@
                 </div>
 
                 <div class="card">
-                    <h3>📋 Teacher Leave Summary (Current Month & Year)</h3>
+                    <h3>📋 Search & View Teachers & Leaves</h3>
+                    <input type="text" id="searchTeacherInput" class="search-bar" placeholder="Search by Teacher Name or ID..." onkeyup="filterTeachers()">
                     <div style="overflow-x: auto;">
                         <table>
                             <thead>
@@ -468,6 +469,15 @@
 
     <script>
         // =======================================================
+        // HELPER: Sanitize Keys for Firebase
+        // Firebase keys cannot contain . # $ [ or ]
+        // =======================================================
+        function getSafeKey(str) {
+            if (!str) return "";
+            return str.replace(/[\.\#\$\[\]]/g, '_');
+        }
+
+        // =======================================================
         // FIREBASE SETTINGS (ASIA-SOUTHEAST1)
         // =======================================================
         const firebaseConfig = {
@@ -545,15 +555,19 @@
             document.getElementById('confirmRegisterBtn').addEventListener('click', doRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
+            // Student Buttons
             document.getElementById('addStudentBtn').addEventListener('click', addStudent);
             document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendanceSheet);
             
+            // Report Buttons
             document.getElementById('generateReportBtn').addEventListener('click', generateReportSummary);
             document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdfReport);
             
+            // Subject Buttons
             document.getElementById('saveSubjectBtn').addEventListener('click', saveSubject);
             document.getElementById('cancelEditBtn').addEventListener('click', resetSubjectForm);
 
+            // Teacher Buttons
             document.getElementById('saveNewTeacherBtn').addEventListener('click', saveNewTeacher);
             
             document.querySelectorAll('.nav-tab').forEach(btn => {
@@ -716,6 +730,8 @@
                 loadSubjectsManagement();
             } else if (tabName === 'teachers') {
                 loadTeachersAndLeaves();
+            } else if (tabName === 'reports') {
+                loadReportDropdowns(); // Ensure report dropdowns load
             }
         }
 
@@ -723,8 +739,8 @@
         // STUDENT FUNCTIONS
         // ==========================================
         async function addStudent() {
-            const studentId = document.getElementById('studentId').value;
-            const name = document.getElementById('studentName').value;
+            const studentId = document.getElementById('studentId').value.trim();
+            const name = document.getElementById('studentName').value.trim();
             const grade = document.getElementById('studentGrade').value;
             const gender = document.getElementById('studentGender').value;
             const successMsg = document.getElementById('studentSuccess');
@@ -734,8 +750,10 @@
                 return;
             }
 
+            const safeStudentId = getSafeKey(studentId);
+
             try {
-                await db.ref('students/' + studentId).set({
+                await db.ref('students/' + safeStudentId).set({
                     student_id: studentId,
                     name: name,
                     grade: grade,
@@ -771,7 +789,7 @@
                 let index = 1;
                 snapshot.forEach(childSnap => {
                     const student = childSnap.val();
-                    const key = childSnap.key;
+                    const key = childSnap.key; 
                     html += `
                         <tr>
                             <td>${index++}</td>
@@ -814,8 +832,10 @@
                 return;
             }
 
+            const safeTid = getSafeKey(tid);
+
             try {
-                await db.ref('teachers/' + tid).set({
+                await db.ref('teachers/' + safeTid).set({
                     teacher_id: tid,
                     name: tname
                 });
@@ -862,20 +882,20 @@
                         
                         if(isCurrentYear) {
                             dateSnap.forEach(tSnap => {
-                                const tid = tSnap.key;
+                                const safeTid = tSnap.key; // Using safe key
                                 const status = tSnap.val().status; 
                                 
-                                if(!attData[tid]) attData[tid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                                if(!attData[safeTid]) attData[safeTid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
                                 
                                 if(status === 'Casual Leave') {
-                                    attData[tid].year.Casual++;
-                                    if(isCurrentMonth) attData[tid].month.Casual++;
+                                    attData[safeTid].year.Casual++;
+                                    if(isCurrentMonth) attData[safeTid].month.Casual++;
                                 } else if (status === 'Sick Leave') {
-                                    attData[tid].year.Sick++;
-                                    if(isCurrentMonth) attData[tid].month.Sick++;
+                                    attData[safeTid].year.Sick++;
+                                    if(isCurrentMonth) attData[safeTid].month.Sick++;
                                 } else if (status === 'Duty Leave') {
-                                    attData[tid].year.Duty++;
-                                    if(isCurrentMonth) attData[tid].month.Duty++;
+                                    attData[safeTid].year.Duty++;
+                                    if(isCurrentMonth) attData[safeTid].month.Duty++;
                                 }
                             });
                         }
@@ -886,7 +906,8 @@
                 teachersSnap.forEach(child => {
                     const t = child.val();
                     const tid = t.teacher_id;
-                    const stats = attData[tid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                    const safeTid = child.key;
+                    const stats = attData[safeTid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
                     
                     const monthStr = `Casual: <strong>${stats.month.Casual}</strong> | Sick: <strong>${stats.month.Sick}</strong> | Duty: <strong>${stats.month.Duty}</strong>`;
                     const yearStr = `Casual: <strong>${stats.year.Casual}</strong> | Sick: <strong>${stats.year.Sick}</strong> | Duty: <strong>${stats.year.Duty}</strong>`;
@@ -896,25 +917,45 @@
                         <td><strong>${t.name}</strong></td>
                         <td style="font-size: 0.9em; color: #555;">${monthStr}</td>
                         <td style="font-size: 0.9em; color: #555;">${yearStr}</td>
-                        <td><button onclick="deleteTeacher('${child.key}')" class="btn btn-danger btn-small">Delete</button></td>
+                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Delete</button></td>
                     </tr>`;
                 });
                 tbody.innerHTML = html;
+                filterTeachers(); // Call filter function if search box has value
             } catch(e) {
                 console.error(e);
                 tbody.innerHTML = "<tr><td colspan='5' style='color:red;'>Error loading teachers</td></tr>";
             }
         }
 
-        async function deleteTeacher(tid) {
+        async function deleteTeacher(safeTid) {
             if(confirm("Are you sure you want to remove this teacher?")) {
                 try {
-                    await db.ref('teachers/' + tid).remove();
+                    await db.ref('teachers/' + safeTid).remove();
                     loadTeachersAndLeaves();
                 } catch(e) {
                     alert("Error: " + e.message);
                 }
             }
+        }
+
+        function filterTeachers() {
+            const input = document.getElementById('searchTeacherInput');
+            if(!input) return;
+            const filter = input.value.toLowerCase();
+            const rows = document.querySelectorAll('#teacherListTbody tr');
+            
+            rows.forEach(row => {
+                if(row.cells.length >= 2) {
+                    const idText = row.cells[0].innerText.toLowerCase();
+                    const nameText = row.cells[1].innerText.toLowerCase();
+                    if(idText.includes(filter) || nameText.includes(filter)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
         }
 
         async function loadTeacherAttendanceSheet() {
@@ -942,10 +983,11 @@
                 tSnap.forEach(child => {
                     const t = child.val();
                     const tid = t.teacher_id;
-                    const currentStatus = existingAtt[tid] ? existingAtt[tid].status : 'Present';
+                    const safeTid = child.key;
+                    const currentStatus = existingAtt[safeTid] ? existingAtt[safeTid].status : 'Present';
 
                     html += `
-                        <tr data-tid="${tid}">
+                        <tr data-safetid="${safeTid}" data-tid="${tid}">
                             <td>${tid}</td>
                             <td class="t-name"><strong>${t.name}</strong></td>
                             <td>
@@ -975,11 +1017,13 @@
 
             let updates = {};
             rows.forEach(row => {
+                const safeTid = row.getAttribute('data-safetid');
                 const tid = row.getAttribute('data-tid');
-                if(tid) {
+                
+                if(safeTid) {
                     const tname = row.querySelector('.t-name').innerText;
                     const status = row.querySelector('.t-status').value;
-                    updates[`teacher_attendance/${date}/${tid}`] = {
+                    updates[`teacher_attendance/${date}/${safeTid}`] = {
                         teacher_id: tid,
                         name: tname,
                         status: status,
@@ -1147,15 +1191,19 @@
             });
         }
         
+        function loadReportDropdowns() {
+            // Already handled dynamically above
+        }
+        
         async function updateDashboardStats() {
             try {
-                // 1. Students Count
+                // Students Count
                 const stSnap = await db.ref('students').once('value');
                 let stCount = 0;
                 if(stSnap.exists()) stSnap.forEach(() => { stCount++; });
                 document.getElementById('totalStudentsCount').textContent = stCount;
 
-                // 2. Teachers Dashboard Logic
+                // Teachers Dashboard Logic
                 const today = new Date().toISOString().split('T')[0];
                 const tAttSnap = await db.ref(`teacher_attendance/${today}`).once('value');
                 
@@ -1218,8 +1266,10 @@
                 let html = '';
                 snapshot.forEach(child => {
                     const st = child.val();
+                    const safeStudentId = child.key; 
+                    
                     html += `
-                        <tr data-studentid="${st.student_id}">
+                        <tr data-safestudentid="${safeStudentId}" data-studentid="${st.student_id}">
                             <td>${st.student_id}</td>
                             <td class="st-name">${st.name}</td>
                             <td>${st.grade}</td>
@@ -1257,15 +1307,17 @@
 
             let updates = {};
             rows.forEach(row => {
+                const safeStudentId = row.getAttribute('data-safestudentid');
                 const studentId = row.getAttribute('data-studentid');
                 const stName = row.querySelector('.st-name').innerText;
                 const status = row.querySelector('.att-status').value;
-                if(studentId) {
-                    const safeClass = selectedClass.replace(/[\.#$\/\[\]]/g, '_');
+                
+                if(safeStudentId) {
+                    const safeClass = getSafeKey(selectedClass);
                     const safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
-                    const safeSubject = selectedSubject.replace(/[\.#$\/\[\]]/g, '_');
+                    const safeSubject = getSafeKey(selectedSubject);
                     
-                    const path = `attendance/${date}/${safeClass}/${safePeriod}/${safeSubject}/${studentId}`;
+                    const path = `attendance/${date}/${safeClass}/${safePeriod}/${safeSubject}/${safeStudentId}`;
                     updates[path] = {
                         student_id: studentId,
                         name: stName,
