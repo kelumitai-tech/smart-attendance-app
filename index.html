@@ -43,9 +43,9 @@
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; background: white; outline: none; transition: border 0.3s; }
         .form-group input:focus, .form-group select:focus { border-color: #005A9C; }
         
-        /* OPTGROUP STYLING */
-        select optgroup { font-weight: bold; color: #005A9C; background: #f0f8ff; }
-        select option { font-weight: normal; color: #333; background: #fff; }
+        /* OPTGROUP STYLING - Categorized Subjects */
+        select optgroup { font-weight: bold; color: #005A9C; background: #f0f8ff; font-size: 15px; }
+        select option { font-weight: normal; color: #333; background: #fff; font-size: 14px; }
 
         /* BUTTONS */
         .btn { padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-bottom: 10px; }
@@ -193,7 +193,7 @@
             </div>
 
             <div class="footer-credit">
-                Developer - Kelum Koonara | Smart soft | 0714469232
+                Developer - Kelum Konara | Smart soft | 0714469232
             </div>
         </div>
 
@@ -214,7 +214,7 @@
             <div class="tab-content active" id="attendance">
                 <div class="card">
                     <h3>Mark Attendance</h3>
-                    <div class="info-box">Select class, subject, period and date to mark attendance.</div>
+                    <div class="info-box">Select class, subject (or Daily Attendance), period and date to mark attendance.</div>
                     <div class="grid-3">
                         <div class="form-group">
                             <label>Select Class</label>
@@ -232,7 +232,6 @@
                             <label>Select Period</label>
                             <select id="selectPeriod">
                                 <option value="">Select Period</option>
-                                <option value="Daily Attendance" style="font-weight: bold; color: #005A9C;">🏫 Daily School Attendance</option>
                                 <option value="1">1st Period</option>
                                 <option value="2">2nd Period</option>
                                 <option value="3">3rd Period</option>
@@ -389,18 +388,19 @@
                                     <th>Name</th>
                                     <th>Class</th>
                                     <th>Period</th>
+                                    <th>Subject</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="viewAttTbody">
-                                <tr><td colspan="5" style="text-align: center; padding: 15px;">Search to load records...</td></tr>
+                                <tr><td colspan="6" style="text-align: center; padding: 15px;">Search to load records...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Teachers & Leaves Management Tab (Admin Only) -->
+            <!-- Teachers Tab (Admin Only) -->
             <div class="tab-content" id="teachers">
                 <div class="card">
                     <h3>👨‍🏫 Add New Teacher</h3>
@@ -419,49 +419,21 @@
                 </div>
 
                 <div class="card">
-                    <h3>📅 Mark Teacher Attendance & Leaves</h3>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Date</label>
-                            <input type="date" id="teacherAttDate">
-                        </div>
-                        <div class="form-group" style="display:flex; align-items:flex-end;">
-                            <button class="btn btn-secondary btn-full" onclick="loadTeacherAttendanceSheet()">Load Teachers</button>
-                        </div>
+                    <h3>🔍 Search & View Teachers (<span id="teacherCount">0</span>)</h3>
+                    <div class="form-group">
+                        <input type="text" id="searchTeacherInput" class="search-bar" placeholder="Search by Teacher Name or ID..." onkeyup="filterTeachers()">
                     </div>
-                    
-                    <div id="teacherAttendanceDiv" style="display:none; margin-top: 15px;">
-                        <div class="table-responsive">
-                            <table id="teacherAttTable">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Status / Leave Reason</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="teacherAttTbody">
-                                </tbody>
-                            </table>
-                        </div>
-                        <button class="btn btn-primary btn-full" style="margin-top: 15px;" onclick="saveTeacherAttendance()">💾 Save Teacher Attendance</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3>📋 Search & View Teachers & Leaves</h3>
-                    <input type="text" id="searchTeacherInput" class="search-bar" placeholder="Search by Name or ID..." onkeyup="filterTeachers()">
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID & Name</th>
-                                    <th>M. Leave</th>
-                                    <th>Y. Leave</th>
+                                    <th>Teacher ID</th>
+                                    <th>Name</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="teacherListTbody">
-                                <tr><td colspan="4" class="loading">Loading teachers...</td></tr>
+                                <tr><td colspan="3" class="loading">Loading teachers...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -478,9 +450,9 @@
                     
                     <div class="grid-2">
                         <div class="form-group">
-                            <label>Subject Category / Grade</label>
+                            <label>Subject Category</label>
                             <select id="subjectCategoryInput">
-                                <option value="General (පොදු)">General (පොදු)</option>
+                                <option value="General">General (පොදු)</option>
                                 <option value="Grades 6 - 9">Grades 6 - 9</option>
                                 <option value="Grades 10 - 11">Grades 10 - 11</option>
                                 <option value="Grades 12 - 13">Grades 12 - 13</option>
@@ -523,15 +495,8 @@
                 <div class="card"><h3>🎯 Principal Dashboard</h3>
                     <div class="grid-3">
                         <div class="stats-card"><p>Total Students</p><h2 id="totalStudentsCount">0</h2></div>
-                        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"><p>Present Teachers</p><h2 id="presentTeachersCount">0</h2></div>
-                        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"><p>Absent Teachers</p><h2 id="absentTeachersCount">0</h2></div>
-                    </div>
-                    
-                    <div class="card" style="margin-top: 15px; background: #fff; border: 1px solid #ffcdd2;">
-                        <h3 style="color: #c62828; font-size:1.1em;">📌 Today's Absent Teachers & Reasons</h3>
-                        <div id="absentTeachersList" style="margin-top: 10px;">
-                            <p class="loading">Loading data...</p>
-                        </div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"><p>Total Teachers</p><h2 id="totalTeachersCount">0</h2></div>
+                        <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"><p>System Status</p><h2>Online</h2></div>
                     </div>
                 </div>
             </div>
@@ -575,7 +540,7 @@
 
         // Standard Sri Lankan Subjects Grouped by Category
         const defaultSlSubjects = [
-            { category: "General (පොදු)", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
+            { category: "General", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
             
             { category: "Grades 6 - 9", name: "සිංහල භාෂාව හා සාහිත්‍යය" },
             { category: "Grades 6 - 9", name: "දෙමළ භාෂාව හා සාහිත්‍යය" },
@@ -683,7 +648,7 @@
 
         function setTodayDate() {
             const today = new Date().toISOString().split('T')[0];
-            const ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate'];
+            const ids = ['startDate', 'reportDate', 'viewDate'];
             ids.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = today;
@@ -836,7 +801,7 @@
             } else if (tabName === 'subjects') {
                 loadSubjectsManagement();
             } else if (tabName === 'teachers') {
-                loadTeachersAndLeaves();
+                loadTeachers();
             }
         }
 
@@ -924,7 +889,7 @@
         }
 
         // ==========================================
-        // TEACHER FUNCTIONS
+        // TEACHER FUNCTIONS (Simple Search/Add)
         // ==========================================
         async function saveNewTeacher() {
             const tid = document.getElementById('addTeacherId').value.trim();
@@ -949,85 +914,48 @@
                 
                 document.getElementById('addTeacherId').value = '';
                 document.getElementById('addTeacherName').value = '';
-                loadTeachersAndLeaves();
+                loadTeachers();
             } catch(e) {
                 alert("Error adding teacher: " + e.message);
             }
         }
 
-        async function loadTeachersAndLeaves() {
+        async function loadTeachers() {
             const tbody = document.getElementById('teacherListTbody');
+            const countSpan = document.getElementById('teacherCount');
             if(!tbody) return;
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Loading...</td></tr>";
-
-            const today = new Date();
-            const currentYear = today.getFullYear().toString();
-            const currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
-            const monthPrefix = `${currentYear}-${currentMonth}`;
+            tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>Loading...</td></tr>";
 
             try {
-                const [teachersSnap, attSnap] = await Promise.all([
-                    db.ref('teachers').once('value'),
-                    db.ref('teacher_attendance').once('value')
-                ]);
+                const teachersSnap = await db.ref('teachers').once('value');
 
                 if(!teachersSnap.exists()){
-                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No teachers found.</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No teachers found.</td></tr>";
+                    if(countSpan) countSpan.textContent = 0;
                     return;
                 }
 
-                let attData = {}; 
-                
-                if(attSnap.exists()){
-                    attSnap.forEach(dateSnap => {
-                        const d = dateSnap.key; 
-                        const isCurrentYear = d.startsWith(currentYear);
-                        const isCurrentMonth = d.startsWith(monthPrefix);
-                        
-                        if(isCurrentYear) {
-                            dateSnap.forEach(tSnap => {
-                                const safeTid = tSnap.key; // Using safe key
-                                const status = tSnap.val().status; 
-                                
-                                if(!attData[safeTid]) attData[safeTid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
-                                
-                                if(status === 'Casual Leave') {
-                                    attData[safeTid].year.Casual++;
-                                    if(isCurrentMonth) attData[safeTid].month.Casual++;
-                                } else if (status === 'Sick Leave') {
-                                    attData[safeTid].year.Sick++;
-                                    if(isCurrentMonth) attData[safeTid].month.Sick++;
-                                } else if (status === 'Duty Leave') {
-                                    attData[safeTid].year.Duty++;
-                                    if(isCurrentMonth) attData[safeTid].month.Duty++;
-                                }
-                            });
-                        }
-                    });
-                }
-
                 let html = '';
+                let count = 0;
                 teachersSnap.forEach(child => {
                     const t = child.val();
                     const tid = t.teacher_id;
                     const safeTid = child.key;
-                    const stats = attData[safeTid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
-                    
-                    const monthStr = `C:<strong>${stats.month.Casual}</strong> | S:<strong>${stats.month.Sick}</strong> | D:<strong>${stats.month.Duty}</strong>`;
-                    const yearStr = `C:<strong>${stats.year.Casual}</strong> | S:<strong>${stats.year.Sick}</strong> | D:<strong>${stats.year.Duty}</strong>`;
                     
                     html += `<tr>
-                        <td><strong>${t.name}</strong><br><small style="color:#666;">${tid}</small></td>
-                        <td style="font-size: 0.85em;">${monthStr}</td>
-                        <td style="font-size: 0.85em;">${yearStr}</td>
-                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Del</button></td>
+                        <td>${tid}</td>
+                        <td><strong>${t.name}</strong></td>
+                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Delete</button></td>
                     </tr>`;
+                    count++;
                 });
                 tbody.innerHTML = html;
-                filterTeachers(); // Call filter function if search box has value
+                if(countSpan) countSpan.textContent = count;
+                
+                filterTeachers(); // Re-apply filter if active
             } catch(e) {
                 console.error(e);
-                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading teachers</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='3' style='color:red;'>Error loading teachers</td></tr>";
             }
         }
 
@@ -1035,7 +963,7 @@
             if(confirm("Are you sure you want to remove this teacher?")) {
                 try {
                     await db.ref('teachers/' + safeTid).remove();
-                    loadTeachersAndLeaves();
+                    loadTeachers();
                 } catch(e) {
                     alert("Error: " + e.message);
                 }
@@ -1049,98 +977,16 @@
             const rows = document.querySelectorAll('#teacherListTbody tr');
             
             rows.forEach(row => {
-                if(row.cells.length >= 1) {
-                    const text = row.cells[0].innerText.toLowerCase();
-                    if(text.includes(filter)) {
+                if(row.cells.length >= 2) {
+                    const idText = row.cells[0].innerText.toLowerCase();
+                    const nameText = row.cells[1].innerText.toLowerCase();
+                    if(idText.includes(filter) || nameText.includes(filter)) {
                         row.style.display = '';
                     } else {
                         row.style.display = 'none';
                     }
                 }
             });
-        }
-
-        async function loadTeacherAttendanceSheet() {
-            const date = document.getElementById('teacherAttDate').value;
-            if(!date) { alert("Please select date!"); return; }
-
-            document.getElementById('teacherAttendanceDiv').style.display = 'block';
-            const tbody = document.getElementById('teacherAttTbody');
-            tbody.innerHTML = "<tr><td colspan='2'>Loading...</td></tr>";
-
-            try {
-                const [tSnap, attSnap] = await Promise.all([
-                    db.ref('teachers').once('value'),
-                    db.ref(`teacher_attendance/${date}`).once('value')
-                ]);
-
-                if(!tSnap.exists()){
-                    tbody.innerHTML = "<tr><td colspan='2'>No teachers registered yet.</td></tr>";
-                    return;
-                }
-
-                const existingAtt = attSnap.exists() ? attSnap.val() : {};
-                let html = '';
-
-                tSnap.forEach(child => {
-                    const t = child.val();
-                    const tid = t.teacher_id;
-                    const safeTid = child.key;
-                    const currentStatus = existingAtt[safeTid] ? existingAtt[safeTid].status : 'Present';
-
-                    html += `
-                        <tr data-safetid="${safeTid}" data-tid="${tid}">
-                            <td class="t-name"><strong>${t.name}</strong><br><small>${tid}</small></td>
-                            <td>
-                                <select class="t-status" style="padding: 5px; border-radius: 4px; width: 100%;">
-                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present (පැමිණ ඇත)</option>
-                                    <option value="Casual Leave" ${currentStatus==='Casual Leave'?'selected':''}>Absent - Casual Leave (අනියම් නිවාඩු)</option>
-                                    <option value="Sick Leave" ${currentStatus==='Sick Leave'?'selected':''}>Absent - Sick Leave (අසනීප නිවාඩු)</option>
-                                    <option value="Duty Leave" ${currentStatus==='Duty Leave'?'selected':''}>Absent - Duty Leave (රාජකාරී නිවාඩු)</option>
-                                </select>
-                            </td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = "<tr><td colspan='2' style='color:red;'>Error fetching data.</td></tr>";
-            }
-        }
-
-        async function saveTeacherAttendance() {
-            const date = document.getElementById('teacherAttDate').value;
-            if(!date) return;
-
-            const rows = document.querySelectorAll('#teacherAttTbody tr');
-            if(rows.length === 0) return;
-
-            let updates = {};
-            rows.forEach(row => {
-                const safeTid = row.getAttribute('data-safetid');
-                const tid = row.getAttribute('data-tid');
-                
-                if(safeTid) {
-                    const tname = row.querySelector('.t-name strong').innerText;
-                    const status = row.querySelector('.t-status').value;
-                    updates[`teacher_attendance/${date}/${safeTid}`] = {
-                        teacher_id: tid,
-                        name: tname,
-                        status: status,
-                        date: date
-                    };
-                }
-            });
-
-            try {
-                await db.ref().update(updates);
-                alert("Teacher Attendance Saved Successfully!");
-                loadTeachersAndLeaves(); 
-                updateDashboardStats();
-            } catch(e) {
-                alert("Error: " + e.message);
-            }
         }
 
         // ==========================================
@@ -1311,7 +1157,7 @@
                             element.innerHTML = '<option value="">All Subjects</option>';
                             if(selector === 'selectSubject') element.innerHTML = '<option value="">Select Subject</option>';
                             
-                            const catOrder = ["General (පොදු)", "Grades 6 - 9", "Grades 10 - 11", "Grades 12 - 13", "Other"];
+                            const catOrder = ["General", "Grades 6 - 9", "Grades 10 - 11", "Grades 12 - 13", "Other"];
                             
                             catOrder.forEach(cat => {
                                 if(subjectsByCategory[cat] && subjectsByCategory[cat].length > 0) {
@@ -1354,39 +1200,12 @@
                 if(stSnap.exists()) stSnap.forEach(() => { stCount++; });
                 document.getElementById('totalStudentsCount').textContent = stCount;
 
-                // Teachers Dashboard Logic
-                const today = new Date().toISOString().split('T')[0];
-                const tAttSnap = await db.ref(`teacher_attendance/${today}`).once('value');
-                
-                let pCount = 0;
-                let aCount = 0;
-                let absentHtml = '';
-
-                if(tAttSnap.exists()) {
-                    tAttSnap.forEach(tSnap => {
-                        const rec = tSnap.val();
-                        if(rec.status === 'Present') {
-                            pCount++;
-                        } else {
-                            aCount++;
-                            absentHtml += `
-                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
-                                <strong>${rec.name}</strong><br>
-                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
-                            </div>`;
-                        }
-                    });
-                }
-
-                document.getElementById('presentTeachersCount').textContent = pCount;
-                document.getElementById('absentTeachersCount').textContent = aCount;
-
-                if(aCount === 0) {
-                    absentHtml = "<p style='color: green; font-size:0.9em;'>✅ All assigned teachers are present today (or no records marked).</p>";
-                }
-                
-                const absentListDiv = document.getElementById('absentTeachersList');
-                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
+                // Teachers Count
+                const tSnap = await db.ref('teachers').once('value');
+                let tCount = 0;
+                if(tSnap.exists()) tSnap.forEach(() => { tCount++; });
+                const tEl = document.getElementById('totalTeachersCount');
+                if(tEl) tEl.textContent = tCount;
 
             } catch (error) {
                 console.error("Dashboard update error", error);
@@ -1468,7 +1287,7 @@
                 
                 if(safeStudentId) {
                     const safeClass = getSafeKey(selectedClass);
-                    const safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
+                    const safePeriod = "Period_" + selectedPeriod;
                     const safeSubject = getSafeKey(selectedSubject);
                     
                     const path = `attendance/${date}/${safeClass}/${safePeriod}/${safeSubject}/${safeStudentId}`;
@@ -1521,7 +1340,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
+                        const periodName = periodSnap.key.replace('Period_', '');
 
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1585,7 +1404,7 @@
                             tableHtml += `
                                 <tr>
                                     <td>${cName.replace('Grade ','')}</td>
-                                    <td>${pName === 'Daily School Attendance' ? 'Daily' : pName}</td>
+                                    <td>Period ${pName}</td>
                                     <td style="white-space:normal; font-size:0.9em;">${sName}</td>
                                     <td style="color: green; font-weight: bold;">${p}</td>
                                     <td style="color: red; font-weight: bold;">${a}</td>
@@ -1624,12 +1443,12 @@
                 return;
             }
 
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align: center;'>Loading records...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>Loading records...</td></tr>";
 
             try {
                 const snapshot = await db.ref('attendance/' + date).once('value');
                 if(!snapshot.exists()) {
-                    tbody.innerHTML = "<tr><td colspan='5' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
                     return;
                 }
 
@@ -1639,7 +1458,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
+                        const periodName = periodSnap.key.replace('Period_', '');
                         
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1649,13 +1468,14 @@
                                 const rec = stSnap.val();
                                 const stName = rec.name || "Unknown";
                                 const statusColor = rec.status === 'Present' ? 'green' : 'red';
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : rec.period || periodName;
+                                const pNameDisplay = `Period ${rec.period || periodName}`;
                                 html += `
                                     <tr>
                                         <td>${rec.student_id}</td>
                                         <td style="white-space:normal;">${stName}</td>
                                         <td>${rec.class.replace('Grade ','')}</td>
                                         <td>${pNameDisplay}</td>
+                                        <td>${rec.subject}</td>
                                         <td style="color:${statusColor}; font-weight:bold;">${rec.status}</td>
                                     </tr>
                                 `;
@@ -1664,10 +1484,10 @@
                     });
                 });
 
-                if(!html) html = "<tr><td colspan='5' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
+                if(!html) html = "<tr><td colspan='6' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
                 tbody.innerHTML = html;
             } catch(err) {
-                tbody.innerHTML = "<tr><td colspan='5' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
             }
         }
 
@@ -1709,7 +1529,7 @@
                     if(clsFilter && className !== clsFilter) return;
 
                     classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
+                        const periodName = periodSnap.key.replace('Period_', '');
                         
                         periodSnap.forEach(subSnap => {
                             const subName = subSnap.key.replace(/_/g, ' ');
@@ -1717,7 +1537,7 @@
 
                             subSnap.forEach(stSnap => {
                                 const rec = stSnap.val();
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? rec.period : `Period ${rec.period || periodName}`;
+                                const pNameDisplay = `Period ${rec.period || periodName}`;
                                 tableData.push([
                                     index++,
                                     rec.student_id,
