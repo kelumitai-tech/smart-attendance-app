@@ -207,6 +207,8 @@
             
             <div class="nav-tabs" id="navTabs">
                 <button class="nav-tab active" data-tab="attendance">📋 Mark Attendance</button>
+                <!-- Leave Request Tab (For Teachers) -->
+                <button class="nav-tab" data-tab="requestLeave">📩 Leave Request</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
@@ -284,6 +286,61 @@
                 </div>
             </div>
 
+            <!-- Leave Request Tab (For Teachers) -->
+            <div class="tab-content" id="requestLeave">
+                <div class="card">
+                    <h3>📝 Submit Online Leave Request</h3>
+                    <div class="info-box">Request leave online. Principals can review and approve these requests.</div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Your Teacher ID</label>
+                            <input type="text" id="leaveReqTid" placeholder="e.g., T001">
+                        </div>
+                        <div class="form-group">
+                            <label>Your Full Name</label>
+                            <input type="text" id="leaveReqName" placeholder="Enter your name">
+                        </div>
+                        <div class="form-group">
+                            <label>Leave Date</label>
+                            <input type="date" id="leaveReqDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Leave Type</label>
+                            <select id="leaveReqType">
+                                <option value="Casual Leave">Casual Leave (අනියම්)</option>
+                                <option value="Sick Leave">Sick Leave (අසනීප)</option>
+                                <option value="Duty Leave">Duty Leave (රාජකාරී)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Reason / Note</label>
+                        <input type="text" id="leaveReqReason" placeholder="Briefly state the reason">
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="submitLeaveRequest()">Submit Leave Request</button>
+                    <div class="success-msg" id="leaveReqSuccess"></div>
+                </div>
+
+                <div class="card">
+                    <h3>🕒 My Leave Requests</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="myLeavesTbody">
+                                <tr><td colspan="4" class="loading">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Students Tab -->
             <div class="tab-content" id="students">
                 <div class="card">
@@ -318,7 +375,7 @@
                     <div class="form-group" id="optionalSubjectsGroup" style="display:none; background: #e8f4fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; margin-top: 10px;">
                         <label style="color: #005A9C; margin-bottom: 10px; font-size: 1.05em;">📚 Select Optional / A/L Subjects for this Student</label>
                         <div id="optionalSubjectsList" class="checkbox-grid">
-                            <!-- Checkboxes injected dynamically based on Grade -->
+                            <!-- Checkboxes injected dynamically -->
                         </div>
                     </div>
 
@@ -426,6 +483,27 @@
 
             <!-- Teachers & Leaves Management Tab (Admin Only) -->
             <div class="tab-content" id="teachers">
+                
+                <!-- Pending Leave Approvals Card -->
+                <div class="card" style="border-left: 4px solid #f44336;">
+                    <h3 style="color: #f44336;">🔔 Pending Leave Requests</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Teacher</th>
+                                    <th>Date</th>
+                                    <th>Type & Reason</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingLeavesTbody">
+                                <tr><td colspan="4" class="loading">Loading requests...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="card">
                     <h3>👨‍🏫 Add New Teacher</h3>
                     <div class="grid-2">
@@ -443,7 +521,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>📅 Mark Teacher Attendance & Leaves</h3>
+                    <h3>📅 Mark Teacher Attendance Manually</h3>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Date</label>
@@ -602,9 +680,8 @@
         let appUserRole = 'subjectTeacher'; 
         let isRegistering = false; 
 
-        let allSubjectsList = []; // Global array to store subjects for dynamic filtering
+        let allSubjectsList = []; 
 
-        // Standard Sri Lankan Subjects Grouped by Extended Categories
         const defaultSlSubjects = [
             { category: "General (පොදු)", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
             
@@ -708,7 +785,6 @@
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
-                    console.log("Database subjects updated successfully!");
                 }
             } catch (err) {
                 console.error("Error initializing subjects in DB:", err);
@@ -734,19 +810,15 @@
             document.getElementById('confirmRegisterBtn').addEventListener('click', doRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
-            // Student Buttons
             document.getElementById('addStudentBtn').addEventListener('click', addStudent);
             document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendanceSheet);
             
-            // Report Buttons
             document.getElementById('generateReportBtn').addEventListener('click', generateReportSummary);
             document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdfReport);
             
-            // Subject Buttons
             document.getElementById('saveSubjectBtn').addEventListener('click', saveSubject);
             document.getElementById('cancelEditBtn').addEventListener('click', resetSubjectForm);
 
-            // Teacher Buttons
             document.getElementById('saveNewTeacherBtn').addEventListener('click', saveNewTeacher);
             
             document.querySelectorAll('.nav-tab').forEach(btn => {
@@ -758,7 +830,7 @@
 
         function setTodayDate() {
             const today = new Date().toISOString().split('T')[0];
-            const ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate'];
+            const ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate', 'leaveReqDate'];
             ids.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = today;
@@ -912,6 +984,131 @@
                 loadSubjectsManagement();
             } else if (tabName === 'teachers') {
                 loadTeachersAndLeaves();
+                loadPendingLeaves();
+            } else if (tabName === 'requestLeave') {
+                loadMyLeaveRequests();
+            }
+        }
+
+        // ==========================================
+        // ONLINE LEAVE REQUESTS
+        // ==========================================
+        async function submitLeaveRequest() {
+            const tid = document.getElementById('leaveReqTid').value.trim();
+            const name = document.getElementById('leaveReqName').value.trim();
+            const date = document.getElementById('leaveReqDate').value;
+            const type = document.getElementById('leaveReqType').value;
+            const reason = document.getElementById('leaveReqReason').value.trim();
+            const msg = document.getElementById('leaveReqSuccess');
+
+            if(!tid || !name || !date || !reason) {
+                alert("කරුණාකර සියලුම විස්තර පුරවන්න!"); return;
+            }
+
+            const safeTid = getSafeKey(tid);
+            const reqRef = db.ref('leave_requests').push();
+            try {
+                await reqRef.set({
+                    req_id: reqRef.key,
+                    teacher_id: tid,
+                    safe_tid: safeTid,
+                    name: name,
+                    date: date,
+                    type: type,
+                    reason: reason,
+                    status: 'Pending',
+                    email: auth.currentUser.email
+                });
+                msg.textContent = "Leave request submitted successfully!";
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display='none', 3000);
+                
+                document.getElementById('leaveReqReason').value = '';
+                loadMyLeaveRequests();
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        async function loadMyLeaveRequests() {
+            const tbody = document.getElementById('myLeavesTbody');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='4' class='loading'>Loading...</td></tr>";
+            const userEmail = auth.currentUser ? auth.currentUser.email : null;
+            if(!userEmail) return;
+
+            try {
+                const snap = await db.ref('leave_requests').orderByChild('email').equalTo(userEmail).once('value');
+                if(!snap.exists()) {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No requests found.</td></tr>";
+                    return;
+                }
+                let html = '';
+                snap.forEach(child => {
+                    const req = child.val();
+                    let color = req.status === 'Approved' ? 'green' : (req.status === 'Rejected' ? 'red' : '#ff9800');
+                    html += `<tr>
+                        <td>${req.date}</td>
+                        <td>${req.type}</td>
+                        <td style="white-space:normal; font-size:0.9em;">${req.reason}</td>
+                        <td style="color:${color}; font-weight:bold;">${req.status}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            } catch(e) {
+                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading data.</td></tr>";
+            }
+        }
+
+        async function loadPendingLeaves() {
+            const tbody = document.getElementById('pendingLeavesTbody');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='4' class='loading'>Loading...</td></tr>";
+
+            try {
+                const snap = await db.ref('leave_requests').orderByChild('status').equalTo('Pending').once('value');
+                if(!snap.exists()) {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No pending requests.</td></tr>";
+                    return;
+                }
+                let html = '';
+                snap.forEach(child => {
+                    const req = child.val();
+                    html += `<tr>
+                        <td style="white-space:normal;"><strong>${req.name}</strong><br><small>${req.teacher_id}</small></td>
+                        <td>${req.date}</td>
+                        <td style="white-space:normal;"><strong>${req.type}</strong><br><small style="color:#666;">${req.reason}</small></td>
+                        <td>
+                            <button onclick="updateLeaveStatus('${req.req_id}', 'Approved', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-secondary btn-small" style="margin-bottom:5px;">Approve</button><br>
+                            <button onclick="updateLeaveStatus('${req.req_id}', 'Rejected')" class="btn btn-danger btn-small">Reject</button>
+                        </td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            } catch(e) {
+                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading requests.</td></tr>";
+            }
+        }
+
+        async function updateLeaveStatus(reqId, status, safeTid, tid, name, date, type) {
+            if(confirm(`Are you sure you want to ${status} this request?`)) {
+                try {
+                    await db.ref(`leave_requests/${reqId}`).update({ status: status });
+                    
+                    if(status === 'Approved') {
+                        await db.ref(`teacher_attendance/${date}/${safeTid}`).set({
+                            teacher_id: tid,
+                            name: name,
+                            status: type,
+                            date: date
+                        });
+                        loadTeachersAndLeaves(); 
+                        updateDashboardStats();
+                    }
+                    loadPendingLeaves();
+                } catch(e) {
+                    alert("Error: " + e.message);
+                }
             }
         }
 
@@ -978,7 +1175,6 @@
                 return;
             }
 
-            // Get selected optional subjects
             const optSubs = [];
             document.querySelectorAll('.student-opt-sub:checked').forEach(chk => {
                 optSubs.push(chk.value);
@@ -992,7 +1188,7 @@
                     name: name,
                     grade: grade,
                     gender: gender,
-                    optional_subjects: optSubs // Save optional subjects
+                    optional_subjects: optSubs 
                 });
 
                 successMsg.textContent = "Student successfully added!";
@@ -1033,8 +1229,8 @@
                         <tr>
                             <td>${index++}</td>
                             <td>${student.student_id}</td>
-                            <td><strong>${student.name}</strong></td>
-                            <td>${student.grade}</td>
+                            <td style="white-space:normal;"><strong>${student.name}</strong></td>
+                            <td>${student.grade.replace('Grade ','')}</td>
                             <td style="white-space:normal; font-size:0.85em; color:#005A9C;">${optSubsStr}</td>
                             <td><button onclick="deleteStudent('${key}')" class="btn btn-danger btn-small">Delete</button></td>
                         </tr>
@@ -1059,343 +1255,8 @@
         }
 
         // ==========================================
-        // TEACHER FUNCTIONS
+        // DYNAMIC FILTERING (Classes -> Subjects)
         // ==========================================
-        async function saveNewTeacher() {
-            const tid = document.getElementById('addTeacherId').value.trim();
-            const tname = document.getElementById('addTeacherName').value.trim();
-            const msg = document.getElementById('teacherSuccessMsg');
-
-            if(!tid || !tname) {
-                alert("Teacher ID and Name are required!");
-                return;
-            }
-
-            const safeTid = getSafeKey(tid);
-
-            try {
-                await db.ref('teachers/' + safeTid).set({
-                    teacher_id: tid,
-                    name: tname
-                });
-                msg.textContent = "Teacher added successfully!";
-                msg.style.display = 'block';
-                setTimeout(() => msg.style.display='none', 3000);
-                
-                document.getElementById('addTeacherId').value = '';
-                document.getElementById('addTeacherName').value = '';
-                loadTeachersAndLeaves();
-            } catch(e) {
-                alert("Error adding teacher: " + e.message);
-            }
-        }
-
-        async function loadTeachersAndLeaves() {
-            const tbody = document.getElementById('teacherListTbody');
-            if(!tbody) return;
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Loading...</td></tr>";
-
-            const today = new Date();
-            const currentYear = today.getFullYear().toString();
-            const currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
-            const monthPrefix = `${currentYear}-${currentMonth}`;
-
-            try {
-                const [teachersSnap, attSnap] = await Promise.all([
-                    db.ref('teachers').once('value'),
-                    db.ref('teacher_attendance').once('value')
-                ]);
-
-                if(!teachersSnap.exists()){
-                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No teachers found.</td></tr>";
-                    return;
-                }
-
-                let attData = {}; 
-                
-                if(attSnap.exists()){
-                    attSnap.forEach(dateSnap => {
-                        const d = dateSnap.key; 
-                        const isCurrentYear = d.startsWith(currentYear);
-                        const isCurrentMonth = d.startsWith(monthPrefix);
-                        
-                        if(isCurrentYear) {
-                            dateSnap.forEach(tSnap => {
-                                const safeTid = tSnap.key; 
-                                const status = tSnap.val().status; 
-                                
-                                if(!attData[safeTid]) attData[safeTid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
-                                
-                                if(status === 'Casual Leave') {
-                                    attData[safeTid].year.Casual++;
-                                    if(isCurrentMonth) attData[safeTid].month.Casual++;
-                                } else if (status === 'Sick Leave') {
-                                    attData[safeTid].year.Sick++;
-                                    if(isCurrentMonth) attData[safeTid].month.Sick++;
-                                } else if (status === 'Duty Leave') {
-                                    attData[safeTid].year.Duty++;
-                                    if(isCurrentMonth) attData[safeTid].month.Duty++;
-                                }
-                            });
-                        }
-                    });
-                }
-
-                let html = '';
-                teachersSnap.forEach(child => {
-                    const t = child.val();
-                    const tid = t.teacher_id;
-                    const safeTid = child.key;
-                    const stats = attData[safeTid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
-                    
-                    const monthStr = `C:<strong>${stats.month.Casual}</strong> | S:<strong>${stats.month.Sick}</strong> | D:<strong>${stats.month.Duty}</strong>`;
-                    const yearStr = `C:<strong>${stats.year.Casual}</strong> | S:<strong>${stats.year.Sick}</strong> | D:<strong>${stats.year.Duty}</strong>`;
-                    
-                    html += `<tr>
-                        <td><strong>${t.name}</strong><br><small style="color:#666;">${tid}</small></td>
-                        <td style="font-size: 0.85em;">${monthStr}</td>
-                        <td style="font-size: 0.85em;">${yearStr}</td>
-                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Del</button></td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-                filterTeachers(); 
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading teachers</td></tr>";
-            }
-        }
-
-        async function deleteTeacher(safeTid) {
-            if(confirm("Are you sure you want to remove this teacher?")) {
-                try {
-                    await db.ref('teachers/' + safeTid).remove();
-                    loadTeachersAndLeaves();
-                } catch(e) {
-                    alert("Error: " + e.message);
-                }
-            }
-        }
-
-        function filterTeachers() {
-            const input = document.getElementById('searchTeacherInput');
-            if(!input) return;
-            const filter = input.value.toLowerCase();
-            const rows = document.querySelectorAll('#teacherListTbody tr');
-            
-            rows.forEach(row => {
-                if(row.cells.length >= 1) {
-                    const text = row.cells[0].innerText.toLowerCase();
-                    if(text.includes(filter)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                }
-            });
-        }
-
-        async function loadTeacherAttendanceSheet() {
-            const date = document.getElementById('teacherAttDate').value;
-            if(!date) { alert("Please select date!"); return; }
-
-            document.getElementById('teacherAttendanceDiv').style.display = 'block';
-            const tbody = document.getElementById('teacherAttTbody');
-            tbody.innerHTML = "<tr><td colspan='2'>Loading...</td></tr>";
-
-            try {
-                const [tSnap, attSnap] = await Promise.all([
-                    db.ref('teachers').once('value'),
-                    db.ref(`teacher_attendance/${date}`).once('value')
-                ]);
-
-                if(!tSnap.exists()){
-                    tbody.innerHTML = "<tr><td colspan='2'>No teachers registered yet.</td></tr>";
-                    return;
-                }
-
-                const existingAtt = attSnap.exists() ? attSnap.val() : {};
-                let html = '';
-
-                tSnap.forEach(child => {
-                    const t = child.val();
-                    const tid = t.teacher_id;
-                    const safeTid = child.key;
-                    const currentStatus = existingAtt[safeTid] ? existingAtt[safeTid].status : 'Present';
-
-                    html += `
-                        <tr data-safetid="${safeTid}" data-tid="${tid}">
-                            <td class="t-name"><strong>${t.name}</strong><br><small>${tid}</small></td>
-                            <td>
-                                <select class="t-status" style="padding: 5px; border-radius: 4px; width: 100%;">
-                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present (පැමිණ ඇත)</option>
-                                    <option value="Casual Leave" ${currentStatus==='Casual Leave'?'selected':''}>Absent - Casual Leave (අනියම් නිවාඩු)</option>
-                                    <option value="Sick Leave" ${currentStatus==='Sick Leave'?'selected':''}>Absent - Sick Leave (අසනීප නිවාඩු)</option>
-                                    <option value="Duty Leave" ${currentStatus==='Duty Leave'?'selected':''}>Absent - Duty Leave (රාජකාරී නිවාඩු)</option>
-                                </select>
-                            </td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = "<tr><td colspan='2' style='color:red;'>Error fetching data.</td></tr>";
-            }
-        }
-
-        async function saveTeacherAttendance() {
-            const date = document.getElementById('teacherAttDate').value;
-            if(!date) return;
-
-            const rows = document.querySelectorAll('#teacherAttTbody tr');
-            if(rows.length === 0) return;
-
-            let updates = {};
-            rows.forEach(row => {
-                const safeTid = row.getAttribute('data-safetid');
-                const tid = row.getAttribute('data-tid');
-                
-                if(safeTid) {
-                    const tname = row.querySelector('.t-name strong').innerText;
-                    const status = row.querySelector('.t-status').value;
-                    updates[`teacher_attendance/${date}/${safeTid}`] = {
-                        teacher_id: tid,
-                        name: tname,
-                        status: status,
-                        date: date
-                    };
-                }
-            });
-
-            try {
-                await db.ref().update(updates);
-                alert("Teacher Attendance Saved Successfully!");
-                loadTeachersAndLeaves(); 
-                updateDashboardStats();
-            } catch(e) {
-                alert("Error: " + e.message);
-            }
-        }
-
-        // ==========================================
-        // SUBJECT FUNCTIONS
-        // ==========================================
-        async function loadSubjectsManagement() {
-            const tbody = document.getElementById('subjectsTableBody');
-            const countSpan = document.getElementById('subjectCount');
-            if(!tbody) return;
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>Loading subjects...</td></tr>";
-            
-            try {
-                const snapshot = await db.ref('subjects').once('value');
-                if(!snapshot.exists()) {
-                    tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>No subjects found.</td></tr>";
-                    if(countSpan) countSpan.textContent = 0;
-                    return;
-                }
-                let html = '';
-                let idx = 1;
-                snapshot.forEach(child => {
-                    const key = child.key;
-                    const val = child.val();
-                    const subName = val.name || val;
-                    const subCat = val.category || 'Other';
-                    
-                    html += `
-                        <tr>
-                            <td>${idx++}</td>
-                            <td style="font-size: 0.85em; color: #555;">${subCat}</td>
-                            <td style="white-space: normal;"><strong>${subName}</strong></td>
-                            <td>
-                                <button onclick="editSubject('${key}', '${subName}', '${subCat}')" class="btn btn-warning btn-small" style="margin-bottom:5px;">Edit</button>
-                                <button onclick="deleteSubject('${key}')" class="btn btn-danger btn-small">Del</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-                if(countSpan) countSpan.textContent = idx - 1;
-            } catch (error) {
-                tbody.innerHTML = "<tr><td colspan='4' style='text-align: center; color: red;'>Error loading subjects.</td></tr>";
-            }
-        }
-
-        async function saveSubject() {
-            const catInput = document.getElementById('subjectCategoryInput');
-            const nameInput = document.getElementById('subjectNameInput');
-            const editKeyInput = document.getElementById('editSubjectKey');
-            const successMsg = document.getElementById('subjectSuccess');
-            
-            const subCat = catInput.value;
-            const subName = nameInput.value.trim();
-            const editKey = editKeyInput.value.trim();
-
-            if(!subName) {
-                alert("කරුණාකර විෂය නම ඇතුළත් කරන්න!");
-                return;
-            }
-
-            try {
-                if(editKey) {
-                    await db.ref('subjects/' + editKey).update({ name: subName, category: subCat });
-                    successMsg.textContent = "විෂය සාර්ථකව යාවත්කාලීන කරන ලදී!";
-                } else {
-                    const newRef = db.ref('subjects').push();
-                    await newRef.set({ name: subName, category: subCat });
-                    successMsg.textContent = "විෂය සාර්ථකව එකතු කරන ලදී!";
-                }
-                successMsg.style.display = 'block';
-                setTimeout(() => successMsg.style.display = 'none', 3000);
-                resetSubjectForm();
-                loadSubjectsManagement();
-                loadClassAndSubjectDropdowns();
-            } catch(error) {
-                alert("දෝෂයක් ඇතිවිය: " + error.message);
-            }
-        }
-
-        function editSubject(key, name, category) {
-            document.getElementById('editSubjectKey').value = key;
-            document.getElementById('subjectNameInput').value = name;
-            
-            const catSelect = document.getElementById('subjectCategoryInput');
-            let catFound = false;
-            for(let i=0; i<catSelect.options.length; i++){
-                if(catSelect.options[i].value === category) {
-                    catSelect.selectedIndex = i;
-                    catFound = true; break;
-                }
-            }
-            if(!catFound) catSelect.value = "Other";
-
-            document.getElementById('subjectFormTitle').textContent = "Edit Subject";
-            document.getElementById('saveSubjectBtn').textContent = "💾 Update Subject";
-            document.getElementById('cancelEditBtn').style.display = 'block';
-            document.getElementById('subjectNameInput').focus();
-        }
-
-        function resetSubjectForm() {
-            document.getElementById('editSubjectKey').value = '';
-            document.getElementById('subjectNameInput').value = '';
-            document.getElementById('subjectCategoryInput').selectedIndex = 0;
-            document.getElementById('subjectFormTitle').textContent = "Add New Subject";
-            document.getElementById('saveSubjectBtn').textContent = "💾 Save Subject";
-            document.getElementById('cancelEditBtn').style.display = 'none';
-        }
-
-        async function deleteSubject(key) {
-            if(confirm("මෙම විෂය ඉවත් කිරීමට අවශ්‍ය බව විශ්වාසද?")) {
-                try {
-                    await db.ref('subjects/' + key).remove();
-                    loadSubjectsManagement();
-                    loadClassAndSubjectDropdowns();
-                } catch(error) {
-                    alert("විෂය මැකීමේදී දෝෂයක් ඇතිවිය: " + error.message);
-                }
-            }
-        }
-
         function filterSubjectsDropdown(classElId, subjectElId) {
             const classEl = document.getElementById(classElId);
             const subjectEl = document.getElementById(subjectElId);
@@ -1414,7 +1275,7 @@
             if(selectedClass) {
                 const match = selectedClass.match(/(\d+)/); 
                 if(match) {
-                    targetCategories = ["General", "General (පොදු)"]; 
+                    targetCategories = ["General (පොදු)", "General"]; 
                     const grade = parseInt(match[1]);
                     
                     if(grade >= 6 && grade <= 9) {
@@ -1422,7 +1283,7 @@
                     } else if(grade >= 10 && grade <= 11) {
                         targetCategories.push("Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
                     } else if(grade >= 12 && grade <= 13) {
-                        targetCategories.push("A/L - විද්‍යා ධාරාව", "A/L - Science", "A/L - තාක්ෂණ ධාරාව", "A/L - Tech", "A/L - වාණිජ ධාරාව", "A/L - Commerce", "A/L - කලා ධාරාව", "A/L - Arts", "A/L - Common");
+                        targetCategories.push("A/L - විද්‍යා ධාරාව", "A/L - තාක්ෂණ ධාරාව", "A/L - වාණිජ ධාරාව", "A/L - කලා ධාරාව", "A/L - Common", "A/L - Science", "A/L - Tech", "A/L - Commerce", "A/L - Arts");
                     }
                 }
             }
@@ -1552,54 +1413,9 @@
                 filterSubjectsDropdown('viewClass', 'viewSubject');
             });
         }
-        
-        async function updateDashboardStats() {
-            try {
-                const stSnap = await db.ref('students').once('value');
-                let stCount = 0;
-                if(stSnap.exists()) stSnap.forEach(() => { stCount++; });
-                document.getElementById('totalStudentsCount').textContent = stCount;
-
-                const today = new Date().toISOString().split('T')[0];
-                const tAttSnap = await db.ref(`teacher_attendance/${today}`).once('value');
-                
-                let pCount = 0;
-                let aCount = 0;
-                let absentHtml = '';
-
-                if(tAttSnap.exists()) {
-                    tAttSnap.forEach(tSnap => {
-                        const rec = tSnap.val();
-                        if(rec.status === 'Present') {
-                            pCount++;
-                        } else {
-                            aCount++;
-                            absentHtml += `
-                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
-                                <strong>${rec.name}</strong><br>
-                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
-                            </div>`;
-                        }
-                    });
-                }
-
-                document.getElementById('presentTeachersCount').textContent = pCount;
-                document.getElementById('absentTeachersCount').textContent = aCount;
-
-                if(aCount === 0) {
-                    absentHtml = "<p style='color: green; font-size:0.9em;'>✅ All assigned teachers are present today (or no records marked).</p>";
-                }
-                
-                const absentListDiv = document.getElementById('absentTeachersList');
-                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
-
-            } catch (error) {
-                console.error("Dashboard update error", error);
-            }
-        }
 
         // ==========================================
-        // ATTENDANCE MARKING & REPORTS
+        // ATTENDANCE MARKING (WITH OPTIONAL SUBJECTS LOGIC)
         // ==========================================
         function markAllStatusChanged() {
             const val = document.getElementById('markAllStatus').value;
@@ -1641,12 +1457,33 @@
                 
                 const existingAtt = attSnap.exists() ? attSnap.val() : {};
                 const isNewSheet = !attSnap.exists();
-                
+
+                // Get Category of selected subject to check if it's optional
+                const subObj = allSubjectsList.find(s => s.name === selectedSubject);
+                const isOptionalCat = subObj && (subObj.category.includes("Aesthetics") || subObj.category.includes("සෞන්දර්ය") || subObj.category.includes("කාණ්ඩ") || subObj.category.includes("A/L"));
+                const isGeneral = subObj && (subObj.category.includes("General") || subObj.category.includes("පොදු"));
+
                 let html = '';
+                let validStudentsCount = 0;
+
                 studentsSnap.forEach(child => {
                     const st = child.val();
                     const safeStudentId = child.key; 
                     
+                    // Smart Pre-Selection Logic
+                    let isStudentTakingSubject = true;
+                    if(isOptionalCat && !isGeneral) {
+                        if(st.optional_subjects && st.optional_subjects.includes(selectedSubject)) {
+                            isStudentTakingSubject = true;
+                        } else {
+                            isStudentTakingSubject = false;
+                        }
+                    }
+
+                    // If student is not taking the subject, skip them!
+                    if(!isStudentTakingSubject) return; 
+
+                    validStudentsCount++;
                     let currentStatus = isNewSheet ? 'Present' : (existingAtt[safeStudentId] ? existingAtt[safeStudentId].status : 'N/A');
                     
                     html += `
@@ -1663,7 +1500,13 @@
                         </tr>
                     `;
                 });
-                tbody.innerHTML = html;
+
+                if(validStudentsCount === 0) {
+                    tbody.innerHTML = "<tr><td colspan='3' style='color:red; text-align:center;'>මෙම පන්තියේ මෙම විෂය තෝරාගත් සිසුන් කිසිවෙකු නොමැත. (No students found for this specific subject).</td></tr>";
+                } else {
+                    tbody.innerHTML = html;
+                }
+
                 document.getElementById('markAllStatus').value = ""; 
             } catch (error) {
                 tbody.innerHTML = "<tr><td colspan='3'>දත්ත ලබා ගැනීමේදී දෝෂයක් ඇතිවිය.</td></tr>";
@@ -1692,11 +1535,11 @@
 
             rows.forEach(row => {
                 const safeStudentId = row.getAttribute('data-safestudentid');
-                const studentId = row.getAttribute('data-studentid');
-                const stName = row.querySelector('.st-name').innerText;
-                const status = row.querySelector('.att-status').value;
-                
                 if(safeStudentId) {
+                    const studentId = row.getAttribute('data-studentid');
+                    const stName = row.querySelector('.st-name').innerText;
+                    const status = row.querySelector('.att-status').value;
+                    
                     const safeClass = getSafeKey(selectedClass);
                     const safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
                     const safeSubject = getSafeKey(selectedSubject);
