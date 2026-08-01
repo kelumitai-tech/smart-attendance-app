@@ -29,7 +29,7 @@
         .header h1 { font-size: 1.5em; margin-bottom: 5px; margin-top: 35px; }
         .header p { opacity: 0.9; font-size: 0.85em; }
         
-        .role-badge { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 0.75em; border: 1px solid white; white-space: nowrap; }
+        .role-badge { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 0.75em; border: 1px solid white; white-space: nowrap; display: none; }
         .logout-btn { position: absolute; top: 15px; right: 15px; padding: 5px 12px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8em; transition: all 0.3s; }
         .logout-btn:hover { background: white; color: #005A9C; }
         
@@ -139,7 +139,7 @@
         <div class="header">
             <h1>📚 Smart Attendance Tracker</h1>
             <p>Efficient Student Attendance Management System</p>
-            <div class="role-badge" id="roleBadge">Loading...</div>
+            <div class="role-badge" id="roleBadge"></div>
             <button class="logout-btn" id="logoutBtn" style="display:none;">Logout</button>
         </div>
 
@@ -673,6 +673,7 @@
 
         let appUserRole = 'subjectTeacher'; 
         let isRegistering = false; 
+
         let allSubjectsList = []; 
 
         const defaultSlSubjects = [
@@ -741,16 +742,17 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
-        // Ensure everything runs AFTER page loads, no hanging DB calls
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             setTodayDate();
             checkAuthState(); 
         });
 
         function safeAddListener(id, event, handler) {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener(event, handler);
+            var el = document.getElementById(id);
+            if (el) {
+                el.addEventListener(event, handler);
+            }
         }
 
         function setupEventListeners() {
@@ -771,65 +773,32 @@
             safeAddListener('viewRawBtn', 'click', viewRawAttendance);
             safeAddListener('loadTeacherAttBtn', 'click', loadTeacherAttendanceSheet);
             
-            document.querySelectorAll('.nav-tab').forEach(btn => {
-                btn.addEventListener('click', function(e) {
+            var navTabs = document.querySelectorAll('.nav-tab');
+            for (var i = 0; i < navTabs.length; i++) {
+                navTabs[i].addEventListener('click', function(e) {
                     e.preventDefault();
                     showTab(this.getAttribute('data-tab'));
                 });
-            });
-        }
-
-        // We load this ONLY AFTER login so it never freezes the login screen
-        async function initializeDatabaseSubjects() {
-            try {
-                const subRef = db.ref('subjects');
-                const snapshot = await subRef.once('value');
-                let needsUpdate = false;
-
-                if (!snapshot.exists()) {
-                    needsUpdate = true;
-                } else {
-                    let data = snapshot.val();
-                    let hasOldData = false;
-                    for (let key in data) {
-                        if (typeof data[key] === 'string' || !data[key].category || data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11") {
-                            hasOldData = true; break;
-                        }
-                    }
-                    if (hasOldData) needsUpdate = true;
-                }
-
-                if (needsUpdate) {
-                    let subjectsObj = {};
-                    defaultSlSubjects.forEach((sub, index) => {
-                        let key = 'sub_' + (index + 1);
-                        subjectsObj[key] = { name: sub.name, category: sub.category };
-                    });
-                    await subRef.set(subjectsObj);
-                }
-            } catch (err) {
-                console.log("Subject Sync bypassed. Error:", err);
             }
         }
 
         function setTodayDate() {
-            const today = new Date().toISOString().split('T')[0];
-            const ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate', 'leaveReqDate'];
-            ids.forEach(id => {
-                const el = document.getElementById(id);
+            var today = new Date().toISOString().split('T')[0];
+            var ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate', 'leaveReqDate'];
+            for (var i = 0; i < ids.length; i++) {
+                var el = document.getElementById(ids[i]);
                 if (el) el.value = today;
-            });
+            }
         }
 
         function checkAuthState() {
-            auth.onAuthStateChanged((user) => {
-                const loginBtn = document.getElementById('loginBtn');
-                const logoutBtn = document.getElementById('logoutBtn');
+            auth.onAuthStateChanged(function(user) {
+                var loginBtn = document.getElementById('loginBtn');
+                var logoutBtn = document.getElementById('logoutBtn');
 
                 if (user && !isRegistering) {
                     if(logoutBtn) logoutBtn.style.display = 'block';
-                    // Render app FIRST so user sees UI instantly
-                    renderAppInstantly(user);
+                    applyRoleUIInstantly(user); 
                 } else if (!user) {
                     if(logoutBtn) logoutBtn.style.display = 'none';
                     if(loginBtn){ loginBtn.innerHTML = '🔐 Login'; loginBtn.disabled = false; }
@@ -838,58 +807,59 @@
             });
         }
 
-        function renderAppInstantly(user) {
-            // Instantly show the app screen
+        function applyRoleUIInstantly(user) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
 
-            // Show a temporary generic role to prevent freezing while fetching real role
-            applyRoleUI('subjectTeacher');
+            // Show temporary view
+            configureAppByRole('subjectTeacher');
             showTab('attendance'); 
 
-            // Safely fetch real role in the background
-            db.ref('users/' + user.uid).once('value').then(snapshot => {
+            // Get Real Role
+            db.ref('users/' + user.uid).once('value').then(function(snapshot) {
                 if (snapshot.exists()) {
-                    applyRoleUI(snapshot.val().role);
+                    configureAppByRole(snapshot.val().role);
                 } else {
-                    // Provide default role if none exists
                     db.ref('users/' + user.uid).set({ email: user.email, role: 'subjectTeacher' });
-                    applyRoleUI('subjectTeacher');
+                    configureAppByRole('subjectTeacher');
                 }
-            }).catch(e => {
-                console.error("Role load failed, using basic role:", e);
-                applyRoleUI('subjectTeacher');
+            }).catch(function(e) {
+                console.error("Using fallback role:", e);
+                configureAppByRole('subjectTeacher');
             });
 
-            // Safely load Subjects in the background
+            // Load Subjects (Offline/Hardcoded first, then DB)
             loadClassAndSubjectDropdowns();
-            setTimeout(initializeDatabaseSubjects, 1500); 
+            setTimeout(initializeDatabaseSubjects, 1000);
         }
 
-        function applyRoleUI(role) {
+        function configureAppByRole(role) {
             appUserRole = role;
-            let normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
+            var normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
             
-            let displayRole = 'Subject Teacher';
-            if (normalizedRole.includes('principal') || normalizedRole.includes('admin')) displayRole = 'Principal (Admin)';
-            else if (normalizedRole.includes('class')) displayRole = 'Class Teacher';
+            var displayRole = 'Subject Teacher';
+            if (normalizedRole.indexOf('principal') !== -1 || normalizedRole.indexOf('admin') !== -1) displayRole = 'Principal (Admin)';
+            else if (normalizedRole.indexOf('class') !== -1) displayRole = 'Class Teacher';
             
-            document.getElementById('roleBadge').textContent = displayRole;
+            var badge = document.getElementById('roleBadge');
+            badge.style.display = 'block';
+            badge.textContent = displayRole;
             
-            // Hide all restricted
-            document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'none');
+            var restrictedEls = document.querySelectorAll('.principal-only, .class-teacher-only');
+            for (var i = 0; i < restrictedEls.length; i++) restrictedEls[i].style.display = 'none';
             
-            // Unhide based on permission
-            if (normalizedRole.includes('principal') || normalizedRole.includes('admin')) {
-                document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'block');
-            } else if (normalizedRole.includes('class')) {
-                document.querySelectorAll('.class-teacher-only').forEach(el => el.style.display = 'block');
+            if (normalizedRole.indexOf('principal') !== -1 || normalizedRole.indexOf('admin') !== -1) {
+                for (var i = 0; i < restrictedEls.length; i++) restrictedEls[i].style.display = 'block';
+            } else if (normalizedRole.indexOf('class') !== -1) {
+                var classEls = document.querySelectorAll('.class-teacher-only');
+                for (var i = 0; i < classEls.length; i++) classEls[i].style.display = 'block';
             }
         }
 
         function showLoginScreen() {
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('appContent').style.display = 'none';
+            document.getElementById('roleBadge').style.display = 'none';
             showLoginForm();
         }
 
@@ -904,10 +874,10 @@
         }
 
         function doLogin() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-            const errorMsg = document.getElementById('loginError');
-            const loginBtn = document.getElementById('loginBtn');
+            var email = document.getElementById('loginEmail').value.trim();
+            var password = document.getElementById('loginPassword').value.trim();
+            var errorMsg = document.getElementById('loginError');
+            var loginBtn = document.getElementById('loginBtn');
             
             if (!email || !password) {
                 errorMsg.textContent = 'Please enter email and password';
@@ -919,8 +889,7 @@
             loginBtn.innerHTML = '⏳ Logging in...';
             loginBtn.disabled = true;
 
-            // Direct call to Firebase Auth
-            auth.signInWithEmailAndPassword(email, password).catch(error => {
+            auth.signInWithEmailAndPassword(email, password).catch(function(error) {
                 errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
                 loginBtn.innerHTML = '🔐 Login';
@@ -929,11 +898,11 @@
         }
 
         function doRegistration() {
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value.trim();
-            const errorMsg = document.getElementById('registerError');
-            const btn = document.getElementById('confirmRegisterBtn');
-            const finalRole = document.getElementById('registerRole').value;
+            var email = document.getElementById('registerEmail').value.trim();
+            var password = document.getElementById('registerPassword').value.trim();
+            var errorMsg = document.getElementById('registerError');
+            var btn = document.getElementById('confirmRegisterBtn');
+            var finalRole = document.getElementById('registerRole').value;
             
             if (!email || !password || password.length < 6) {
                 errorMsg.textContent = 'Please provide valid email and password (min 6 chars)';
@@ -946,13 +915,16 @@
             btn.disabled = true;
             isRegistering = true; 
             
-            auth.createUserWithEmailAndPassword(email, password).then(cred => {
+            auth.createUserWithEmailAndPassword(email, password).then(function(cred) {
                 return db.ref('users/' + cred.user.uid).set({ email: email, role: finalRole });
-            }).then(() => {
+            }).then(function() {
                 isRegistering = false;
-                alert('Registration successful!');
-                renderAppInstantly(auth.currentUser);
-            }).catch(error => {
+                var roleDisplayName = "Subject Teacher";
+                if(finalRole === 'principal') roleDisplayName = "Principal (Admin)";
+                else if(finalRole === 'classTeacher') roleDisplayName = "Class Teacher";
+                alert('Registration successful! (Registered as ' + roleDisplayName + ')');
+                applyRoleUIInstantly(auth.currentUser);
+            }).catch(function(error) {
                 isRegistering = false;
                 errorMsg.textContent = error.message;
                 errorMsg.style.display = 'block';
@@ -967,13 +939,16 @@
 
         function showTab(tabName) {
             try {
-                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-                document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+                var contents = document.querySelectorAll('.tab-content');
+                for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
                 
-                const tabEl = document.getElementById(tabName);
+                var tabs = document.querySelectorAll('.nav-tab');
+                for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+                
+                var tabEl = document.getElementById(tabName);
                 if(tabEl) tabEl.classList.add('active');
                 
-                const navBtn = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+                var navBtn = document.querySelector('.nav-tab[data-tab="' + tabName + '"]');
                 if(navBtn) navBtn.classList.add('active');
                 
                 if (tabName === 'students') {
@@ -993,17 +968,49 @@
             }
         }
 
+        async function initializeDatabaseSubjects() {
+            try {
+                var subRef = db.ref('subjects');
+                var snapshot = await subRef.once('value');
+                var needsUpdate = false;
+
+                if (!snapshot.exists()) {
+                    needsUpdate = true;
+                } else {
+                    var data = snapshot.val();
+                    var hasOldData = false;
+                    for (var key in data) {
+                        if (typeof data[key] === 'string' || !data[key].category || data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11") {
+                            hasOldData = true; break;
+                        }
+                    }
+                    if (hasOldData) needsUpdate = true;
+                }
+
+                if (needsUpdate) {
+                    var subjectsObj = {};
+                    for (var i = 0; i < defaultSlSubjects.length; i++) {
+                        var key = 'sub_' + (i + 1);
+                        subjectsObj[key] = { name: defaultSlSubjects[i].name, category: defaultSlSubjects[i].category };
+                    }
+                    await subRef.set(subjectsObj);
+                }
+            } catch (err) {
+                console.log("DB Rules blocked subject sync.");
+            }
+        }
+
         // ==========================================
         // ONLINE LEAVE REQUESTS
         // ==========================================
         async function submitLeaveRequest() {
-            const tid = document.getElementById('leaveReqTid').value.trim();
-            const name = document.getElementById('leaveReqName').value.trim();
-            const date = document.getElementById('leaveReqDate').value;
-            const type = document.getElementById('leaveReqType').value;
-            const reason = document.getElementById('leaveReqReason').value.trim();
-            const msg = document.getElementById('leaveReqSuccess');
-            const btn = document.getElementById('submitLeaveBtn');
+            var tid = document.getElementById('leaveReqTid').value.trim();
+            var name = document.getElementById('leaveReqName').value.trim();
+            var date = document.getElementById('leaveReqDate').value;
+            var type = document.getElementById('leaveReqType').value;
+            var reason = document.getElementById('leaveReqReason').value.trim();
+            var msg = document.getElementById('leaveReqSuccess');
+            var btn = document.getElementById('submitLeaveBtn');
 
             if(!tid || !name || !date || !reason) {
                 alert("කරුණාකර සියලුම විස්තර පුරවන්න!"); return;
@@ -1012,8 +1019,8 @@
             btn.innerHTML = '⏳ Submitting...';
             btn.disabled = true;
 
-            const safeTid = getSafeKey(tid);
-            const reqRef = db.ref('leave_requests').push();
+            var safeTid = getSafeKey(tid);
+            var reqRef = db.ref('leave_requests').push();
             try {
                 await reqRef.set({
                     req_id: reqRef.key,
@@ -1028,7 +1035,7 @@
                 });
                 msg.textContent = "Leave request submitted successfully!";
                 msg.style.display = 'block';
-                setTimeout(() => msg.style.display='none', 3000);
+                setTimeout(function(){ msg.style.display='none'; }, 3000);
                 
                 document.getElementById('leaveReqReason').value = '';
                 loadMyLeaveRequests();
@@ -1041,22 +1048,22 @@
         }
 
         async function loadMyLeaveRequests() {
-            const tbody = document.getElementById('myLeavesTbody');
+            var tbody = document.getElementById('myLeavesTbody');
             if(!tbody) return;
             tbody.innerHTML = "<tr><td colspan='4' class='loading'>Loading...</td></tr>";
-            const userEmail = auth.currentUser ? auth.currentUser.email : null;
+            var userEmail = auth.currentUser ? auth.currentUser.email : null;
             if(!userEmail) return;
 
             try {
-                const snap = await db.ref('leave_requests').orderByChild('email').equalTo(userEmail).once('value');
+                var snap = await db.ref('leave_requests').orderByChild('email').equalTo(userEmail).once('value');
                 if(!snap.exists()) {
                     tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No requests found.</td></tr>";
                     return;
                 }
-                let html = '';
-                snap.forEach(child => {
-                    const req = child.val();
-                    let color = req.status === 'Approved' ? 'green' : (req.status === 'Rejected' ? 'red' : '#ff9800');
+                var html = '';
+                snap.forEach(function(child) {
+                    var req = child.val();
+                    var color = req.status === 'Approved' ? 'green' : (req.status === 'Rejected' ? 'red' : '#ff9800');
                     html += `<tr>
                         <td>${req.date}</td>
                         <td>${req.type}</td>
@@ -1071,19 +1078,19 @@
         }
 
         async function loadPendingLeaves() {
-            const tbody = document.getElementById('pendingLeavesTbody');
+            var tbody = document.getElementById('pendingLeavesTbody');
             if(!tbody) return;
             tbody.innerHTML = "<tr><td colspan='4' class='loading'>Loading...</td></tr>";
 
             try {
-                const snap = await db.ref('leave_requests').orderByChild('status').equalTo('Pending').once('value');
+                var snap = await db.ref('leave_requests').orderByChild('status').equalTo('Pending').once('value');
                 if(!snap.exists()) {
                     tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No pending requests.</td></tr>";
                     return;
                 }
-                let html = '';
-                snap.forEach(child => {
-                    const req = child.val();
+                var html = '';
+                snap.forEach(function(child) {
+                    var req = child.val();
                     html += `<tr>
                         <td style="white-space:normal;"><strong>${req.name}</strong><br><small>${req.teacher_id}</small></td>
                         <td>${req.date}</td>
@@ -1101,12 +1108,12 @@
         }
 
         async function updateLeaveStatus(reqId, status, safeTid, tid, name, date, type) {
-            if(confirm(`Are you sure you want to ${status} this request?`)) {
+            if(confirm('Are you sure you want to ' + status + ' this request?')) {
                 try {
-                    await db.ref(`leave_requests/${reqId}`).update({ status: status });
+                    await db.ref('leave_requests/' + reqId).update({ status: status });
                     
                     if(status === 'Approved') {
-                        await db.ref(`teacher_attendance/${date}/${safeTid}`).set({
+                        await db.ref('teacher_attendance/' + date + '/' + safeTid).set({
                             teacher_id: tid,
                             name: name,
                             status: type,
@@ -1126,9 +1133,9 @@
         // DYNAMIC OPTIONAL SUBJECTS LOADER
         // ==========================================
         function loadOptionalSubjectsForStudent() {
-            const gradeVal = document.getElementById('studentGrade').value;
-            const container = document.getElementById('optionalSubjectsGroup');
-            const listDiv = document.getElementById('optionalSubjectsList');
+            var gradeVal = document.getElementById('studentGrade').value;
+            var container = document.getElementById('optionalSubjectsGroup');
+            var listDiv = document.getElementById('optionalSubjectsList');
             
             listDiv.innerHTML = '';
             if(!gradeVal) {
@@ -1136,14 +1143,14 @@
                 return;
             }
 
-            const match = gradeVal.match(/(\d+)/);
+            var match = gradeVal.match(/(\d+)/);
             if(!match) {
                 container.style.display = 'none';
                 return;
             }
 
-            const grade = parseInt(match[1]);
-            let targetCategories = [];
+            var grade = parseInt(match[1]);
+            var targetCategories = [];
 
             if(grade >= 6 && grade <= 9) {
                 targetCategories = ["සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics"];
@@ -1153,18 +1160,24 @@
                 targetCategories = ["A/L - විද්‍යා ධාරාව", "A/L - තාක්ෂණ ධාරාව", "A/L - වාණිජ ධාරාව", "A/L - කලා ධාරාව", "A/L - Common", "A/L - Science", "A/L - Tech", "A/L - Commerce", "A/L - Arts"];
             }
 
-            const filteredSubjects = allSubjectsList.filter(sub => targetCategories.includes(sub.category));
+            var filteredSubjects = [];
+            for (var i = 0; i < allSubjectsList.length; i++) {
+                if (targetCategories.indexOf(allSubjectsList[i].category) !== -1) {
+                    filteredSubjects.push(allSubjectsList[i]);
+                }
+            }
 
             if(filteredSubjects.length > 0) {
                 container.style.display = 'block';
-                filteredSubjects.forEach(sub => {
+                for (var i = 0; i < filteredSubjects.length; i++) {
+                    var sub = filteredSubjects[i];
                     listDiv.innerHTML += `
                         <label>
                             <input type="checkbox" class="student-opt-sub" value="${sub.name}">
                             ${sub.name}
                         </label>
                     `;
-                });
+                }
             } else {
                 container.style.display = 'none';
             }
@@ -1174,23 +1187,24 @@
         // STUDENT FUNCTIONS
         // ==========================================
         async function addStudent() {
-            const studentId = document.getElementById('studentId').value.trim();
-            const name = document.getElementById('studentName').value.trim();
-            const grade = document.getElementById('studentGrade').value;
-            const gender = document.getElementById('studentGender').value;
-            const successMsg = document.getElementById('studentSuccess');
+            var studentId = document.getElementById('studentId').value.trim();
+            var name = document.getElementById('studentName').value.trim();
+            var grade = document.getElementById('studentGrade').value;
+            var gender = document.getElementById('studentGender').value;
+            var successMsg = document.getElementById('studentSuccess');
 
             if (!studentId || !name || !grade) {
                 alert("Please enter all required details!");
                 return;
             }
 
-            const optSubs = [];
-            document.querySelectorAll('.student-opt-sub:checked').forEach(chk => {
-                optSubs.push(chk.value);
-            });
+            var optSubs = [];
+            var chkBoxes = document.querySelectorAll('.student-opt-sub:checked');
+            for (var i = 0; i < chkBoxes.length; i++) {
+                optSubs.push(chkBoxes[i].value);
+            }
 
-            const safeStudentId = getSafeKey(studentId);
+            var safeStudentId = getSafeKey(studentId);
 
             try {
                 await db.ref('students/' + safeStudentId).set({
@@ -1203,11 +1217,12 @@
 
                 successMsg.textContent = "Student successfully added!";
                 successMsg.style.display = 'block';
-                setTimeout(() => successMsg.style.display = 'none', 3000);
+                setTimeout(function() { successMsg.style.display = 'none'; }, 3000);
                 
                 document.getElementById('studentId').value = '';
                 document.getElementById('studentName').value = '';
-                document.querySelectorAll('.student-opt-sub').forEach(chk => chk.checked = false);
+                var allChks = document.querySelectorAll('.student-opt-sub');
+                for (var i = 0; i < allChks.length; i++) allChks[i].checked = false;
                 document.getElementById('optionalSubjectsGroup').style.display = 'none';
                 loadStudents();
             } catch (error) {
@@ -1216,24 +1231,24 @@
         }
 
         async function loadStudents() {
-            const tbody = document.getElementById('studentTableBody');
-            const countSpan = document.getElementById('studentCount');
+            var tbody = document.getElementById('studentTableBody');
+            var countSpan = document.getElementById('studentCount');
             if(!tbody) return;
             tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px;'>Loading students...</td></tr>";
             
             try {
-                const snapshot = await db.ref('students').once('value');
+                var snapshot = await db.ref('students').once('value');
                 if (!snapshot.exists()) {
                     tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px;'>No students found.</td></tr>";
                     if(countSpan) countSpan.textContent = 0;
                     return;
                 }
-                let html = '';
-                let index = 1;
-                snapshot.forEach(childSnap => {
-                    const student = childSnap.val();
-                    const key = childSnap.key; 
-                    const optSubsStr = (student.optional_subjects && student.optional_subjects.length > 0) ? student.optional_subjects.join('<br> • ') : '<span style="color:#999;">Core Only</span>';
+                var html = '';
+                var index = 1;
+                snapshot.forEach(function(childSnap) {
+                    var student = childSnap.val();
+                    var key = childSnap.key; 
+                    var optSubsStr = (student.optional_subjects && student.optional_subjects.length > 0) ? student.optional_subjects.join('<br> • ') : '<span style="color:#999;">Core Only</span>';
                     
                     html += `
                         <tr>
@@ -1268,11 +1283,11 @@
         // DYNAMIC FILTERING (Classes -> Subjects)
         // ==========================================
         function filterSubjectsDropdown(classElId, subjectElId) {
-            const classEl = document.getElementById(classElId);
-            const subjectEl = document.getElementById(subjectElId);
+            var classEl = document.getElementById(classElId);
+            var subjectEl = document.getElementById(subjectElId);
             if(!classEl || !subjectEl) return;
 
-            const selectedClass = classEl.value;
+            var selectedClass = classEl.value;
             
             subjectEl.innerHTML = '';
             if(subjectElId === 'selectSubject') {
@@ -1281,12 +1296,12 @@
                 subjectEl.innerHTML = '<option value="">All Subjects</option>';
             }
 
-            let targetCategories = ["All"];
+            var targetCategories = ["All"];
             if(selectedClass) {
-                const match = selectedClass.match(/(\d+)/); 
+                var match = selectedClass.match(/(\d+)/); 
                 if(match) {
                     targetCategories = ["General (පොදු)", "General"]; 
-                    const grade = parseInt(match[1]);
+                    var grade = parseInt(match[1]);
                     
                     if(grade >= 6 && grade <= 9) {
                         targetCategories.push("Grades 6 - 9 (Core)", "සෞන්දර්ය විෂයයන් (Aesthetics)", "Aesthetics");
@@ -1298,15 +1313,17 @@
                 }
             }
 
-            const subjectsByCategory = {};
+            var subjectsByCategory = {};
             
-            allSubjectsList.forEach(sub => {
-                let show = false;
-                if (targetCategories.includes("All")) {
+            for (var i = 0; i < allSubjectsList.length; i++) {
+                var sub = allSubjectsList[i];
+                var show = false;
+                
+                if (targetCategories.indexOf("All") !== -1) {
                     show = true;
-                } else if (sub.category.includes("General") || sub.category.includes("පොදු")) {
+                } else if (sub.category.indexOf("General") !== -1 || sub.category.indexOf("පොදු") !== -1) {
                     show = true; 
-                } else if (targetCategories.includes(sub.category)) {
+                } else if (targetCategories.indexOf(sub.category) !== -1) {
                     show = true;
                 }
 
@@ -1314,9 +1331,9 @@
                     if(!subjectsByCategory[sub.category]) subjectsByCategory[sub.category] = [];
                     subjectsByCategory[sub.category].push(sub.name);
                 }
-            });
+            }
 
-            const catOrder = [
+            var catOrder = [
                 "General (පොදු)", "General", 
                 "Grades 6 - 9 (Core)", 
                 "Grades 10 - 11 (Core)", "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", "Grades 10 - 11 (Basket)",
@@ -1328,81 +1345,89 @@
                 "A/L - Common", "Other"
             ];
             
-            catOrder.forEach(cat => {
+            for (var i = 0; i < catOrder.length; i++) {
+                var cat = catOrder[i];
                 if(subjectsByCategory[cat] && subjectsByCategory[cat].length > 0) {
-                    const optgroup = document.createElement('optgroup');
+                    var optgroup = document.createElement('optgroup');
                     optgroup.label = cat;
-                    subjectsByCategory[cat].forEach(subName => {
-                        const opt = document.createElement('option');
+                    for (var j = 0; j < subjectsByCategory[cat].length; j++) {
+                        var subName = subjectsByCategory[cat][j];
+                        var opt = document.createElement('option');
                         opt.value = subName;
                         opt.textContent = subName;
                         optgroup.appendChild(opt);
-                    });
+                    }
                     subjectEl.appendChild(optgroup);
                 }
-            });
+            }
             
-            for(let cat in subjectsByCategory) {
-                if(!catOrder.includes(cat)) {
-                    const optgroup = document.createElement('optgroup');
+            for(var cat in subjectsByCategory) {
+                if(catOrder.indexOf(cat) === -1) {
+                    var optgroup = document.createElement('optgroup');
                     optgroup.label = cat;
-                    subjectsByCategory[cat].forEach(subName => {
-                        const opt = document.createElement('option');
+                    for (var j = 0; j < subjectsByCategory[cat].length; j++) {
+                        var subName = subjectsByCategory[cat][j];
+                        var opt = document.createElement('option');
                         opt.value = subName;
                         opt.textContent = subName;
                         optgroup.appendChild(opt);
-                    });
+                    }
                     subjectEl.appendChild(optgroup);
                 }
             }
         }
 
         function loadClassAndSubjectDropdowns() {
-            const classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
-            classSelectors.forEach(selector => {
-                const element = document.getElementById(selector);
+            var classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
+            for (var idx = 0; idx < classSelectors.length; idx++) {
+                var selector = classSelectors[idx];
+                var element = document.getElementById(selector);
                 if (element) {
-                    const currentValue = element.value; 
+                    var currentValue = element.value; 
                     
                     element.innerHTML = '<option value="">All Classes</option>';
                     if(selector === 'selectClass' || selector === 'studentGrade') {
                         element.innerHTML = '<option value="">Select Class</option>';
                     }
                     
-                    for (let g = 6; g <= 11; g++) {
-                        ['A', 'B', 'C', 'D', 'E', 'F', 'G'].forEach(cls => {
-                            const option = document.createElement('option');
-                            option.value = `Grade ${g} - ${cls}`;
-                            option.textContent = `Grade ${g} - ${cls}`;
+                    for (var g = 6; g <= 11; g++) {
+                        var sections = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+                        for (var s = 0; s < sections.length; s++) {
+                            var cls = sections[s];
+                            var option = document.createElement('option');
+                            option.value = 'Grade ' + g + ' - ' + cls;
+                            option.textContent = 'Grade ' + g + ' - ' + cls;
                             element.appendChild(option);
-                        });
+                        }
                     }
-                    const seniorClasses = ['A1', 'A2', 'C1', 'C2', 'T1', 'T2', 'S1', 'S2', 'M1', 'M2'];
-                    for (let g = 12; g <= 13; g++) {
-                        seniorClasses.forEach(cls => {
-                            const option = document.createElement('option');
-                            option.value = `Grade ${g} - ${cls}`;
-                            option.textContent = `Grade ${g} - ${cls}`;
+                    var seniorClasses = ['A1', 'A2', 'C1', 'C2', 'T1', 'T2', 'S1', 'S2', 'M1', 'M2'];
+                    for (var g = 12; g <= 13; g++) {
+                        for (var s = 0; s < seniorClasses.length; s++) {
+                            var cls = seniorClasses[s];
+                            var option = document.createElement('option');
+                            option.value = 'Grade ' + g + ' - ' + cls;
+                            option.textContent = 'Grade ' + g + ' - ' + cls;
                             element.appendChild(option);
-                        });
+                        }
                     }
                     if(currentValue) element.value = currentValue;
                 }
-            });
+            }
 
-            // Use hardcoded first, then silently update from DB if available
+            // Provide default first to avoid hanging UI
             allSubjectsList = defaultSlSubjects.slice();
             filterSubjectsDropdown('selectClass', 'selectSubject');
             filterSubjectsDropdown('reportClass', 'reportSubject');
             filterSubjectsDropdown('viewClass', 'viewSubject');
 
-            db.ref('subjects').once('value').then(snap => {
+            // Then silently pull from DB if available
+            db.ref('subjects').once('value').then(function(snap) {
                 if (snap.exists()) {
                     allSubjectsList = [];
-                    snap.forEach(child => {
-                        const val = child.val();
-                        let subName = val.name || val;
-                        let subCat = val.category || 'Other';
+                    snap.forEach(function(child) {
+                        var val = child.val();
+                        var subName = val.name || val;
+                        var subCat = val.category || 'Other';
                         if(typeof val === 'string') subName = val;
                         allSubjectsList.push({ key: child.key, name: subName, category: subCat });
                     });
@@ -1410,87 +1435,44 @@
                     filterSubjectsDropdown('reportClass', 'reportSubject');
                     filterSubjectsDropdown('viewClass', 'viewSubject');
                 }
-            }).catch(e => {
-                console.log("Using default subjects due to DB restriction.");
+            }).catch(function(e) {
+                // Ignore silent failure
             });
 
-            const sc = document.getElementById('selectClass');
+            var sc = document.getElementById('selectClass');
             if(sc && !sc.dataset.bound) {
-                sc.addEventListener('change', () => filterSubjectsDropdown('selectClass', 'selectSubject'));
+                sc.addEventListener('change', function() { filterSubjectsDropdown('selectClass', 'selectSubject'); });
                 sc.dataset.bound = "true";
             }
-            const rc = document.getElementById('reportClass');
+            var rc = document.getElementById('reportClass');
             if(rc && !rc.dataset.bound) {
-                rc.addEventListener('change', () => filterSubjectsDropdown('reportClass', 'reportSubject'));
+                rc.addEventListener('change', function() { filterSubjectsDropdown('reportClass', 'reportSubject'); });
                 rc.dataset.bound = "true";
             }
-            const vc = document.getElementById('viewClass');
+            var vc = document.getElementById('viewClass');
             if(vc && !vc.dataset.bound) {
-                vc.addEventListener('change', () => filterSubjectsDropdown('viewClass', 'viewSubject'));
+                vc.addEventListener('change', function() { filterSubjectsDropdown('viewClass', 'viewSubject'); });
                 vc.dataset.bound = "true";
             }
         }
-        
-        async function updateDashboardStats() {
-            try {
-                const stSnap = await db.ref('students').once('value');
-                let stCount = 0;
-                if(stSnap.exists()) stSnap.forEach(() => { stCount++; });
-                document.getElementById('totalStudentsCount').textContent = stCount;
 
-                const today = new Date().toISOString().split('T')[0];
-                const tAttSnap = await db.ref(`teacher_attendance/${today}`).once('value');
-                
-                let pCount = 0;
-                let aCount = 0;
-                let absentHtml = '';
-
-                if(tAttSnap.exists()) {
-                    tAttSnap.forEach(tSnap => {
-                        const rec = tSnap.val();
-                        if(rec.status === 'Present') {
-                            pCount++;
-                        } else {
-                            aCount++;
-                            absentHtml += `
-                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
-                                <strong>${rec.name}</strong><br>
-                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
-                            </div>`;
-                        }
-                    });
-                }
-
-                document.getElementById('presentTeachersCount').textContent = pCount;
-                document.getElementById('absentTeachersCount').textContent = aCount;
-
-                if(aCount === 0) {
-                    absentHtml = "<p style='color: green; font-size:0.9em;'>✅ All assigned teachers are present today (or no records marked).</p>";
-                }
-                
-                const absentListDiv = document.getElementById('absentTeachersList');
-                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
-
-            } catch (error) {
-                console.error("Dashboard update error", error);
+        // ==========================================
+        // ATTENDANCE MARKING 
+        // ==========================================
+        function markAllStatusChanged() {
+            var val = document.getElementById('markAllStatus').value;
+            if(!val) return;
+            var selects = document.querySelectorAll('.att-status');
+            for(var i=0; i<selects.length; i++) {
+                selects[i].value = val;
             }
         }
 
-        // ==========================================
-        // ATTENDANCE MARKING (WITH OPTIONAL SUBJECTS LOGIC)
-        // ==========================================
-        function markAllStatusChanged() {
-            const val = document.getElementById('markAllStatus').value;
-            if(!val) return;
-            const selects = document.querySelectorAll('.att-status');
-            selects.forEach(sel => sel.value = val);
-        }
-
         async function loadAttendanceSheet() {
-            const selectedClass = document.getElementById('selectClass').value;
-            const selectedSubject = document.getElementById('selectSubject').value;
-            const selectedPeriod = document.getElementById('selectPeriod').value;
-            const date = document.getElementById('startDate').value;
+            var selectedClass = document.getElementById('selectClass').value;
+            var selectedSubject = document.getElementById('selectSubject').value;
+            var selectedPeriod = document.getElementById('selectPeriod').value;
+            var date = document.getElementById('startDate').value;
             
             if(!selectedClass || !selectedSubject || !selectedPeriod || !date) {
                 alert("කරුණාකර පන්තිය, විෂය, Period එක සහ දිනය තෝරන්න!");
@@ -1498,14 +1480,14 @@
             }
             
             document.getElementById('attendanceSheetCard').style.display = 'block';
-            const tbody = document.getElementById('attendanceTbody');
+            var tbody = document.getElementById('attendanceTbody');
             tbody.innerHTML = "<tr><td colspan='3'>Loading...</td></tr>";
             
             try {
-                const safeClass = getSafeKey(selectedClass);
-                const safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
-                const safeSubject = getSafeKey(selectedSubject);
-                const attPath = `attendance/${date}/${safeClass}/${safePeriod}/${safeSubject}`;
+                var safeClass = getSafeKey(selectedClass);
+                var safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
+                var safeSubject = getSafeKey(selectedSubject);
+                var attPath = 'attendance/' + date + '/' + safeClass + '/' + safePeriod + '/' + safeSubject;
                 
                 const [studentsSnap, attSnap] = await Promise.all([
                     db.ref('students').orderByChild('grade').equalTo(selectedClass).once('value'),
@@ -1517,23 +1499,30 @@
                     return;
                 }
                 
-                const existingAtt = attSnap.exists() ? attSnap.val() : {};
-                const isNewSheet = !attSnap.exists();
+                var existingAtt = attSnap.exists() ? attSnap.val() : {};
+                var isNewSheet = !attSnap.exists();
 
-                const subObj = allSubjectsList.find(s => s.name === selectedSubject);
-                const isOptionalCat = subObj && (subObj.category.includes("Aesthetics") || subObj.category.includes("සෞන්දර්ය") || subObj.category.includes("කාණ්ඩ") || subObj.category.includes("A/L"));
-                const isGeneral = subObj && (subObj.category.includes("General") || subObj.category.includes("පොදු"));
+                var subObj = null;
+                for(var i=0; i<allSubjectsList.length; i++) {
+                    if(allSubjectsList[i].name === selectedSubject) {
+                        subObj = allSubjectsList[i];
+                        break;
+                    }
+                }
+                
+                var isOptionalCat = subObj && (subObj.category.indexOf("Aesthetics") !== -1 || subObj.category.indexOf("සෞන්දර්ය") !== -1 || subObj.category.indexOf("කාණ්ඩ") !== -1 || subObj.category.indexOf("A/L") !== -1 || subObj.category.indexOf("Basket") !== -1);
+                var isGeneral = subObj && (subObj.category.indexOf("General") !== -1 || subObj.category.indexOf("පොදු") !== -1);
 
-                let html = '';
-                let validStudentsCount = 0;
+                var html = '';
+                var validStudentsCount = 0;
 
-                studentsSnap.forEach(child => {
-                    const st = child.val();
-                    const safeStudentId = child.key; 
+                studentsSnap.forEach(function(child) {
+                    var st = child.val();
+                    var safeStudentId = child.key; 
                     
-                    let isStudentTakingSubject = true;
+                    var isStudentTakingSubject = true;
                     if(isOptionalCat && !isGeneral) {
-                        if(st.optional_subjects && st.optional_subjects.includes(selectedSubject)) {
+                        if(st.optional_subjects && st.optional_subjects.indexOf(selectedSubject) !== -1) {
                             isStudentTakingSubject = true;
                         } else {
                             isStudentTakingSubject = false;
@@ -1543,17 +1532,21 @@
                     if(!isStudentTakingSubject) return; 
 
                     validStudentsCount++;
-                    let currentStatus = isNewSheet ? 'Present' : (existingAtt[safeStudentId] ? existingAtt[safeStudentId].status : 'N/A');
+                    var currentStatus = isNewSheet ? 'Present' : (existingAtt[safeStudentId] ? existingAtt[safeStudentId].status : 'N/A');
                     
+                    var selPres = currentStatus==='Present' ? 'selected' : '';
+                    var selAbs = currentStatus==='Absent' ? 'selected' : '';
+                    var selNA = currentStatus==='N/A' ? 'selected' : '';
+
                     html += `
                         <tr data-safestudentid="${safeStudentId}" data-studentid="${st.student_id}">
                             <td>${st.student_id}</td>
                             <td class="st-name" style="white-space:normal;">${st.name}</td>
                             <td>
                                 <select class="att-status" style="padding:5px; border-radius:4px; width:100%;">
-                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present</option>
-                                    <option value="Absent" ${currentStatus==='Absent'?'selected':''}>Absent</option>
-                                    <option value="N/A" ${currentStatus==='N/A'?'selected':''}>N/A (අදාළ නොවේ)</option>
+                                    <option value="Present" ${selPres}>Present</option>
+                                    <option value="Absent" ${selAbs}>Absent</option>
+                                    <option value="N/A" ${selNA}>N/A (අදාළ නොවේ)</option>
                                 </select>
                             </td>
                         </tr>
@@ -1561,7 +1554,7 @@
                 });
 
                 if(validStudentsCount === 0) {
-                    tbody.innerHTML = "<tr><td colspan='3' style='color:red; text-align:center;'>මෙම පන්තියේ මෙම විෂය තෝරාගත් සිසුන් කිසිවෙකු නොමැත. (No students found for this specific subject).</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='3' style='color:red; text-align:center;'>මෙම පන්තියේ මෙම විෂය තෝරාගත් සිසුන් කිසිවෙකු නොමැත.</td></tr>";
                 } else {
                     tbody.innerHTML = html;
                 }
@@ -1573,37 +1566,42 @@
         }
 
         async function saveAttendance() {
-            const selectedClass = document.getElementById('selectClass').value;
-            const selectedSubject = document.getElementById('selectSubject').value;
-            const selectedPeriod = document.getElementById('selectPeriod').value;
-            const date = document.getElementById('startDate').value;
+            var selectedClass = document.getElementById('selectClass').value;
+            var selectedSubject = document.getElementById('selectSubject').value;
+            var selectedPeriod = document.getElementById('selectPeriod').value;
+            var date = document.getElementById('startDate').value;
 
             if(!selectedClass || !selectedSubject || !selectedPeriod || !date) {
                 alert("විස්තර සියල්ල සම්පූර්ණ කරන්න!");
                 return;
             }
 
-            const rows = document.querySelectorAll('#attendanceTbody tr');
+            var rows = document.querySelectorAll('#attendanceTbody tr');
             if(rows.length === 0) {
                 alert("සුරැකීමට දත්ත නොමැත!");
                 return;
             }
 
-            let updates = {};
-            let hasValidData = false;
+            var updates = {};
+            var hasValidData = false;
 
-            rows.forEach(row => {
-                const safeStudentId = row.getAttribute('data-safestudentid');
-                const studentId = row.getAttribute('data-studentid');
-                const stName = row.querySelector('.st-name').innerText;
-                const status = row.querySelector('.att-status').value;
+            for(var i=0; i<rows.length; i++) {
+                var row = rows[i];
+                var safeStudentId = row.getAttribute('data-safestudentid');
+                var studentId = row.getAttribute('data-studentid');
                 
-                if(safeStudentId) {
-                    const safeClass = getSafeKey(selectedClass);
-                    const safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
-                    const safeSubject = getSafeKey(selectedSubject);
+                var stNameEl = row.querySelector('.st-name');
+                var statusEl = row.querySelector('.att-status');
+                
+                if(safeStudentId && stNameEl && statusEl) {
+                    var stName = stNameEl.innerText;
+                    var status = statusEl.value;
                     
-                    const path = `attendance/${date}/${safeClass}/${safePeriod}/${safeSubject}/${safeStudentId}`;
+                    var safeClass = getSafeKey(selectedClass);
+                    var safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
+                    var safeSubject = getSafeKey(selectedSubject);
+                    
+                    var path = 'attendance/' + date + '/' + safeClass + '/' + safePeriod + '/' + safeSubject + '/' + safeStudentId;
                     
                     if(status === 'N/A') {
                         updates[path] = null; 
@@ -1620,7 +1618,7 @@
                         };
                     }
                 }
-            });
+            }
 
             try {
                 await db.ref().update(updates);
@@ -1635,10 +1633,10 @@
         }
 
         async function generateReportSummary() {
-            const date = document.getElementById('reportDate').value;
-            const clsFilter = document.getElementById('reportClass').value;
-            const subjFilter = document.getElementById('reportSubject').value;
-            const output = document.getElementById('reportOutput');
+            var date = document.getElementById('reportDate').value;
+            var clsFilter = document.getElementById('reportClass').value;
+            var subjFilter = document.getElementById('reportSubject').value;
+            var output = document.getElementById('reportOutput');
 
             if(!date) {
                 alert("කරුණාකර දිනයක් තෝරන්න!");
@@ -1648,25 +1646,25 @@
             output.innerHTML = "<div class='loading'>වාර්තාව සකස් කරමින් පවතී...</div>";
 
             try {
-                const snapshot = await db.ref('attendance/' + date).once('value');
+                var snapshot = await db.ref('attendance/' + date).once('value');
                 if(!snapshot.exists()) {
                     output.innerHTML = "<div class='info-box'>මෙම දිනය සඳහා පැමිණීමේ වාර්තා කිසිවක් හමු නොවීය.</div>";
                     return;
                 }
 
-                let summaryData = {};
-                let totalPresent = 0;
-                let totalAbsent = 0;
+                var summaryData = {};
+                var totalPresent = 0;
+                var totalAbsent = 0;
 
-                snapshot.forEach(classSnap => {
-                    const className = classSnap.key.replace(/_/g, ' ');
+                snapshot.forEach(function(classSnap) {
+                    var className = classSnap.key.replace(/_/g, ' ');
                     if(clsFilter && className !== clsFilter) return;
 
-                    classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
+                    classSnap.forEach(function(periodSnap) {
+                        var periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
 
-                        periodSnap.forEach(subSnap => {
-                            const subName = subSnap.key.replace(/_/g, ' ');
+                        periodSnap.forEach(function(subSnap) {
+                            var subName = subSnap.key.replace(/_/g, ' ');
                             if(subjFilter && subName !== subjFilter) return;
 
                             if(!summaryData[className]) summaryData[className] = {};
@@ -1675,8 +1673,8 @@
                                 summaryData[className][subName][periodName] = { present: 0, absent: 0 };
                             }
 
-                            subSnap.forEach(stSnap => {
-                                const rec = stSnap.val();
+                            subSnap.forEach(function(stSnap) {
+                                var rec = stSnap.val();
                                 if(rec.status === 'Present') {
                                     summaryData[className][subName][periodName].present++;
                                     totalPresent++;
@@ -1689,7 +1687,7 @@
                     });
                 });
 
-                let tableHtml = `
+                var tableHtml = `
                     <div class="card" style="background: white; border-left: 4px solid #005A9C; padding: 15px;">
                         <h4 style="color: #005A9C; margin-bottom: 15px; font-size:1.1em;">📋 වාර්තා සාරාංශය - ${date}</h4>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap:wrap;">
@@ -1717,13 +1715,13 @@
                                 <tbody>
                 `;
 
-                let hasData = false;
-                for(let cName in summaryData) {
-                    for(let sName in summaryData[cName]) {
-                        for(let pName in summaryData[cName][sName]) {
+                var hasData = false;
+                for(var cName in summaryData) {
+                    for(var sName in summaryData[cName]) {
+                        for(var pName in summaryData[cName][sName]) {
                             hasData = true;
-                            let p = summaryData[cName][sName][pName].present;
-                            let a = summaryData[cName][sName][pName].absent;
+                            var p = summaryData[cName][sName][pName].present;
+                            var a = summaryData[cName][sName][pName].absent;
                             tableHtml += `
                                 <tr>
                                     <td>${cName.replace('Grade ','')}</td>
@@ -1756,10 +1754,10 @@
         }
 
         async function viewRawAttendance() {
-            const date = document.getElementById('viewDate').value;
-            const clsFilter = document.getElementById('viewClass').value;
-            const subjFilter = document.getElementById('viewSubject').value;
-            const tbody = document.getElementById('viewAttTbody');
+            var date = document.getElementById('viewDate').value;
+            var clsFilter = document.getElementById('viewClass').value;
+            var subjFilter = document.getElementById('viewSubject').value;
+            var tbody = document.getElementById('viewAttTbody');
 
             if(!date) {
                 alert("කරුණාකර දිනයක් තෝරන්න!");
@@ -1769,29 +1767,29 @@
             tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>Loading records...</td></tr>";
 
             try {
-                const snapshot = await db.ref('attendance/' + date).once('value');
+                var snapshot = await db.ref('attendance/' + date).once('value');
                 if(!snapshot.exists()) {
                     tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
                     return;
                 }
 
-                let html = '';
-                snapshot.forEach(classSnap => {
-                    const className = classSnap.key.replace(/_/g, ' ');
+                var html = '';
+                snapshot.forEach(function(classSnap) {
+                    var className = classSnap.key.replace(/_/g, ' ');
                     if(clsFilter && className !== clsFilter) return;
 
-                    classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
+                    classSnap.forEach(function(periodSnap) {
+                        var periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
                         
-                        periodSnap.forEach(subSnap => {
-                            const subName = subSnap.key.replace(/_/g, ' ');
+                        periodSnap.forEach(function(subSnap) {
+                            var subName = subSnap.key.replace(/_/g, ' ');
                             if(subjFilter && subName !== subjFilter) return;
 
-                            subSnap.forEach(stSnap => {
-                                const rec = stSnap.val();
-                                const stName = rec.name || "Unknown";
-                                const statusColor = rec.status === 'Present' ? 'green' : 'red';
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : rec.period || periodName;
+                            subSnap.forEach(function(stSnap) {
+                                var rec = stSnap.val();
+                                var stName = rec.name || "Unknown";
+                                var statusColor = rec.status === 'Present' ? 'green' : 'red';
+                                var pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : (rec.period || periodName);
                                 html += `
                                     <tr>
                                         <td>${rec.student_id}</td>
@@ -1815,9 +1813,9 @@
         }
 
         async function downloadPdfReport() {
-            const date = document.getElementById('reportDate').value;
-            const clsFilter = document.getElementById('reportClass').value;
-            const subjFilter = document.getElementById('reportSubject').value;
+            var date = document.getElementById('reportDate').value;
+            var clsFilter = document.getElementById('reportClass').value;
+            var subjFilter = document.getElementById('reportSubject').value;
 
             if(!date) {
                 alert("කරුණාකර දිනයක් තෝරන්න!");
@@ -1825,14 +1823,14 @@
             }
 
             try {
-                const snapshot = await db.ref('attendance/' + date).once('value');
+                var snapshot = await db.ref('attendance/' + date).once('value');
                 if(!snapshot.exists()) {
                     alert("මෙම දිනය සඳහා වාර්තා කිසිවක් නොමැත!");
                     return;
                 }
 
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+                var doc = new jsPDF();
 
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(16);
@@ -1844,23 +1842,23 @@
                 if(clsFilter) doc.text(`Class: ${clsFilter}`, 14, 34);
                 if(subjFilter) doc.text(`Subject: ${subjFilter}`, 14, clsFilter ? 40 : 34);
 
-                let tableData = [];
-                let index = 1;
+                var tableData = [];
+                var index = 1;
 
-                snapshot.forEach(classSnap => {
-                    const className = classSnap.key.replace(/_/g, ' ');
+                snapshot.forEach(function(classSnap) {
+                    var className = classSnap.key.replace(/_/g, ' ');
                     if(clsFilter && className !== clsFilter) return;
 
-                    classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
+                    classSnap.forEach(function(periodSnap) {
+                        var periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
                         
-                        periodSnap.forEach(subSnap => {
-                            const subName = subSnap.key.replace(/_/g, ' ');
+                        periodSnap.forEach(function(subSnap) {
+                            var subName = subSnap.key.replace(/_/g, ' ');
                             if(subjFilter && subName !== subjFilter) return;
 
-                            subSnap.forEach(stSnap => {
-                                const rec = stSnap.val();
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : `Period ${rec.period || periodName}`;
+                            subSnap.forEach(function(stSnap) {
+                                var rec = stSnap.val();
+                                var pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : `Period ${rec.period || periodName}`;
                                 tableData.push([
                                     index++,
                                     rec.student_id,
@@ -1879,7 +1877,7 @@
                     return;
                 }
 
-                let startY = 36;
+                var startY = 36;
                 if(clsFilter) startY += 6;
                 if(subjFilter) startY += 6;
 
