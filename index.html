@@ -747,15 +747,19 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
-        // Ensure UI doesn't hang. Setup strictly AFTER DOM loads.
+        // Ensure database fetch DOES NOT block initialization event
         document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
-            setTodayDate();
-            setupRegistrationRestrictions();
-            checkAuthState(); // DB Subjects are initialized inside showApp() AFTER successful login
+            try {
+                setupEventListeners();
+                setTodayDate();
+                setupRegistrationRestrictions();
+                checkAuthState();
+            } catch(e) {
+                console.error("Initialization error:", e);
+            }
         });
 
-        // Safe event listener attaching
+        // Safe Add Listener Function to prevent breaking if an ID is missing
         function safeAddListener(id, event, handler) {
             const el = document.getElementById(id);
             if (el) {
@@ -780,9 +784,9 @@
             safeAddListener('cancelEditBtn', 'click', resetSubjectForm);
 
             safeAddListener('saveNewTeacherBtn', 'click', saveNewTeacher);
-            safeAddListener('loadTeacherAttBtn', 'click', loadTeacherAttendanceSheet);
             safeAddListener('submitLeaveBtn', 'click', submitLeaveRequest);
             safeAddListener('viewRawBtn', 'click', viewRawAttendance);
+            safeAddListener('loadTeacherAttBtn', 'click', loadTeacherAttendanceSheet);
             
             document.querySelectorAll('.nav-tab').forEach(btn => {
                 btn.addEventListener('click', function(e) {
@@ -818,10 +822,9 @@
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
-                    console.log("Database subjects updated successfully!");
                 }
             } catch (err) {
-                console.log("Subjects init bypassed due to rules/network. Moving on.", err);
+                console.log("Subject initialization skipped or failed: ", err);
             }
         }
 
@@ -870,7 +873,7 @@
                 const snapshot = await db.ref('users/' + userId).once('value');
                 if (snapshot.exists()) {
                     appUserRole = snapshot.val().role;
-                    showApp(appUserRole);
+                    await showApp(appUserRole);
                 } else {
                     const user = auth.currentUser;
                     if(user) {
@@ -880,7 +883,7 @@
                             role: fallbackRole
                         });
                         appUserRole = fallbackRole;
-                        showApp(appUserRole);
+                        await showApp(appUserRole);
                     } else {
                         await auth.signOut();
                         showLoginScreen();
@@ -888,7 +891,7 @@
                 }
             } catch (error) {
                 console.error("Error getting user data", error);
-                alert("Database Error: " + error.message);
+                alert("Database Connection Error.");
                 await auth.signOut();
                 showLoginScreen();
             }
@@ -952,7 +955,7 @@
             }
             errorMsg.style.display = 'none';
             
-            btn.innerHTML = '⏳ Creating...';
+            btn.innerHTML = '⏳ Creating Account...';
             btn.disabled = true;
             isRegistering = true; 
             
@@ -965,7 +968,7 @@
                 isRegistering = false;
                 alert('Registration successful! (Registered as Subject Teacher)');
                 appUserRole = finalRole;
-                showApp(finalRole);
+                await showApp(finalRole);
             } catch (error) {
                 isRegistering = false;
                 errorMsg.textContent = error.message;
@@ -979,28 +982,39 @@
             await auth.signOut();
         }
 
-        function showApp(role) {
+        async function showApp(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             
             // Normalize role to fix old accounts with capital letters
-            const normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
-            document.getElementById('roleBadge').textContent = roleDisplayMapping[role] || role;
+            let normalizedRole = 'subjectteacher';
+            if (role) {
+                normalizedRole = role.toString().toLowerCase().replace(/\s+/g, '');
+            }
+            
+            let displayRole = role;
+            if (normalizedRole.includes('principal') || normalizedRole.includes('admin')) displayRole = 'Principal (Admin)';
+            else if (normalizedRole.includes('class')) displayRole = 'Class Teacher';
+            else if (normalizedRole.includes('subject')) displayRole = 'Subject Teacher';
+            
+            document.getElementById('roleBadge').textContent = displayRole;
             
             document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'none');
             
-            if (normalizedRole === 'principal' || normalizedRole === 'admin') {
+            if (normalizedRole.includes('principal') || normalizedRole.includes('admin')) {
                 document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'block');
-            } else if (normalizedRole === 'classteacher') {
+            } else if (normalizedRole.includes('class')) {
                 document.querySelectorAll('.class-teacher-only').forEach(el => el.style.display = 'block');
             }
             
-            // Show tabs UI quickly, then fetch DB mapping
             showTab('attendance'); 
             
-            initializeDatabaseSubjects().then(() => {
+            try {
+                await initializeDatabaseSubjects();
                 loadClassAndSubjectDropdowns();
-            });
+            } catch (e) {
+                console.error("Subject loading error:", e);
+            }
         }
 
         function showTab(tabName) {
@@ -1027,7 +1041,7 @@
                     loadMyLeaveRequests();
                 }
             } catch (e) {
-                console.log("Error displaying tab:", e);
+                console.error(e);
             }
         }
 
@@ -1735,4 +1749,154 @@
                     </div>
                 `;
 
-                output.innerHTML = tableHtml;I encountered an error doing what you asked. Could you try again?
+                output.innerHTML = tableHtml;
+            } catch(err) {
+                output.innerHTML = "<div class='error-msg' style='display:block;'>වාර්තාව සැකසීමේදී දෝෂයක් ඇතිවිය.</div>";
+            }
+        }
+
+        async function viewRawAttendance() {
+            const date = document.getElementById('viewDate').value;
+            const clsFilter = document.getElementById('viewClass').value;
+            const subjFilter = document.getElementById('viewSubject').value;
+            const tbody = document.getElementById('viewAttTbody');
+
+            if(!date) {
+                alert("කරුණාකර දිනයක් තෝරන්න!");
+                return;
+            }
+
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>Loading records...</td></tr>";
+
+            try {
+                const snapshot = await db.ref('attendance/' + date).once('value');
+                if(!snapshot.exists()) {
+                    tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
+                    return;
+                }
+
+                let html = '';
+                snapshot.forEach(classSnap => {
+                    const className = classSnap.key.replace(/_/g, ' ');
+                    if(clsFilter && className !== clsFilter) return;
+
+                    classSnap.forEach(periodSnap => {
+                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
+                        
+                        periodSnap.forEach(subSnap => {
+                            const subName = subSnap.key.replace(/_/g, ' ');
+                            if(subjFilter && subName !== subjFilter) return;
+
+                            subSnap.forEach(stSnap => {
+                                const rec = stSnap.val();
+                                const stName = rec.name || "Unknown";
+                                const statusColor = rec.status === 'Present' ? 'green' : 'red';
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : rec.period || periodName;
+                                html += `
+                                    <tr>
+                                        <td>${rec.student_id}</td>
+                                        <td style="white-space:normal;">${stName}</td>
+                                        <td>${rec.class.replace('Grade ','')}</td>
+                                        <td>${pNameDisplay}</td>
+                                        <td>${rec.subject}</td>
+                                        <td style="color:${statusColor}; font-weight:bold;">${rec.status}</td>
+                                    </tr>
+                                `;
+                            });
+                        });
+                    });
+                });
+
+                if(!html) html = "<tr><td colspan='6' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
+                tbody.innerHTML = html;
+            } catch(err) {
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
+            }
+        }
+
+        async function downloadPdfReport() {
+            const date = document.getElementById('reportDate').value;
+            const clsFilter = document.getElementById('reportClass').value;
+            const subjFilter = document.getElementById('reportSubject').value;
+
+            if(!date) {
+                alert("කරුණාකර දිනයක් තෝරන්න!");
+                return;
+            }
+
+            try {
+                const snapshot = await db.ref('attendance/' + date).once('value');
+                if(!snapshot.exists()) {
+                    alert("මෙම දිනය සඳහා වාර්තා කිසිවක් නොමැත!");
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(16);
+                doc.text("Smart Attendance Report", 14, 20);
+                
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Date: ${date}`, 14, 28);
+                if(clsFilter) doc.text(`Class: ${clsFilter}`, 14, 34);
+                if(subjFilter) doc.text(`Subject: ${subjFilter}`, 14, clsFilter ? 40 : 34);
+
+                let tableData = [];
+                let index = 1;
+
+                snapshot.forEach(classSnap => {
+                    const className = classSnap.key.replace(/_/g, ' ');
+                    if(clsFilter && className !== clsFilter) return;
+
+                    classSnap.forEach(periodSnap => {
+                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
+                        
+                        periodSnap.forEach(subSnap => {
+                            const subName = subSnap.key.replace(/_/g, ' ');
+                            if(subjFilter && subName !== subjFilter) return;
+
+                            subSnap.forEach(stSnap => {
+                                const rec = stSnap.val();
+                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : `Period ${rec.period || periodName}`;
+                                tableData.push([
+                                    index++,
+                                    rec.student_id,
+                                    rec.class,
+                                    pNameDisplay,
+                                    rec.subject,
+                                    rec.status
+                                ]);
+                            });
+                        });
+                    });
+                });
+
+                if(tableData.length === 0) {
+                    alert("අදාළ පෙරීමට ගැලපෙන දත්ත හමු නොවීය!");
+                    return;
+                }
+
+                let startY = 36;
+                if(clsFilter) startY += 6;
+                if(subjFilter) startY += 6;
+
+                doc.autoTable({
+                    startY: startY,
+                    head: [['#', 'Student ID', 'Class', 'Period', 'Subject', 'Status']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [0, 90, 156] },
+                    styles: { fontSize: 9 }
+                });
+
+                doc.save(`Attendance_Report_${date}.pdf`);
+            } catch(err) {
+                alert("PDF සැකසීමේදී දෝෂයක් ඇතිවිය: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>
