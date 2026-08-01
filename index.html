@@ -70,13 +70,12 @@
         .success-msg { background: #e7f5e7; color: #2e7d32; display: none; }
         .info-box { background: #e3f2fd; padding: 12px; border-radius: 6px; color: #1565c0; margin-bottom: 15px; font-size: 0.9em; border-left: 4px solid #1976d2; }
         
-        /* TABS - MOBILE RESPONSIVE WRAP */
+        /* TABS - Mobile Optimized Wrap */
         .app-main { display: none; }
         .nav-tabs { display: flex; gap: 5px; border-bottom: 2px solid #e0e0e0; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
         .nav-tab { padding: 8px 10px; border: none; background: none; cursor: pointer; font-weight: 600; color: #666; border-bottom: 3px solid transparent; font-size: 13px; flex: 1 1 auto; min-width: 100px; text-align: center; white-space: nowrap; }
         .nav-tab.active { color: #005A9C; border-bottom-color: #005A9C; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
         
         /* CARDS & GRIDS */
         .card { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee; }
@@ -91,10 +90,6 @@
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e0e0e0; white-space: nowrap; vertical-align: middle; }
         th { background: #005A9C; color: white; position: sticky; top: 0; }
         
-        /* ACTION BUTTON GROUP - For Approve/Reject side-by-side */
-        .action-btns { display: flex; gap: 6px; flex-wrap: wrap; min-width: 140px; }
-        .action-btns .btn { flex: 1; margin-bottom: 0; padding: 6px; font-size: 12px; }
-
         /* DASHBOARD STATS */
         .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .stats-card h2 { font-size: 2.2em; margin: 5px 0; }
@@ -102,11 +97,10 @@
         
         /* UTILS */
         .loading { text-align: center; padding: 20px; color: #666; font-weight: bold; }
-        .restricted-option { color: #999; font-style: italic; }
         .footer-credit { text-align: center; padding: 15px; color: #888; font-size: 0.85em; border-top: 1px solid #eee; margin-top: 20px; }
         .search-bar { width: 100%; padding: 10px; border: 1px solid #005A9C; border-radius: 6px; font-size: 15px; margin-bottom: 15px; }
 
-        /* ================= MEDIA QUERIES (TABLETS & DESKTOP) ================= */
+        /* ================= MEDIA QUERIES ================= */
         @media (min-width: 768px) {
             body { padding: 20px; }
             .container { border-radius: 20px; }
@@ -122,7 +116,7 @@
             .btn { padding: 14px; font-size: 16px; }
             
             .nav-tabs { gap: 10px; justify-content: flex-start; margin-bottom: 30px; }
-            .nav-tab { padding: 12px 20px; font-size: 15px; }
+            .nav-tab { padding: 12px 20px; font-size: 15px; flex: 0 1 auto; }
             
             .card { padding: 25px; margin-bottom: 20px; }
             .card h3 { font-size: 1.3em; margin-bottom: 20px; }
@@ -144,7 +138,7 @@
             <h1>📚 Smart Attendance Tracker</h1>
             <p>Efficient Student Attendance Management System</p>
             <div class="role-badge" id="roleBadge"></div>
-            <button class="logout-btn" id="logoutBtn" style="display:none;">Logout</button>
+            <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="doLogout()">Logout</button>
         </div>
 
         <!-- Login Screen -->
@@ -180,8 +174,8 @@
                         <label>Password</label>
                         <input type="password" id="registerPassword" placeholder="Create a password (min 6 chars)">
                     </div>
-                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn">📝 Create Account</button>
-                    <button class="btn btn-primary btn-full" id="backToLoginBtn" style="margin-top:5px;">← Back to Login</button>
+                    <button class="btn btn-secondary btn-full" id="confirmRegisterBtn" onclick="doRegistration()">📝 Create Account</button>
+                    <button class="btn btn-primary btn-full" id="backToLoginBtn" onclick="showLoginForm()" style="margin-top:5px;">← Back to Login</button>
                     <div class="error-msg" id="registerError"></div>
                 </div>
 
@@ -195,12 +189,12 @@
                         <label>Password</label>
                         <input type="password" id="loginPassword" placeholder="Enter your password">
                     </div>
-                    <button class="btn btn-primary btn-full" id="loginBtn">🔐 Login</button>
+                    <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">🔐 Login</button>
                     <div class="error-msg" id="loginError"></div>
                     
                     <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
                         <h3 style="text-align: center; margin-bottom: 10px; color: #333; font-size: 1.1em;">New User?</h3>
-                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register Here</button>
+                        <button class="btn btn-secondary btn-full" id="showRegisterBtn" onclick="showRegistrationForm()">📝 Register Here</button>
                     </div>
                 </div>
             </div>
@@ -213,27 +207,27 @@
         <!-- Main App -->
         <div class="content app-main" id="appContent">
             
+            <!-- Direct onclick added to tabs to prevent WebView crash issues -->
             <div class="nav-tabs" id="navTabs">
-                <button class="nav-tab active" data-tab="attendance">📋 Mark Attendance</button>
-                <button class="nav-tab" data-tab="requestLeave">📩 Leave Request</button>
-                <!-- Restricted Tabs -->
-                <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
-                <button class="nav-tab" data-tab="reports">📊 Reports</button>
-                <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
-                <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
-                <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers & Leaves</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
+                <button class="nav-tab active" id="tab-btn-attendance" onclick="showTab('attendance')">📋 Mark Attendance</button>
+                <button class="nav-tab" id="tab-btn-requestLeave" onclick="showTab('requestLeave')">📩 Leave Request</button>
+                <button class="nav-tab principal-only class-teacher-only" id="tab-btn-students" onclick="showTab('students')">👥 Students</button>
+                <button class="nav-tab" id="tab-btn-reports" onclick="showTab('reports')">📊 Reports</button>
+                <button class="nav-tab principal-only" id="tab-btn-viewAttendance" onclick="showTab('viewAttendance')">👀 View Attendance</button>
+                <button class="nav-tab principal-only" id="tab-btn-dashboard" onclick="showTab('dashboard')">🎯 Dashboard</button>
+                <button class="nav-tab principal-only" id="tab-btn-teachers" onclick="showTab('teachers')">👨‍🏫 Teachers & Leaves</button>
+                <button class="nav-tab principal-only class-teacher-only" id="tab-btn-subjects" onclick="showTab('subjects')">📚 Subjects</button>
             </div>
 
             <!-- Attendance Tab -->
-            <div class="tab-content active" id="attendance">
+            <div class="tab-content" id="attendance" style="display: block;">
                 <div class="card">
                     <h3>Mark Attendance</h3>
                     <div class="info-box">Select class first to filter relevant subjects. "N/A" option is available for Basket/Aesthetic subjects to skip students not in your class.</div>
                     <div class="grid-3">
                         <div class="form-group">
                             <label>Select Class</label>
-                            <select id="selectClass">
+                            <select id="selectClass" onchange="filterSubjectsDropdown('selectClass', 'selectSubject')">
                                 <option value="">Loading classes...</option>
                             </select>
                         </div>
@@ -263,7 +257,7 @@
                         <label>Date</label>
                         <input type="date" id="startDate">
                     </div>
-                    <button class="btn btn-primary btn-full" id="loadAttendanceBtn">Load Attendance Sheet</button>
+                    <button class="btn btn-primary btn-full" onclick="loadAttendanceSheet()">Load Attendance Sheet</button>
                 </div>
                 <div class="card" id="attendanceSheetCard" style="display:none;">
                     <h3>Attendance Sheet</h3>
@@ -325,7 +319,7 @@
                         <label>Reason / Note</label>
                         <input type="text" id="leaveReqReason" placeholder="Briefly state the reason">
                     </div>
-                    <button class="btn btn-primary btn-full" id="submitLeaveBtn">Submit Leave Request</button>
+                    <button class="btn btn-primary btn-full" id="submitLeaveBtn" onclick="submitLeaveRequest()">Submit Leave Request</button>
                     <div class="success-msg" id="leaveReqSuccess"></div>
                 </div>
 
@@ -386,7 +380,7 @@
                         </div>
                     </div>
 
-                    <button class="btn btn-primary btn-full" id="addStudentBtn" style="margin-top:15px;">Add Student</button>
+                    <button class="btn btn-primary btn-full" onclick="addStudent()" style="margin-top:15px;">Add Student</button>
                     <div class="success-msg" id="studentSuccess"></div>
                 </div>
 
@@ -424,7 +418,7 @@
                         </div>
                         <div class="form-group">
                             <label>Select Class (Optional)</label>
-                            <select id="reportClass">
+                            <select id="reportClass" onchange="filterSubjectsDropdown('reportClass', 'reportSubject')">
                                 <option value="">All Classes</option>
                             </select>
                         </div>
@@ -436,8 +430,8 @@
                         </div>
                     </div>
                     <div class="grid-2">
-                        <button class="btn btn-primary btn-full" id="generateReportBtn">📈 Generate Summary</button>
-                        <button class="pdf-btn" id="downloadPdfBtn" style="margin-top:0;">📄 Download PDF</button>
+                        <button class="btn btn-primary btn-full" onclick="generateReportSummary()">📈 Generate Summary</button>
+                        <button class="pdf-btn" onclick="downloadPdfReport()" style="margin-top:0;">📄 Download PDF</button>
                     </div>
                     <div id="reportOutput" style="margin-top: 15px;"></div>
                 </div>
@@ -455,7 +449,7 @@
                         </div>
                         <div class="form-group">
                             <label>Select Class</label>
-                            <select id="viewClass">
+                            <select id="viewClass" onchange="filterSubjectsDropdown('viewClass', 'viewSubject')">
                                 <option value="">All Classes</option>
                             </select>
                         </div>
@@ -466,7 +460,7 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn btn-secondary btn-full" id="viewRawBtn">🔍 Search Records</button>
+                    <button class="btn btn-secondary btn-full" onclick="viewRawAttendance()">🔍 Search Records</button>
                     
                     <div class="table-responsive" style="margin-top: 15px;">
                         <table>
@@ -523,7 +517,7 @@
                             <input type="text" id="addTeacherName" placeholder="Enter full name">
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-full" id="saveNewTeacherBtn">Add Teacher</button>
+                    <button class="btn btn-primary btn-full" onclick="saveNewTeacher()">Add Teacher</button>
                     <div class="success-msg" id="teacherSuccessMsg"></div>
                 </div>
 
@@ -535,7 +529,7 @@
                             <input type="date" id="teacherAttDate">
                         </div>
                         <div class="form-group" style="display:flex; align-items:flex-end;">
-                            <button class="btn btn-secondary btn-full" id="loadTeacherAttBtn">Load Teachers</button>
+                            <button class="btn btn-secondary btn-full" onclick="loadTeacherAttendanceSheet()">Load Teachers</button>
                         </div>
                     </div>
                     
@@ -608,8 +602,8 @@
                         </div>
                     </div>
                     
-                    <button class="btn btn-primary btn-full" id="saveSubjectBtn">💾 Save Subject</button>
-                    <button class="btn btn-warning btn-full" id="cancelEditBtn" style="display:none;">❌ Cancel Edit</button>
+                    <button class="btn btn-primary btn-full" onclick="saveSubject()">💾 Save Subject</button>
+                    <button class="btn btn-warning btn-full" id="cancelEditBtn" onclick="resetSubjectForm()" style="display:none;">❌ Cancel Edit</button>
                     <div class="success-msg" id="subjectSuccess"></div>
                 </div>
 
@@ -659,16 +653,13 @@
 
     <script>
         // =======================================================
-        // HELPER: Sanitize Keys
+        // GLOBAL VARIABLES & FIREBASE CONFIG
         // =======================================================
         function getSafeKey(str) {
             if (!str) return "";
             return str.replace(/[\.\#\$\[\]]/g, '_');
         }
 
-        // =======================================================
-        // FIREBASE SETTINGS
-        // =======================================================
         const firebaseConfig = {
           apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
           authDomain: "smart-attendance-44601.firebaseapp.com",
@@ -744,46 +735,13 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
-        document.addEventListener('DOMContentLoaded', function() {
-            setupEventListeners();
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        window.onload = function() {
             setTodayDate();
             checkAuthState(); 
-        });
-
-        function safeAddListener(id, event, handler) {
-            var el = document.getElementById(id);
-            if (el) {
-                el.addEventListener(event, handler);
-            }
-        }
-
-        function setupEventListeners() {
-            safeAddListener('loginBtn', 'click', doLogin);
-            safeAddListener('showRegisterBtn', 'click', showRegistrationForm);
-            safeAddListener('backToLoginBtn', 'click', showLoginForm);
-            safeAddListener('confirmRegisterBtn', 'click', doRegistration);
-            safeAddListener('logoutBtn', 'click', doLogout);
-            
-            safeAddListener('addStudentBtn', 'click', addStudent);
-            safeAddListener('loadAttendanceBtn', 'click', loadAttendanceSheet);
-            safeAddListener('generateReportBtn', 'click', generateReportSummary);
-            safeAddListener('downloadPdfBtn', 'click', downloadPdfReport);
-            safeAddListener('saveSubjectBtn', 'click', saveSubject);
-            safeAddListener('cancelEditBtn', 'click', resetSubjectForm);
-            safeAddListener('saveNewTeacherBtn', 'click', saveNewTeacher);
-            safeAddListener('submitLeaveBtn', 'click', submitLeaveRequest);
-            safeAddListener('viewRawBtn', 'click', viewRawAttendance);
-            safeAddListener('loadTeacherAttBtn', 'click', loadTeacherAttendanceSheet);
-            
-            var navTabs = document.querySelectorAll('.nav-tab');
-            for (var i = 0; i < navTabs.length; i++) {
-                navTabs[i].addEventListener('click', function(e) {
-                    e.preventDefault();
-                    var tabId = this.getAttribute('data-tab');
-                    showTab(tabId);
-                });
-            }
-        }
+        };
 
         function setTodayDate() {
             var today = new Date().toISOString().split('T')[0];
@@ -795,7 +753,7 @@
         }
 
         // ==========================================
-        // AUTHENTICATION & ZERO-DELAY LOGIN FLOW
+        // AUTHENTICATION & LOGIN FLOW
         // ==========================================
         function checkAuthState() {
             auth.onAuthStateChanged(function(user) {
@@ -804,6 +762,7 @@
 
                 if (user && !isRegistering) {
                     if(logoutBtn) logoutBtn.style.display = 'block';
+                    // Show App instantly without waiting for Database
                     renderAppInstantly(user); 
                 } else if (!user) {
                     if(logoutBtn) logoutBtn.style.display = 'none';
@@ -814,12 +773,15 @@
         }
 
         function renderAppInstantly(user) {
+            // Instantly show the app screen
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
 
+            // Show generic UI first
             applyRoleUI('subjectTeacher', '');
             showTab('attendance'); 
 
+            // Safely fetch real role in the background
             db.ref('users/' + user.uid).once('value').then(function(snapshot) {
                 if (snapshot.exists()) {
                     var userData = snapshot.val();
@@ -835,8 +797,8 @@
                 applyRoleUI('subjectTeacher', '');
             });
 
+            // Load Subjects (Offline/Hardcoded first, then DB in background)
             loadClassAndSubjectDropdowns();
-            setTimeout(initializeDatabaseSubjectsQuietly, 1500); 
         }
 
         function applyRoleUI(role, userName) {
@@ -857,9 +819,11 @@
                 }
             }
             
+            // Hide all restricted
             var restrictedEls = document.querySelectorAll('.principal-only, .class-teacher-only');
             for(var i=0; i<restrictedEls.length; i++) restrictedEls[i].style.display = 'none';
             
+            // Unhide based on permission
             if (normalizedRole.indexOf('principal') !== -1 || normalizedRole.indexOf('admin') !== -1) {
                 for(var i=0; i<restrictedEls.length; i++) restrictedEls[i].style.display = 'block';
             } else if (normalizedRole.indexOf('class') !== -1) {
@@ -868,25 +832,25 @@
             }
         }
 
-        function showLoginScreen() {
+        window.showLoginScreen = function() {
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('appContent').style.display = 'none';
             var badge = document.getElementById('roleBadge');
             if(badge) badge.style.display = 'none';
             showLoginForm();
-        }
+        };
 
-        function showLoginForm() {
+        window.showLoginForm = function() {
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('registrationForm').style.display = 'none';
-        }
+        };
 
-        function showRegistrationForm() {
+        window.showRegistrationForm = function() {
             document.getElementById('loginForm').style.display = 'none';
             document.getElementById('registrationForm').style.display = 'block';
-        }
+        };
 
-        function doLogin() {
+        window.doLogin = function() {
             var email = document.getElementById('loginEmail').value.trim();
             var password = document.getElementById('loginPassword').value.trim();
             var errorMsg = document.getElementById('loginError');
@@ -908,9 +872,9 @@
                 loginBtn.innerHTML = '🔐 Login';
                 loginBtn.disabled = false;
             });
-        }
+        };
 
-        function doRegistration() {
+        window.doRegistration = function() {
             var tid = document.getElementById('regTeacherId').value.trim();
             var name = document.getElementById('regFullName').value.trim();
             var subject = document.getElementById('regSubject').value.trim();
@@ -959,26 +923,34 @@
                 btn.innerHTML = '📝 Create Account';
                 btn.disabled = false;
             });
-        }
+        };
 
-        function doLogout() {
+        window.doLogout = function() {
             auth.signOut();
-        }
+        };
 
-        function showTab(tabName) {
+        // ==========================================
+        // TABS NAVIGATION (Bulletproof Mobile Version)
+        // ==========================================
+        window.showTab = function(tabName) {
             try {
+                // Hide all contents
                 var contents = document.querySelectorAll('.tab-content');
-                for(var i=0; i<contents.length; i++) contents[i].classList.remove('active');
+                for(var i=0; i<contents.length; i++) contents[i].style.display = 'none';
                 
+                // Remove active class from tabs
                 var tabs = document.querySelectorAll('.nav-tab');
                 for(var i=0; i<tabs.length; i++) tabs[i].classList.remove('active');
                 
+                // Show chosen content
                 var tabEl = document.getElementById(tabName);
-                if(tabEl) tabEl.classList.add('active');
+                if(tabEl) tabEl.style.display = 'block';
                 
-                var navBtn = document.querySelector('.nav-tab[data-tab="' + tabName + '"]');
+                // Highlight chosen tab button
+                var navBtn = document.getElementById('tab-btn-' + tabName);
                 if(navBtn) navBtn.classList.add('active');
                 
+                // Load tab specific data
                 if (tabName === 'students') {
                     loadStudents();
                 } else if (tabName === 'dashboard') {
@@ -992,43 +964,14 @@
                     loadMyLeaveRequests();
                 }
             } catch (e) {
-                console.log(e);
+                console.error("Tab Navigation Error: ", e);
             }
-        }
-
-        // ==========================================
-        // SILENT DATABASE SYNC
-        // ==========================================
-        function initializeDatabaseSubjectsQuietly() {
-            var subRef = db.ref('subjects');
-            subRef.once('value').then(function(snapshot) {
-                var needsUpdate = false;
-                if (!snapshot.exists()) {
-                    needsUpdate = true;
-                } else {
-                    var data = snapshot.val();
-                    for (var key in data) {
-                        if (typeof data[key] === 'string' || !data[key].category || data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11") {
-                            needsUpdate = true; break;
-                        }
-                    }
-                }
-
-                if (needsUpdate) {
-                    var subjectsObj = {};
-                    for (var i = 0; i < defaultSlSubjects.length; i++) {
-                        var key = 'sub_' + (i + 1);
-                        subjectsObj[key] = { name: defaultSlSubjects[i].name, category: defaultSlSubjects[i].category };
-                    }
-                    subRef.set(subjectsObj).catch(function(){}); 
-                }
-            }).catch(function(){}); 
-        }
+        };
 
         // ==========================================
         // ONLINE LEAVE REQUESTS
         // ==========================================
-        function submitLeaveRequest() {
+        window.submitLeaveRequest = function() {
             var tid = document.getElementById('leaveReqTid').value.trim();
             var name = document.getElementById('leaveReqName').value.trim();
             var date = document.getElementById('leaveReqDate').value;
@@ -1070,9 +1013,9 @@
                 btn.innerHTML = 'Submit Leave Request';
                 btn.disabled = false;
             });
-        }
+        };
 
-        function loadMyLeaveRequests() {
+        window.loadMyLeaveRequests = function() {
             var tbody = document.getElementById('myLeavesTbody');
             if(!tbody) return;
             tbody.innerHTML = "<tr><td colspan='4' class='loading'>Loading...</td></tr>";
@@ -1099,9 +1042,9 @@
             }).catch(function() {
                 tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading data.</td></tr>";
             });
-        }
+        };
 
-        function loadPendingLeaves() {
+        window.loadPendingLeaves = function() {
             var tbody = document.getElementById('pendingLeavesTbody');
             if(!tbody) return;
             tbody.innerHTML = "<tr><td colspan='4' class='loading'>Loading...</td></tr>";
@@ -1114,14 +1057,15 @@
                 var html = '';
                 snap.forEach(function(child) {
                     var req = child.val();
+                    // Side-by-side buttons using Flexbox layout
                     html += `<tr>
                         <td style="white-space:normal;"><strong>${req.name}</strong><br><small>${req.teacher_id}</small></td>
                         <td>${req.date}</td>
                         <td style="white-space:normal;"><strong>${req.type}</strong><br><small style="color:#666;">${req.reason}</small></td>
                         <td>
-                            <div class="action-btns">
-                                <button onclick="updateLeaveStatus('${req.req_id}', 'Approved', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-secondary btn-small">Approve</button>
-                                <button onclick="updateLeaveStatus('${req.req_id}', 'Rejected', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-danger btn-small">Reject</button>
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="updateLeaveStatus('${req.req_id}', 'Approved', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-secondary btn-small" style="flex:1; margin:0;">Approve</button>
+                                <button onclick="updateLeaveStatus('${req.req_id}', 'Rejected', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-danger btn-small" style="flex:1; margin:0;">Reject</button>
                             </div>
                         </td>
                     </tr>`;
@@ -1130,7 +1074,7 @@
             }).catch(function() {
                 tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading requests.</td></tr>";
             });
-        }
+        };
 
         window.updateLeaveStatus = function(reqId, status, safeTid, tid, name, date, type) {
             if(confirm('Are you sure you want to ' + status + ' this request?')) {
@@ -1210,7 +1154,7 @@
         // ==========================================
         // STUDENT FUNCTIONS
         // ==========================================
-        function addStudent() {
+        window.addStudent = function() {
             var studentId = document.getElementById('studentId').value.trim();
             var name = document.getElementById('studentName').value.trim();
             var grade = document.getElementById('studentGrade').value;
@@ -1250,9 +1194,9 @@
             }).catch(function(error) {
                 alert("Error: " + error.message);
             });
-        }
+        };
 
-        function loadStudents() {
+        window.loadStudents = function() {
             var tbody = document.getElementById('studentTableBody');
             var countSpan = document.getElementById('studentCount');
             if(!tbody) return;
@@ -1287,7 +1231,7 @@
             }).catch(function(error) {
                 tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>Error fetching data.</td></tr>";
             });
-        }
+        };
 
         window.deleteStudent = function(studentKey) {
             if(confirm("Are you sure you want to delete this student?")) {
@@ -1397,7 +1341,7 @@
             }
         };
 
-        function loadClassAndSubjectDropdowns() {
+        window.loadClassAndSubjectDropdowns = function() {
             var classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
             for (var idx = 0; idx < classSelectors.length; idx++) {
                 var selector = classSelectors[idx];
@@ -1454,23 +1398,7 @@
                     filterSubjectsDropdown('viewClass', 'viewSubject');
                 }
             }).catch(function(e) {});
-
-            var sc = document.getElementById('selectClass');
-            if(sc && !sc.dataset.bound) {
-                sc.addEventListener('change', function(){ filterSubjectsDropdown('selectClass', 'selectSubject') });
-                sc.dataset.bound = "true";
-            }
-            var rc = document.getElementById('reportClass');
-            if(rc && !rc.dataset.bound) {
-                rc.addEventListener('change', function(){ filterSubjectsDropdown('reportClass', 'reportSubject') });
-                rc.dataset.bound = "true";
-            }
-            var vc = document.getElementById('viewClass');
-            if(vc && !vc.dataset.bound) {
-                vc.addEventListener('change', function(){ filterSubjectsDropdown('viewClass', 'viewSubject') });
-                vc.dataset.bound = "true";
-            }
-        }
+        };
 
         // ==========================================
         // ATTENDANCE MARKING 
@@ -1484,7 +1412,7 @@
             }
         };
 
-        function loadAttendanceSheet() {
+        window.loadAttendanceSheet = function() {
             var selectedClass = document.getElementById('selectClass').value;
             var selectedSubject = document.getElementById('selectSubject').value;
             var selectedPeriod = document.getElementById('selectPeriod').value;
@@ -1580,7 +1508,7 @@
             }).catch(function(error) {
                 tbody.innerHTML = "<tr><td colspan='3'>දත්ත ලබා ගැනීමේදී දෝෂයක් ඇතිවිය.</td></tr>";
             });
-        }
+        };
 
         window.saveAttendance = function() {
             var selectedClass = document.getElementById('selectClass').value;
@@ -1650,7 +1578,7 @@
         // ==========================================
         // REPORTS & DASHBOARDS
         // ==========================================
-        function generateReportSummary() {
+        window.generateReportSummary = function() {
             var date = document.getElementById('reportDate').value;
             var clsFilter = document.getElementById('reportClass').value;
             var subjFilter = document.getElementById('reportSubject').value;
@@ -1768,9 +1696,9 @@
             }).catch(function(err) {
                 output.innerHTML = "<div class='error-msg' style='display:block;'>වාර්තාව සැකසීමේදී දෝෂයක් ඇතිවිය.</div>";
             });
-        }
+        };
 
-        function viewRawAttendance() {
+        window.viewRawAttendance = function() {
             var date = document.getElementById('viewDate').value;
             var clsFilter = document.getElementById('viewClass').value;
             var subjFilter = document.getElementById('viewSubject').value;
@@ -1826,9 +1754,382 @@
             }).catch(function(err) {
                 tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
             });
-        }
+        };
 
-        function downloadPdfReport() {
+        window.updateDashboardStats = function() {
+            db.ref('students').once('value').then(function(stSnap) {
+                var stCount = 0;
+                if(stSnap.exists()) stSnap.forEach(function() { stCount++; });
+                document.getElementById('totalStudentsCount').textContent = stCount;
+            }).catch(function(){});
+
+            var today = new Date().toISOString().split('T')[0];
+            db.ref('teacher_attendance/' + today).once('value').then(function(tAttSnap) {
+                var pCount = 0;
+                var aCount = 0;
+                var absentHtml = '';
+
+                if(tAttSnap.exists()) {
+                    tAttSnap.forEach(function(tSnap) {
+                        var rec = tSnap.val();
+                        if(rec.status === 'Present') {
+                            pCount++;
+                        } else {
+                            aCount++;
+                            absentHtml += `
+                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
+                                <strong>${rec.name}</strong><br>
+                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
+                            </div>`;
+                        }
+                    });
+                }
+
+                document.getElementById('presentTeachersCount').textContent = pCount;
+                document.getElementById('absentTeachersCount').textContent = aCount;
+
+                if(aCount === 0) {
+                    absentHtml = "<p style='color: green; font-size:0.9em;'>✅ All assigned teachers are present today (or no records marked).</p>";
+                }
+                
+                var absentListDiv = document.getElementById('absentTeachersList');
+                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
+            }).catch(function(){});
+        };
+
+        // ==========================================
+        // TEACHER / SUBJECT MANAGEMENT
+        // ==========================================
+        window.saveNewTeacher = function() {
+            var tid = document.getElementById('addTeacherId').value.trim();
+            var tname = document.getElementById('addTeacherName').value.trim();
+            var msg = document.getElementById('teacherSuccessMsg');
+
+            if(!tid || !tname) {
+                alert("Teacher ID and Name are required!");
+                return;
+            }
+
+            var safeTid = getSafeKey(tid);
+
+            db.ref('teachers/' + safeTid).set({
+                teacher_id: tid,
+                name: tname
+            }).then(function() {
+                msg.textContent = "Teacher added successfully!";
+                msg.style.display = 'block';
+                setTimeout(function(){ msg.style.display='none'; }, 3000);
+                
+                document.getElementById('addTeacherId').value = '';
+                document.getElementById('addTeacherName').value = '';
+                loadTeachersAndLeaves();
+            }).catch(function(e) {
+                alert("Error adding teacher: " + e.message);
+            });
+        };
+
+        window.loadTeachersAndLeaves = function() {
+            var tbody = document.getElementById('teacherListTbody');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Loading...</td></tr>";
+
+            var today = new Date();
+            var currentYear = today.getFullYear().toString();
+            var currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
+            var monthPrefix = currentYear + '-' + currentMonth;
+
+            var p1 = db.ref('teachers').once('value');
+            var p2 = db.ref('teacher_attendance').once('value');
+
+            Promise.all([p1, p2]).then(function(results) {
+                var teachersSnap = results[0];
+                var attSnap = results[1];
+
+                if(!teachersSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No teachers found.</td></tr>";
+                    return;
+                }
+
+                var attData = {}; 
+                
+                if(attSnap.exists()){
+                    attSnap.forEach(function(dateSnap) {
+                        var d = dateSnap.key; 
+                        var isCurrentYear = d.indexOf(currentYear) === 0;
+                        var isCurrentMonth = d.indexOf(monthPrefix) === 0;
+                        
+                        if(isCurrentYear) {
+                            dateSnap.forEach(function(tSnap) {
+                                var safeTid = tSnap.key; 
+                                var status = tSnap.val().status; 
+                                
+                                if(!attData[safeTid]) attData[safeTid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                                
+                                if(status === 'Casual Leave') {
+                                    attData[safeTid].year.Casual++;
+                                    if(isCurrentMonth) attData[safeTid].month.Casual++;
+                                } else if (status === 'Sick Leave') {
+                                    attData[safeTid].year.Sick++;
+                                    if(isCurrentMonth) attData[safeTid].month.Sick++;
+                                } else if (status === 'Duty Leave') {
+                                    attData[safeTid].year.Duty++;
+                                    if(isCurrentMonth) attData[safeTid].month.Duty++;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                var html = '';
+                teachersSnap.forEach(function(child) {
+                    var t = child.val();
+                    var tid = t.teacher_id;
+                    var safeTid = child.key;
+                    var stats = attData[safeTid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                    
+                    var monthStr = 'C:<strong>'+stats.month.Casual+'</strong> | S:<strong>'+stats.month.Sick+'</strong> | D:<strong>'+stats.month.Duty+'</strong>';
+                    var yearStr = 'C:<strong>'+stats.year.Casual+'</strong> | S:<strong>'+stats.year.Sick+'</strong> | D:<strong>'+stats.year.Duty+'</strong>';
+                    
+                    html += `<tr>
+                        <td><strong>${t.name}</strong><br><small style="color:#666;">${tid}</small></td>
+                        <td style="font-size: 0.85em;">${monthStr}</td>
+                        <td style="font-size: 0.85em;">${yearStr}</td>
+                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Del</button></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            }).catch(function(e) {
+                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading teachers</td></tr>";
+            });
+        };
+
+        window.deleteTeacher = function(safeTid) {
+            if(confirm("Are you sure you want to remove this teacher?")) {
+                db.ref('teachers/' + safeTid).remove().then(function() {
+                    loadTeachersAndLeaves();
+                }).catch(function(e) {
+                    alert("Error: " + e.message);
+                });
+            }
+        };
+
+        window.filterTeachers = function() {
+            var input = document.getElementById('searchTeacherInput');
+            if(!input) return;
+            var filter = input.value.toLowerCase();
+            var rows = document.querySelectorAll('#teacherListTbody tr');
+            
+            for(var i=0; i<rows.length; i++) {
+                var row = rows[i];
+                if(row.cells.length >= 1) {
+                    var text = row.cells[0].innerText.toLowerCase();
+                    if(text.indexOf(filter) !== -1) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            }
+        };
+
+        window.loadTeacherAttendanceSheet = function() {
+            var date = document.getElementById('teacherAttDate').value;
+            if(!date) { alert("Please select date!"); return; }
+
+            document.getElementById('teacherAttendanceDiv').style.display = 'block';
+            var tbody = document.getElementById('teacherAttTbody');
+            tbody.innerHTML = "<tr><td colspan='2'>Loading...</td></tr>";
+
+            var p1 = db.ref('teachers').once('value');
+            var p2 = db.ref('teacher_attendance/' + date).once('value');
+
+            Promise.all([p1, p2]).then(function(results) {
+                var tSnap = results[0];
+                var attSnap = results[1];
+
+                if(!tSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='2'>No teachers registered yet.</td></tr>";
+                    return;
+                }
+
+                var existingAtt = attSnap.exists() ? attSnap.val() : {};
+                var html = '';
+
+                tSnap.forEach(function(child) {
+                    var t = child.val();
+                    var tid = t.teacher_id;
+                    var safeTid = child.key;
+                    var currentStatus = existingAtt[safeTid] ? existingAtt[safeTid].status : 'Present';
+
+                    html += `
+                        <tr data-safetid="${safeTid}" data-tid="${tid}">
+                            <td class="t-name"><strong>${t.name}</strong><br><small>${tid}</small></td>
+                            <td>
+                                <select class="t-status" style="padding: 5px; border-radius: 4px; width: 100%;">
+                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present (පැමිණ ඇත)</option>
+                                    <option value="Casual Leave" ${currentStatus==='Casual Leave'?'selected':''}>Absent - Casual Leave (අනියම් නිවාඩු)</option>
+                                    <option value="Sick Leave" ${currentStatus==='Sick Leave'?'selected':''}>Absent - Sick Leave (අසනීප නිවාඩු)</option>
+                                    <option value="Duty Leave" ${currentStatus==='Duty Leave'?'selected':''}>Absent - Duty Leave (රාජකාරී නිවාඩු)</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }).catch(function(e) {
+                tbody.innerHTML = "<tr><td colspan='2' style='color:red;'>Error fetching data.</td></tr>";
+            });
+        };
+
+        window.saveTeacherAttendance = function() {
+            var date = document.getElementById('teacherAttDate').value;
+            if(!date) return;
+
+            var rows = document.querySelectorAll('#teacherAttTbody tr');
+            if(rows.length === 0) return;
+
+            var updates = {};
+            for(var i=0; i<rows.length; i++) {
+                var row = rows[i];
+                var safeTid = row.getAttribute('data-safestudentid') || row.getAttribute('data-safetid');
+                var tid = row.getAttribute('data-tid');
+                
+                if(safeTid) {
+                    var tname = row.querySelector('.t-name strong').innerText;
+                    var status = row.querySelector('.t-status').value;
+                    updates['teacher_attendance/' + date + '/' + safeTid] = {
+                        teacher_id: tid,
+                        name: tname,
+                        status: status,
+                        date: date
+                    };
+                }
+            }
+
+            db.ref().update(updates).then(function() {
+                alert("Teacher Attendance Saved Successfully!");
+                loadTeachersAndLeaves(); 
+                updateDashboardStats();
+            }).catch(function(e) {
+                alert("Error: " + e.message);
+            });
+        };
+
+        window.loadSubjectsManagement = function() {
+            var tbody = document.getElementById('subjectsTableBody');
+            var countSpan = document.getElementById('subjectCount');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>Loading subjects...</td></tr>";
+            
+            db.ref('subjects').once('value').then(function(snapshot) {
+                if(!snapshot.exists()) {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>No subjects found.</td></tr>";
+                    if(countSpan) countSpan.textContent = 0;
+                    return;
+                }
+                var html = '';
+                var idx = 1;
+                snapshot.forEach(function(child) {
+                    var key = child.key;
+                    var val = child.val();
+                    var subName = val.name || val;
+                    var subCat = val.category || 'Other';
+                    
+                    html += `
+                        <tr>
+                            <td>${idx++}</td>
+                            <td style="font-size: 0.85em; color: #555;">${subCat}</td>
+                            <td style="white-space: normal;"><strong>${subName}</strong></td>
+                            <td>
+                                <button onclick="editSubject('${key}', '${subName}', '${subCat}')" class="btn btn-warning btn-small" style="margin-bottom:5px;">Edit</button>
+                                <button onclick="deleteSubject('${key}')" class="btn btn-danger btn-small">Del</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+                if(countSpan) countSpan.textContent = idx - 1;
+            }).catch(function(error) {
+                tbody.innerHTML = "<tr><td colspan='4' style='text-align: center; color: red;'>Error loading subjects.</td></tr>";
+            });
+        };
+
+        window.saveSubject = function() {
+            var catInput = document.getElementById('subjectCategoryInput');
+            var nameInput = document.getElementById('subjectNameInput');
+            var editKeyInput = document.getElementById('editSubjectKey');
+            var successMsg = document.getElementById('subjectSuccess');
+            
+            var subCat = catInput.value;
+            var subName = nameInput.value.trim();
+            var editKey = editKeyInput.value.trim();
+
+            if(!subName) {
+                alert("කරුණාකර විෂය නම ඇතුළත් කරන්න!");
+                return;
+            }
+
+            var promise;
+            if(editKey) {
+                promise = db.ref('subjects/' + editKey).update({ name: subName, category: subCat });
+            } else {
+                var newRef = db.ref('subjects').push();
+                promise = newRef.set({ name: subName, category: subCat });
+            }
+
+            promise.then(function() {
+                successMsg.textContent = editKey ? "විෂය සාර්ථකව යාවත්කාලීන කරන ලදී!" : "විෂය සාර්ථකව එකතු කරන ලදී!";
+                successMsg.style.display = 'block';
+                setTimeout(function(){ successMsg.style.display = 'none'; }, 3000);
+                resetSubjectForm();
+                loadSubjectsManagement();
+                loadClassAndSubjectDropdowns();
+            }).catch(function(error) {
+                alert("දෝෂයක් ඇතිවිය: " + error.message);
+            });
+        };
+
+        window.editSubject = function(key, name, category) {
+            document.getElementById('editSubjectKey').value = key;
+            document.getElementById('subjectNameInput').value = name;
+            
+            var catSelect = document.getElementById('subjectCategoryInput');
+            var catFound = false;
+            for(var i=0; i<catSelect.options.length; i++){
+                if(catSelect.options[i].value === category) {
+                    catSelect.selectedIndex = i;
+                    catFound = true; break;
+                }
+            }
+            if(!catFound) catSelect.value = "Other";
+
+            document.getElementById('subjectFormTitle').textContent = "Edit Subject";
+            document.getElementById('saveSubjectBtn').textContent = "💾 Update Subject";
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            document.getElementById('subjectNameInput').focus();
+        };
+
+        window.resetSubjectForm = function() {
+            document.getElementById('editSubjectKey').value = '';
+            document.getElementById('subjectNameInput').value = '';
+            document.getElementById('subjectCategoryInput').selectedIndex = 0;
+            document.getElementById('subjectFormTitle').textContent = "Add New Subject";
+            document.getElementById('saveSubjectBtn').textContent = "💾 Save Subject";
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        };
+
+        window.deleteSubject = function(key) {
+            if(confirm("මෙම විෂය ඉවත් කිරීමට අවශ්‍ය බව විශ්වාසද?")) {
+                db.ref('subjects/' + key).remove().then(function() {
+                    loadSubjectsManagement();
+                    loadClassAndSubjectDropdowns();
+                }).catch(function(error) {
+                    alert("විෂය මැකීමේදී දෝෂයක් ඇතිවිය: " + error.message);
+                });
+            }
+        };
+
+        window.downloadPdfReport = function() {
             var date = document.getElementById('reportDate').value;
             var clsFilter = document.getElementById('reportClass').value;
             var subjFilter = document.getElementById('reportSubject').value;
@@ -1909,7 +2210,7 @@
             }).catch(function(err) {
                 alert("PDF සැකසීමේදී දෝෂයක් ඇතිවිය: " + err.message);
             });
-        }
+        };
     </script>
 </body>
 </html>
