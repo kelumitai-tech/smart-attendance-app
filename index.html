@@ -238,6 +238,7 @@
                             <label>Select Period</label>
                             <select id="selectPeriod">
                                 <option value="">Select Period</option>
+                                <option value="Daily Attendance" style="font-weight: bold; color: #005A9C;">🏫 Daily School Attendance</option>
                                 <option value="1">1st Period</option>
                                 <option value="2">2nd Period</option>
                                 <option value="3">3rd Period</option>
@@ -680,7 +681,6 @@
 
         let allSubjectsList = []; 
 
-        // Standard Sri Lankan Subjects Grouped by Extended Categories
         const defaultSlSubjects = [
             { category: "General (පොදු)", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
             
@@ -747,10 +747,11 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
+        // Ensure database fetch DOES NOT block initialization event
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             setTodayDate();
-            checkAuthState(); // DB Subjects are initialized inside showApp() AFTER login
+            checkAuthState();
             setupRegistrationRestrictions();
         });
 
@@ -857,7 +858,7 @@
                 const snapshot = await db.ref('users/' + userId).once('value');
                 if (snapshot.exists()) {
                     appUserRole = snapshot.val().role;
-                    showApp(appUserRole);
+                    await showApp(appUserRole);
                 } else {
                     const user = auth.currentUser;
                     if(user) {
@@ -867,7 +868,7 @@
                             role: fallbackRole
                         });
                         appUserRole = fallbackRole;
-                        showApp(appUserRole);
+                        await showApp(appUserRole);
                     } else {
                         await auth.signOut();
                         showLoginScreen();
@@ -875,7 +876,8 @@
                 }
             } catch (error) {
                 console.error("Error getting user data", error);
-                alert("Database Connection Error.");
+                alert("Database Connection Error. Please check your internet connection.");
+                await auth.signOut();
                 showLoginScreen();
             }
         }
@@ -883,6 +885,13 @@
         function showLoginScreen() {
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('appContent').style.display = 'none';
+            
+            const loginBtn = document.getElementById('loginBtn');
+            if(loginBtn) {
+                loginBtn.innerHTML = '🔐 Login';
+                loginBtn.disabled = false;
+            }
+            
             showLoginForm();
         }
 
@@ -909,18 +918,18 @@
             }
             errorMsg.style.display = 'none';
             
-            const originalText = loginBtn.innerHTML;
+            // Set loading state
             loginBtn.innerHTML = '⏳ Logging in...';
             loginBtn.disabled = true;
 
             try {
                 await auth.signInWithEmailAndPassword(email, password);
-                loginBtn.innerHTML = originalText;
-                loginBtn.disabled = false;
+                // checkAuthState listener will trigger and hide login screen if successful
             } catch (error) {
                 errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
-                loginBtn.innerHTML = originalText;
+                // Reset button state
+                loginBtn.innerHTML = '🔐 Login';
                 loginBtn.disabled = false;
             }
         }
@@ -929,6 +938,7 @@
             const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value.trim();
             const errorMsg = document.getElementById('registerError');
+            const btn = document.getElementById('confirmRegisterBtn');
             
             const finalRole = 'subjectTeacher';
             
@@ -938,6 +948,9 @@
                 return;
             }
             errorMsg.style.display = 'none';
+            
+            btn.innerHTML = '⏳ Creating Account...';
+            btn.disabled = true;
             isRegistering = true; 
             
             try {
@@ -949,11 +962,13 @@
                 isRegistering = false;
                 alert('Registration successful! (Registered as Subject Teacher)');
                 appUserRole = finalRole;
-                showApp(finalRole);
+                await showApp(finalRole);
             } catch (error) {
                 isRegistering = false;
                 errorMsg.textContent = error.message;
                 errorMsg.style.display = 'block';
+                btn.innerHTML = '📝 Create Account';
+                btn.disabled = false;
             }
         }
 
@@ -974,7 +989,7 @@
                 document.querySelectorAll('.class-teacher-only').forEach(el => el.style.display = 'block');
             }
             
-            // Wait for subjects to initialize/migrate, THEN load dropdowns
+            // Wait for DB to be structured correctly before showing menus
             await initializeDatabaseSubjects();
             loadClassAndSubjectDropdowns();
             showTab('attendance'); 
