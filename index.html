@@ -151,17 +151,13 @@
                 <!-- Registration Form -->
                 <div id="registrationForm" style="display: none;">
                     <h3 style="text-align: center; margin-bottom: 15px; color: #005A9C;">Create Account</h3>
-                    
-                    <div class="info-box">
-                        <strong>Note:</strong> Only <strong>Subject Teacher</strong> accounts can be created through self-registration.
-                    </div>
 
                     <div class="form-group">
                         <label>Register As</label>
                         <select id="registerRole">
                             <option value="subjectTeacher">Subject Teacher</option>
-                            <option value="principal" class="restricted-option" disabled>Principal (Admin) - Restricted</option>
-                            <option value="classTeacher" class="restricted-option" disabled>Class Teacher - Restricted</option>
+                            <option value="classTeacher">Class Teacher</option>
+                            <option value="principal">Principal (Admin)</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -192,7 +188,7 @@
                     
                     <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
                         <h3 style="text-align: center; margin-bottom: 10px; color: #333; font-size: 1.1em;">New User?</h3>
-                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register as Subject Teacher</button>
+                        <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register Here</button>
                     </div>
                 </div>
             </div>
@@ -208,14 +204,12 @@
             <div class="nav-tabs" id="navTabs">
                 <button class="nav-tab active" data-tab="attendance">📋 Mark Attendance</button>
                 <button class="nav-tab" data-tab="requestLeave">📩 Leave Request</button>
-                <!-- Only Admin / Class Teacher Tabs -->
                 <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
-                <button class="nav-tab principal-only class-teacher-only" data-tab="reports">📊 Reports</button>
-                <!-- Only Admin Tabs -->
+                <button class="nav-tab" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
                 <button class="nav-tab principal-only" data-tab="dashboard">🎯 Dashboard</button>
                 <button class="nav-tab principal-only" data-tab="teachers">👨‍🏫 Teachers & Leaves</button>
+                <button class="nav-tab principal-only class-teacher-only" data-tab="subjects">📚 Subjects</button>
             </div>
 
             <!-- Attendance Tab -->
@@ -749,16 +743,18 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
+        // Only run UI listeners on load. Do NOT make database calls before login!
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             setTodayDate();
-            setupRegistrationRestrictions();
             checkAuthState(); 
         });
 
         function safeAddListener(id, event, handler) {
             const el = document.getElementById(id);
-            if (el) el.addEventListener(event, handler);
+            if (el) {
+                el.addEventListener(event, handler);
+            }
         }
 
         function setupEventListeners() {
@@ -770,10 +766,13 @@
             
             safeAddListener('addStudentBtn', 'click', addStudent);
             safeAddListener('loadAttendanceBtn', 'click', loadAttendanceSheet);
+            
             safeAddListener('generateReportBtn', 'click', generateReportSummary);
             safeAddListener('downloadPdfBtn', 'click', downloadPdfReport);
+            
             safeAddListener('saveSubjectBtn', 'click', saveSubject);
             safeAddListener('cancelEditBtn', 'click', resetSubjectForm);
+
             safeAddListener('saveNewTeacherBtn', 'click', saveNewTeacher);
             safeAddListener('submitLeaveBtn', 'click', submitLeaveRequest);
             safeAddListener('viewRawBtn', 'click', viewRawAttendance);
@@ -813,22 +812,10 @@
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
-                    console.log("Subjects Auto-Updated.");
+                    console.log("Database subjects updated successfully!");
                 }
             } catch (err) {
-                console.log("DB Rules blocked auto-update, bypassing.");
-            }
-        }
-
-        function setupRegistrationRestrictions() {
-            const registerRoleSelect = document.getElementById('registerRole');
-            if (registerRoleSelect) {
-                registerRoleSelect.addEventListener('change', function() {
-                    if (this.value !== 'subjectTeacher') {
-                        this.value = 'subjectTeacher';
-                        alert('Only Subject Teacher accounts can be created through self-registration. Contact Administrator for Principal or Class Teacher roles.');
-                    }
-                });
+                console.log("Rules blocked DB update, moving on safely.", err);
             }
         }
 
@@ -862,7 +849,6 @@
 
         async function getUserRole(userId) {
             try {
-                // Ensure immediate app loading even if DB takes time or fails
                 let finalRole = 'subjectTeacher'; 
                 try {
                     const snapshot = await db.ref('users/' + userId).get(); 
@@ -918,7 +904,7 @@
 
             try {
                 await auth.signInWithEmailAndPassword(email, password);
-                // checkAuthState listener will trigger automatically
+                // checkAuthState handles the rest
             } catch (error) {
                 errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
@@ -933,7 +919,9 @@
             const errorMsg = document.getElementById('registerError');
             const btn = document.getElementById('confirmRegisterBtn');
             
-            const finalRole = 'subjectTeacher';
+            // Get role directly from the dropdown without restrictions
+            const registerRole = document.getElementById('registerRole').value; 
+            const finalRole = registerRole;
             
             if (!email || !password || password.length < 6) {
                 errorMsg.textContent = 'Please provide valid email and password (min 6 chars)';
@@ -953,7 +941,12 @@
                     role: finalRole
                 });
                 isRegistering = false;
-                alert('Registration successful! (Registered as Subject Teacher)');
+                
+                let roleDisplayName = "Subject Teacher";
+                if(finalRole === 'principal') roleDisplayName = "Principal (Admin)";
+                else if(finalRole === 'classTeacher') roleDisplayName = "Class Teacher";
+
+                alert(`Registration successful! (Registered as ${roleDisplayName})`);
                 appUserRole = finalRole;
                 showApp(finalRole);
             } catch (error) {
@@ -969,7 +962,7 @@
             await auth.signOut();
         }
 
-        function showApp(role) {
+        async function showApp(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             
@@ -985,10 +978,8 @@
             
             document.getElementById('roleBadge').textContent = displayRole;
             
-            // Hide all restricted tabs first
             document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'none');
             
-            // Unhide based on access level
             if (normalizedRole.includes('principal') || normalizedRole.includes('admin')) {
                 document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'block');
             } else if (normalizedRole.includes('class')) {
@@ -997,14 +988,12 @@
             
             showTab('attendance'); 
             
-            // Background load subjects (non-blocking)
-            setTimeout(() => {
-                initializeDatabaseSubjects().then(() => {
-                    loadClassAndSubjectDropdowns();
-                }).catch(e => {
-                    loadClassAndSubjectDropdowns(); // Load anyway
-                });
-            }, 300);
+            try {
+                await initializeDatabaseSubjects();
+                loadClassAndSubjectDropdowns();
+            } catch (e) {
+                console.error("Subject loading error:", e);
+            }
         }
 
         function showTab(tabName) {
@@ -1463,7 +1452,7 @@
                 filterSubjectsDropdown('selectClass', 'selectSubject');
                 filterSubjectsDropdown('reportClass', 'reportSubject');
                 filterSubjectsDropdown('viewClass', 'viewSubject');
-            }).catch(e => console.error("Dropdown load error: ", e));
+            });
         }
 
         // ==========================================
