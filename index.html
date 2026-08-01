@@ -316,7 +316,7 @@
                         <label>Reason / Note</label>
                         <input type="text" id="leaveReqReason" placeholder="Briefly state the reason">
                     </div>
-                    <button class="btn btn-primary btn-full" onclick="submitLeaveRequest()" id="submitLeaveBtn">Submit Leave Request</button>
+                    <button class="btn btn-primary btn-full" id="submitLeaveBtn">Submit Leave Request</button>
                     <div class="success-msg" id="leaveReqSuccess"></div>
                 </div>
 
@@ -458,7 +458,7 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn btn-secondary btn-full" onclick="viewRawAttendance()">🔍 Search Records</button>
+                    <button class="btn btn-secondary btn-full" id="viewRawBtn">🔍 Search Records</button>
                     
                     <div class="table-responsive" style="margin-top: 15px;">
                         <table>
@@ -527,7 +527,7 @@
                             <input type="date" id="teacherAttDate">
                         </div>
                         <div class="form-group" style="display:flex; align-items:flex-end;">
-                            <button class="btn btn-secondary btn-full" onclick="loadTeacherAttendanceSheet()">Load Teachers</button>
+                            <button class="btn btn-secondary btn-full" id="loadTeacherAttBtn">Load Teachers</button>
                         </div>
                     </div>
                     
@@ -747,13 +747,50 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
-        // Ensure database fetch DOES NOT block initialization event
+        // Ensure UI doesn't hang. Setup strictly AFTER DOM loads.
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             setTodayDate();
-            checkAuthState();
             setupRegistrationRestrictions();
+            checkAuthState(); // DB Subjects are initialized inside showApp() AFTER successful login
         });
+
+        // Safe event listener attaching
+        function safeAddListener(id, event, handler) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener(event, handler);
+            }
+        }
+
+        function setupEventListeners() {
+            safeAddListener('loginBtn', 'click', doLogin);
+            safeAddListener('showRegisterBtn', 'click', showRegistrationForm);
+            safeAddListener('backToLoginBtn', 'click', showLoginForm);
+            safeAddListener('confirmRegisterBtn', 'click', doRegistration);
+            safeAddListener('logoutBtn', 'click', doLogout);
+            
+            safeAddListener('addStudentBtn', 'click', addStudent);
+            safeAddListener('loadAttendanceBtn', 'click', loadAttendanceSheet);
+            
+            safeAddListener('generateReportBtn', 'click', generateReportSummary);
+            safeAddListener('downloadPdfBtn', 'click', downloadPdfReport);
+            
+            safeAddListener('saveSubjectBtn', 'click', saveSubject);
+            safeAddListener('cancelEditBtn', 'click', resetSubjectForm);
+
+            safeAddListener('saveNewTeacherBtn', 'click', saveNewTeacher);
+            safeAddListener('loadTeacherAttBtn', 'click', loadTeacherAttendanceSheet);
+            safeAddListener('submitLeaveBtn', 'click', submitLeaveRequest);
+            safeAddListener('viewRawBtn', 'click', viewRawAttendance);
+            
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showTab(this.getAttribute('data-tab'));
+                });
+            });
+        }
 
         async function initializeDatabaseSubjects() {
             try {
@@ -767,10 +804,7 @@
                     let data = snapshot.val();
                     let hasOldData = false;
                     for (let key in data) {
-                        if (typeof data[key] === 'string') {
-                            hasOldData = true; break;
-                        }
-                        if (data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11" || !data[key].category) {
+                        if (typeof data[key] === 'string' || !data[key].category || data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11") {
                             hasOldData = true; break;
                         }
                     }
@@ -784,9 +818,10 @@
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
+                    console.log("Database subjects updated successfully!");
                 }
             } catch (err) {
-                console.error("Error initializing subjects in DB:", err);
+                console.log("Subjects init bypassed due to rules/network. Moving on.", err);
             }
         }
 
@@ -802,35 +837,6 @@
             }
         }
 
-        function setupEventListeners() {
-            document.getElementById('loginBtn').addEventListener('click', doLogin);
-            document.getElementById('showRegisterBtn').addEventListener('click', showRegistrationForm);
-            document.getElementById('backToLoginBtn').addEventListener('click', showLoginForm);
-            document.getElementById('confirmRegisterBtn').addEventListener('click', doRegistration);
-            document.getElementById('logoutBtn').addEventListener('click', doLogout);
-            
-            // Student Buttons
-            document.getElementById('addStudentBtn').addEventListener('click', addStudent);
-            document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendanceSheet);
-            
-            // Report Buttons
-            document.getElementById('generateReportBtn').addEventListener('click', generateReportSummary);
-            document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdfReport);
-            
-            // Subject Buttons
-            document.getElementById('saveSubjectBtn').addEventListener('click', saveSubject);
-            document.getElementById('cancelEditBtn').addEventListener('click', resetSubjectForm);
-
-            // Teacher Buttons
-            document.getElementById('saveNewTeacherBtn').addEventListener('click', saveNewTeacher);
-            
-            document.querySelectorAll('.nav-tab').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    showTab(this.getAttribute('data-tab'));
-                });
-            });
-        }
-
         function setTodayDate() {
             const today = new Date().toISOString().split('T')[0];
             const ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate', 'leaveReqDate'];
@@ -842,6 +848,12 @@
 
         function checkAuthState() {
             auth.onAuthStateChanged(async (user) => {
+                const loginBtn = document.getElementById('loginBtn');
+                if (loginBtn) {
+                    loginBtn.innerHTML = '🔐 Login';
+                    loginBtn.disabled = false;
+                }
+
                 const logoutBtn = document.getElementById('logoutBtn');
                 if (user && !isRegistering) {
                     if(logoutBtn) logoutBtn.style.display = 'block';
@@ -858,7 +870,7 @@
                 const snapshot = await db.ref('users/' + userId).once('value');
                 if (snapshot.exists()) {
                     appUserRole = snapshot.val().role;
-                    await showApp(appUserRole);
+                    showApp(appUserRole);
                 } else {
                     const user = auth.currentUser;
                     if(user) {
@@ -868,7 +880,7 @@
                             role: fallbackRole
                         });
                         appUserRole = fallbackRole;
-                        await showApp(appUserRole);
+                        showApp(appUserRole);
                     } else {
                         await auth.signOut();
                         showLoginScreen();
@@ -876,7 +888,7 @@
                 }
             } catch (error) {
                 console.error("Error getting user data", error);
-                alert("Database Connection Error. Please check your internet connection.");
+                alert("Database Error: " + error.message);
                 await auth.signOut();
                 showLoginScreen();
             }
@@ -885,13 +897,6 @@
         function showLoginScreen() {
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('appContent').style.display = 'none';
-            
-            const loginBtn = document.getElementById('loginBtn');
-            if(loginBtn) {
-                loginBtn.innerHTML = '🔐 Login';
-                loginBtn.disabled = false;
-            }
-            
             showLoginForm();
         }
 
@@ -918,17 +923,15 @@
             }
             errorMsg.style.display = 'none';
             
-            // Set loading state
             loginBtn.innerHTML = '⏳ Logging in...';
             loginBtn.disabled = true;
 
             try {
                 await auth.signInWithEmailAndPassword(email, password);
-                // checkAuthState listener will trigger and hide login screen if successful
+                // checkAuthState handles the rest
             } catch (error) {
                 errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
-                // Reset button state
                 loginBtn.innerHTML = '🔐 Login';
                 loginBtn.disabled = false;
             }
@@ -949,7 +952,7 @@
             }
             errorMsg.style.display = 'none';
             
-            btn.innerHTML = '⏳ Creating Account...';
+            btn.innerHTML = '⏳ Creating...';
             btn.disabled = true;
             isRegistering = true; 
             
@@ -962,7 +965,7 @@
                 isRegistering = false;
                 alert('Registration successful! (Registered as Subject Teacher)');
                 appUserRole = finalRole;
-                await showApp(finalRole);
+                showApp(finalRole);
             } catch (error) {
                 isRegistering = false;
                 errorMsg.textContent = error.message;
@@ -976,46 +979,55 @@
             await auth.signOut();
         }
 
-        async function showApp(role) {
+        function showApp(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
+            
+            // Normalize role to fix old accounts with capital letters
+            const normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
             document.getElementById('roleBadge').textContent = roleDisplayMapping[role] || role;
             
             document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'none');
             
-            if (role === 'principal') {
+            if (normalizedRole === 'principal' || normalizedRole === 'admin') {
                 document.querySelectorAll('.principal-only, .class-teacher-only').forEach(el => el.style.display = 'block');
-            } else if (role === 'classTeacher') {
+            } else if (normalizedRole === 'classteacher') {
                 document.querySelectorAll('.class-teacher-only').forEach(el => el.style.display = 'block');
             }
             
-            // Wait for DB to be structured correctly before showing menus
-            await initializeDatabaseSubjects();
-            loadClassAndSubjectDropdowns();
+            // Show tabs UI quickly, then fetch DB mapping
             showTab('attendance'); 
+            
+            initializeDatabaseSubjects().then(() => {
+                loadClassAndSubjectDropdowns();
+            });
         }
 
         function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            
-            const tabEl = document.getElementById(tabName);
-            if(tabEl) tabEl.classList.add('active');
-            
-            const navBtn = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
-            if(navBtn) navBtn.classList.add('active');
-            
-            if (tabName === 'students') {
-                loadStudents();
-            } else if (tabName === 'dashboard') {
-                updateDashboardStats();
-            } else if (tabName === 'subjects') {
-                loadSubjectsManagement();
-            } else if (tabName === 'teachers') {
-                loadTeachersAndLeaves();
-                loadPendingLeaves();
-            } else if (tabName === 'requestLeave') {
-                loadMyLeaveRequests();
+            try {
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+                
+                const tabEl = document.getElementById(tabName);
+                if(tabEl) tabEl.classList.add('active');
+                
+                const navBtn = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+                if(navBtn) navBtn.classList.add('active');
+                
+                if (tabName === 'students') {
+                    loadStudents();
+                } else if (tabName === 'dashboard') {
+                    updateDashboardStats();
+                } else if (tabName === 'subjects') {
+                    loadSubjectsManagement();
+                } else if (tabName === 'teachers') {
+                    loadTeachersAndLeaves();
+                    loadPendingLeaves();
+                } else if (tabName === 'requestLeave') {
+                    loadMyLeaveRequests();
+                }
+            } catch (e) {
+                console.log("Error displaying tab:", e);
             }
         }
 
@@ -1723,154 +1735,4 @@
                     </div>
                 `;
 
-                output.innerHTML = tableHtml;
-            } catch(err) {
-                output.innerHTML = "<div class='error-msg' style='display:block;'>වාර්තාව සැකසීමේදී දෝෂයක් ඇතිවිය.</div>";
-            }
-        }
-
-        async function viewRawAttendance() {
-            const date = document.getElementById('viewDate').value;
-            const clsFilter = document.getElementById('viewClass').value;
-            const subjFilter = document.getElementById('viewSubject').value;
-            const tbody = document.getElementById('viewAttTbody');
-
-            if(!date) {
-                alert("කරුණාකර දිනයක් තෝරන්න!");
-                return;
-            }
-
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>Loading records...</td></tr>";
-
-            try {
-                const snapshot = await db.ref('attendance/' + date).once('value');
-                if(!snapshot.exists()) {
-                    tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
-                    return;
-                }
-
-                let html = '';
-                snapshot.forEach(classSnap => {
-                    const className = classSnap.key.replace(/_/g, ' ');
-                    if(clsFilter && className !== clsFilter) return;
-
-                    classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
-                        
-                        periodSnap.forEach(subSnap => {
-                            const subName = subSnap.key.replace(/_/g, ' ');
-                            if(subjFilter && subName !== subjFilter) return;
-
-                            subSnap.forEach(stSnap => {
-                                const rec = stSnap.val();
-                                const stName = rec.name || "Unknown";
-                                const statusColor = rec.status === 'Present' ? 'green' : 'red';
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : rec.period || periodName;
-                                html += `
-                                    <tr>
-                                        <td>${rec.student_id}</td>
-                                        <td style="white-space:normal;">${stName}</td>
-                                        <td>${rec.class.replace('Grade ','')}</td>
-                                        <td>${pNameDisplay}</td>
-                                        <td>${rec.subject}</td>
-                                        <td style="color:${statusColor}; font-weight:bold;">${rec.status}</td>
-                                    </tr>
-                                `;
-                            });
-                        });
-                    });
-                });
-
-                if(!html) html = "<tr><td colspan='6' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
-                tbody.innerHTML = html;
-            } catch(err) {
-                tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
-            }
-        }
-
-        async function downloadPdfReport() {
-            const date = document.getElementById('reportDate').value;
-            const clsFilter = document.getElementById('reportClass').value;
-            const subjFilter = document.getElementById('reportSubject').value;
-
-            if(!date) {
-                alert("කරුණාකර දිනයක් තෝරන්න!");
-                return;
-            }
-
-            try {
-                const snapshot = await db.ref('attendance/' + date).once('value');
-                if(!snapshot.exists()) {
-                    alert("මෙම දිනය සඳහා වාර්තා කිසිවක් නොමැත!");
-                    return;
-                }
-
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(16);
-                doc.text("Smart Attendance Report", 14, 20);
-                
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                doc.text(`Date: ${date}`, 14, 28);
-                if(clsFilter) doc.text(`Class: ${clsFilter}`, 14, 34);
-                if(subjFilter) doc.text(`Subject: ${subjFilter}`, 14, clsFilter ? 40 : 34);
-
-                let tableData = [];
-                let index = 1;
-
-                snapshot.forEach(classSnap => {
-                    const className = classSnap.key.replace(/_/g, ' ');
-                    if(clsFilter && className !== clsFilter) return;
-
-                    classSnap.forEach(periodSnap => {
-                        const periodName = periodSnap.key.replace('Period_', '').replace('Daily_Attendance', 'Daily School Attendance');
-                        
-                        periodSnap.forEach(subSnap => {
-                            const subName = subSnap.key.replace(/_/g, ' ');
-                            if(subjFilter && subName !== subjFilter) return;
-
-                            subSnap.forEach(stSnap => {
-                                const rec = stSnap.val();
-                                const pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : `Period ${rec.period || periodName}`;
-                                tableData.push([
-                                    index++,
-                                    rec.student_id,
-                                    rec.class,
-                                    pNameDisplay,
-                                    rec.subject,
-                                    rec.status
-                                ]);
-                            });
-                        });
-                    });
-                });
-
-                if(tableData.length === 0) {
-                    alert("අදාළ පෙරීමට ගැලපෙන දත්ත හමු නොවීය!");
-                    return;
-                }
-
-                let startY = 36;
-                if(clsFilter) startY += 6;
-                if(subjFilter) startY += 6;
-
-                doc.autoTable({
-                    startY: startY,
-                    head: [['#', 'Student ID', 'Class', 'Period', 'Subject', 'Status']],
-                    body: tableData,
-                    theme: 'grid',
-                    headStyles: { fillColor: [0, 90, 156] },
-                    styles: { fontSize: 9 }
-                });
-
-                doc.save(`Attendance_Report_${date}.pdf`);
-            } catch(err) {
-                alert("PDF සැකසීමේදී දෝෂයක් ඇතිවිය: " + err.message);
-            }
-        }
-    </script>
-</body>
-</html>
+                output.innerHTML = tableHtml;I encountered an error doing what you asked. Could you try again?
