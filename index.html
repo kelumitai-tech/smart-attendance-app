@@ -207,7 +207,6 @@
             
             <div class="nav-tabs" id="navTabs">
                 <button class="nav-tab active" data-tab="attendance">📋 Mark Attendance</button>
-                <!-- Leave Request Tab (For Teachers) -->
                 <button class="nav-tab" data-tab="requestLeave">📩 Leave Request</button>
                 <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
@@ -239,7 +238,6 @@
                             <label>Select Period</label>
                             <select id="selectPeriod">
                                 <option value="">Select Period</option>
-                                <option value="Daily Attendance" style="font-weight: bold; color: #005A9C;">🏫 Daily School Attendance</option>
                                 <option value="1">1st Period</option>
                                 <option value="2">2nd Period</option>
                                 <option value="3">3rd Period</option>
@@ -317,7 +315,7 @@
                         <label>Reason / Note</label>
                         <input type="text" id="leaveReqReason" placeholder="Briefly state the reason">
                     </div>
-                    <button class="btn btn-primary btn-full" onclick="submitLeaveRequest()">Submit Leave Request</button>
+                    <button class="btn btn-primary btn-full" onclick="submitLeaveRequest()" id="submitLeaveBtn">Submit Leave Request</button>
                     <div class="success-msg" id="leaveReqSuccess"></div>
                 </div>
 
@@ -682,6 +680,7 @@
 
         let allSubjectsList = []; 
 
+        // Standard Sri Lankan Subjects Grouped by Extended Categories
         const defaultSlSubjects = [
             { category: "General (පොදු)", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
             
@@ -748,11 +747,10 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await initializeDatabaseSubjects();
+        document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             setTodayDate();
-            checkAuthState();
+            checkAuthState(); // DB Subjects are initialized inside showApp() AFTER login
             setupRegistrationRestrictions();
         });
 
@@ -810,15 +808,19 @@
             document.getElementById('confirmRegisterBtn').addEventListener('click', doRegistration);
             document.getElementById('logoutBtn').addEventListener('click', doLogout);
             
+            // Student Buttons
             document.getElementById('addStudentBtn').addEventListener('click', addStudent);
             document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendanceSheet);
             
+            // Report Buttons
             document.getElementById('generateReportBtn').addEventListener('click', generateReportSummary);
             document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdfReport);
             
+            // Subject Buttons
             document.getElementById('saveSubjectBtn').addEventListener('click', saveSubject);
             document.getElementById('cancelEditBtn').addEventListener('click', resetSubjectForm);
 
+            // Teacher Buttons
             document.getElementById('saveNewTeacherBtn').addEventListener('click', saveNewTeacher);
             
             document.querySelectorAll('.nav-tab').forEach(btn => {
@@ -898,6 +900,7 @@
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             const errorMsg = document.getElementById('loginError');
+            const loginBtn = document.getElementById('loginBtn');
             
             if (!email || !password) {
                 errorMsg.textContent = 'Please enter email and password';
@@ -905,11 +908,20 @@
                 return;
             }
             errorMsg.style.display = 'none';
+            
+            const originalText = loginBtn.innerHTML;
+            loginBtn.innerHTML = '⏳ Logging in...';
+            loginBtn.disabled = true;
+
             try {
                 await auth.signInWithEmailAndPassword(email, password);
+                loginBtn.innerHTML = originalText;
+                loginBtn.disabled = false;
             } catch (error) {
                 errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
+                loginBtn.innerHTML = originalText;
+                loginBtn.disabled = false;
             }
         }
 
@@ -949,7 +961,7 @@
             await auth.signOut();
         }
 
-        function showApp(role) {
+        async function showApp(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             document.getElementById('roleBadge').textContent = roleDisplayMapping[role] || role;
@@ -962,6 +974,8 @@
                 document.querySelectorAll('.class-teacher-only').forEach(el => el.style.display = 'block');
             }
             
+            // Wait for subjects to initialize/migrate, THEN load dropdowns
+            await initializeDatabaseSubjects();
             loadClassAndSubjectDropdowns();
             showTab('attendance'); 
         }
@@ -1000,10 +1014,14 @@
             const type = document.getElementById('leaveReqType').value;
             const reason = document.getElementById('leaveReqReason').value.trim();
             const msg = document.getElementById('leaveReqSuccess');
+            const btn = document.getElementById('submitLeaveBtn');
 
             if(!tid || !name || !date || !reason) {
                 alert("කරුණාකර සියලුම විස්තර පුරවන්න!"); return;
             }
+
+            btn.innerHTML = '⏳ Submitting...';
+            btn.disabled = true;
 
             const safeTid = getSafeKey(tid);
             const reqRef = db.ref('leave_requests').push();
@@ -1027,6 +1045,9 @@
                 loadMyLeaveRequests();
             } catch(e) {
                 alert("Error: " + e.message);
+            } finally {
+                btn.innerHTML = 'Submit Leave Request';
+                btn.disabled = false;
             }
         }
 
@@ -1458,7 +1479,6 @@
                 const existingAtt = attSnap.exists() ? attSnap.val() : {};
                 const isNewSheet = !attSnap.exists();
 
-                // Get Category of selected subject to check if it's optional
                 const subObj = allSubjectsList.find(s => s.name === selectedSubject);
                 const isOptionalCat = subObj && (subObj.category.includes("Aesthetics") || subObj.category.includes("සෞන්දර්ය") || subObj.category.includes("කාණ්ඩ") || subObj.category.includes("A/L"));
                 const isGeneral = subObj && (subObj.category.includes("General") || subObj.category.includes("පොදු"));
@@ -1470,7 +1490,6 @@
                     const st = child.val();
                     const safeStudentId = child.key; 
                     
-                    // Smart Pre-Selection Logic
                     let isStudentTakingSubject = true;
                     if(isOptionalCat && !isGeneral) {
                         if(st.optional_subjects && st.optional_subjects.includes(selectedSubject)) {
@@ -1480,7 +1499,6 @@
                         }
                     }
 
-                    // If student is not taking the subject, skip them!
                     if(!isStudentTakingSubject) return; 
 
                     validStudentsCount++;
@@ -1535,11 +1553,11 @@
 
             rows.forEach(row => {
                 const safeStudentId = row.getAttribute('data-safestudentid');
+                const studentId = row.getAttribute('data-studentid');
+                const stName = row.querySelector('.st-name').innerText;
+                const status = row.querySelector('.att-status').value;
+                
                 if(safeStudentId) {
-                    const studentId = row.getAttribute('data-studentid');
-                    const stName = row.querySelector('.st-name').innerText;
-                    const status = row.querySelector('.att-status').value;
-                    
                     const safeClass = getSafeKey(selectedClass);
                     const safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
                     const safeSubject = getSafeKey(selectedSubject);
