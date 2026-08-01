@@ -150,15 +150,23 @@
                 
                 <!-- Registration Form -->
                 <div id="registrationForm" style="display: none;">
-                    <h3 style="text-align: center; margin-bottom: 15px; color: #005A9C;">Create Account</h3>
+                    <h3 style="text-align: center; margin-bottom: 15px; color: #005A9C;">Teacher Registration</h3>
+                    
+                    <div class="info-box">
+                        Please register using your official details. This account will automatically be set as a <strong>Subject Teacher</strong>.
+                    </div>
 
                     <div class="form-group">
-                        <label>Register As</label>
-                        <select id="registerRole">
-                            <option value="subjectTeacher">Subject Teacher</option>
-                            <option value="classTeacher">Class Teacher</option>
-                            <option value="principal">Principal (Admin)</option>
-                        </select>
+                        <label>Teacher ID</label>
+                        <input type="text" id="regTeacherId" placeholder="e.g., T001">
+                    </div>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="regFullName" placeholder="e.g., A. B. Perera">
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Subject</label>
+                        <input type="text" id="regSubject" placeholder="e.g., Science">
                     </div>
                     <div class="form-group">
                         <label>Email Address</label>
@@ -204,6 +212,7 @@
             <div class="nav-tabs" id="navTabs">
                 <button class="nav-tab active" data-tab="attendance">📋 Mark Attendance</button>
                 <button class="nav-tab" data-tab="requestLeave">📩 Leave Request</button>
+                <!-- Restricted Tabs -->
                 <button class="nav-tab principal-only class-teacher-only" data-tab="students">👥 Students</button>
                 <button class="nav-tab" data-tab="reports">📊 Reports</button>
                 <button class="nav-tab principal-only" data-tab="viewAttendance">👀 View Attendance</button>
@@ -281,7 +290,7 @@
                 </div>
             </div>
 
-            <!-- Leave Request Tab -->
+            <!-- Leave Request Tab (For Teachers) -->
             <div class="tab-content" id="requestLeave">
                 <div class="card">
                     <h3>📝 Submit Online Leave Request</h3>
@@ -366,9 +375,11 @@
                         </div>
                     </div>
                     
+                    <!-- DYNAMIC OPTIONAL SUBJECTS FOR STUDENT -->
                     <div class="form-group" id="optionalSubjectsGroup" style="display:none; background: #e8f4fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; margin-top: 10px;">
                         <label style="color: #005A9C; margin-bottom: 10px; font-size: 1.05em;">📚 Select Optional / A/L Subjects for this Student</label>
                         <div id="optionalSubjectsList" class="checkbox-grid">
+                            <!-- Checkboxes injected dynamically -->
                         </div>
                     </div>
 
@@ -429,7 +440,7 @@
                 </div>
             </div>
 
-            <!-- View Attendance Tab -->
+            <!-- View Attendance Tab (Admin Only) -->
             <div class="tab-content" id="viewAttendance">
                 <div class="card">
                     <h3>👀 View Raw Attendance Records</h3>
@@ -474,8 +485,10 @@
                 </div>
             </div>
 
-            <!-- Teachers Tab -->
+            <!-- Teachers & Leaves Management Tab (Admin Only) -->
             <div class="tab-content" id="teachers">
+                
+                <!-- Pending Leave Approvals Card -->
                 <div class="card" style="border-left: 4px solid #f44336;">
                     <h3 style="color: #f44336;">🔔 Pending Leave Requests</h3>
                     <div class="table-responsive">
@@ -617,7 +630,7 @@
                 </div>
             </div>
 
-            <!-- Dashboard -->
+            <!-- Dashboard Placeholder -->
             <div class="tab-content" id="dashboard">
                 <div class="card"><h3>🎯 Principal Dashboard</h3>
                     <div class="grid-3">
@@ -792,21 +805,24 @@
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('appContent').style.display = 'block';
                     
-                    applyRoleUI('subjectTeacher'); // Temporary fallback UI
+                    applyRoleUI('subjectTeacher', ''); // Temporary fallback UI
                     showTab('attendance'); 
+                    loadClassAndSubjectDropdowns();
                     
                     db.ref('users/' + user.uid).once('value').then(function(snapshot) {
                         if (snapshot.exists()) {
-                            applyRoleUI(snapshot.val().role || 'subjectTeacher');
-                        } else {
-                            applyRoleUI('subjectTeacher');
+                            var userData = snapshot.val();
+                            applyRoleUI(userData.role || 'subjectTeacher', userData.name || '');
+                            
+                            // Auto-fill Leave request details
+                            if(userData.teacher_id) document.getElementById('leaveReqTid').value = userData.teacher_id;
+                            if(userData.name) document.getElementById('leaveReqName').value = userData.name;
                         }
                     }).catch(function(e) {
-                        applyRoleUI('subjectTeacher');
+                        applyRoleUI('subjectTeacher', '');
                     });
                     
-                    loadClassAndSubjectDropdowns();
-                    setTimeout(updateDatabaseSubjectsQuietly, 2000); // Do background DB updates later
+                    setTimeout(updateDatabaseSubjectsQuietly, 2000); 
 
                 } else if (!user) {
                     if(logoutBtn) logoutBtn.style.display = 'none';
@@ -816,7 +832,7 @@
             });
         }
 
-        function applyRoleUI(role) {
+        function applyRoleUI(role, userName) {
             appUserRole = role;
             var normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
             var displayRole = 'Subject Teacher';
@@ -827,7 +843,11 @@
             var badge = document.getElementById('roleBadge');
             if(badge) {
                 badge.style.display = 'block';
-                badge.textContent = displayRole;
+                if(userName && userName.trim() !== '') {
+                    badge.innerHTML = '👤 <strong>' + userName + '</strong> | ' + displayRole;
+                } else {
+                    badge.textContent = displayRole;
+                }
             }
             
             var restrictedEls = document.querySelectorAll('.principal-only, .class-teacher-only');
@@ -884,14 +904,18 @@
         }
 
         function doRegistration() {
+            var tid = document.getElementById('regTeacherId').value.trim();
+            var name = document.getElementById('regFullName').value.trim();
+            var subject = document.getElementById('regSubject').value.trim();
             var email = document.getElementById('registerEmail').value.trim();
             var password = document.getElementById('registerPassword').value.trim();
             var errorMsg = document.getElementById('registerError');
             var btn = document.getElementById('confirmRegisterBtn');
-            var finalRole = document.getElementById('registerRole').value;
             
-            if (!email || !password || password.length < 6) {
-                errorMsg.textContent = 'Please provide valid email and password (min 6 chars)';
+            var finalRole = 'subjectTeacher';
+            
+            if (!tid || !name || !email || !password || password.length < 6) {
+                errorMsg.textContent = 'Please fill all fields correctly (Password min 6 chars)';
                 errorMsg.style.display = 'block';
                 return;
             }
@@ -902,18 +926,33 @@
             isRegistering = true; 
             
             auth.createUserWithEmailAndPassword(email, password).then(function(cred) {
-                return db.ref('users/' + cred.user.uid).set({ email: email, role: finalRole });
+                var p1 = db.ref('users/' + cred.user.uid).set({ 
+                    email: email, 
+                    role: finalRole,
+                    name: name,
+                    teacher_id: tid,
+                    subject: subject
+                });
+                
+                var safeTid = getSafeKey(tid);
+                var p2 = db.ref('teachers/' + safeTid).set({
+                    teacher_id: tid,
+                    name: name
+                });
+                
+                return Promise.all([p1, p2]);
             }).then(function() {
                 isRegistering = false;
-                var roleDisplayName = "Subject Teacher";
-                if(finalRole === 'principal') roleDisplayName = "Principal (Admin)";
-                else if(finalRole === 'classTeacher') roleDisplayName = "Class Teacher";
-                
-                alert('Registration successful! (Registered as ' + roleDisplayName + ')');
+                alert('Registration successful! Welcome ' + name);
                 
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContent').style.display = 'block';
-                applyRoleUI(finalRole);
+                
+                applyRoleUI(finalRole, name);
+                
+                document.getElementById('leaveReqTid').value = tid;
+                document.getElementById('leaveReqName').value = name;
+                
                 showTab('attendance');
                 loadClassAndSubjectDropdowns();
             }).catch(function(error) {
@@ -984,7 +1023,7 @@
                         var key = 'sub_' + (i + 1);
                         subjectsObj[key] = { name: defaultSlSubjects[i].name, category: defaultSlSubjects[i].category };
                     }
-                    subRef.set(subjectsObj).catch(function(){}); // fail silently
+                    subRef.set(subjectsObj).catch(function(){}); 
                 }
             }).catch(function(){}); 
         }
@@ -1094,7 +1133,7 @@
             });
         }
 
-        function updateLeaveStatus(reqId, status, safeTid, tid, name, date, type) {
+        window.updateLeaveStatus = function(reqId, status, safeTid, tid, name, date, type) {
             if(confirm('Are you sure you want to ' + status + ' this request?')) {
                 db.ref('leave_requests/' + reqId).update({ status: status }).then(function() {
                     if(status === 'Approved') {
@@ -1113,12 +1152,12 @@
                     alert("Error: " + e.message);
                 });
             }
-        }
+        };
 
         // ==========================================
         // DYNAMIC OPTIONAL SUBJECTS LOADER
         // ==========================================
-        function loadOptionalSubjectsForStudent() {
+        window.loadOptionalSubjectsForStudent = function() {
             var gradeVal = document.getElementById('studentGrade').value;
             var container = document.getElementById('optionalSubjectsGroup');
             var listDiv = document.getElementById('optionalSubjectsList');
@@ -1167,7 +1206,7 @@
             } else {
                 container.style.display = 'none';
             }
-        }
+        };
 
         // ==========================================
         // STUDENT FUNCTIONS
@@ -1251,7 +1290,7 @@
             });
         }
 
-        function deleteStudent(studentKey) {
+        window.deleteStudent = function(studentKey) {
             if(confirm("Are you sure you want to delete this student?")) {
                 db.ref('students/' + studentKey).remove().then(function() {
                     loadStudents();
@@ -1259,12 +1298,12 @@
                     alert("Error deleting student.");
                 });
             }
-        }
+        };
 
         // ==========================================
         // DYNAMIC FILTERING (Classes -> Subjects)
         // ==========================================
-        function filterSubjectsDropdown(classElId, subjectElId) {
+        window.filterSubjectsDropdown = function(classElId, subjectElId) {
             var classEl = document.getElementById(classElId);
             var subjectEl = document.getElementById(subjectElId);
             if(!classEl || !subjectEl) return;
@@ -1357,7 +1396,7 @@
                     subjectEl.appendChild(optgroup);
                 }
             }
-        }
+        };
 
         function loadClassAndSubjectDropdowns() {
             var classSelectors = ['selectClass', 'studentGrade', 'reportClass', 'viewClass'];
@@ -1402,7 +1441,7 @@
             filterSubjectsDropdown('reportClass', 'reportSubject');
             filterSubjectsDropdown('viewClass', 'viewSubject');
 
-            // Fetch subjects and bind dynamic filtering softly in background
+            // Then silently pull from DB if available
             db.ref('subjects').once('value').then(function(snap) {
                 if (snap.exists()) {
                     allSubjectsList = [];
@@ -1417,7 +1456,7 @@
                     filterSubjectsDropdown('reportClass', 'reportSubject');
                     filterSubjectsDropdown('viewClass', 'viewSubject');
                 }
-            }).catch(function(e){});
+            }).catch(function(e) {});
 
             var sc = document.getElementById('selectClass');
             if(sc && !sc.dataset.bound) {
@@ -1439,14 +1478,14 @@
         // ==========================================
         // ATTENDANCE MARKING 
         // ==========================================
-        function markAllStatusChanged() {
+        window.markAllStatusChanged = function() {
             var val = document.getElementById('markAllStatus').value;
             if(!val) return;
             var selects = document.querySelectorAll('.att-status');
             for(var i=0; i<selects.length; i++) {
                 selects[i].value = val;
             }
-        }
+        };
 
         function loadAttendanceSheet() {
             var selectedClass = document.getElementById('selectClass').value;
@@ -1546,7 +1585,7 @@
             });
         }
 
-        function saveAttendance() {
+        window.saveAttendance = function() {
             var selectedClass = document.getElementById('selectClass').value;
             var selectedSubject = document.getElementById('selectSubject').value;
             var selectedPeriod = document.getElementById('selectPeriod').value;
@@ -1609,7 +1648,7 @@
             }).catch(function(err) {
                 alert("දෝෂයක් ඇතිවිය: " + err.message);
             });
-        }
+        };
 
         // ==========================================
         // REPORTS & DASHBOARDS
@@ -2017,7 +2056,7 @@
             });
         }
 
-        function saveTeacherAttendance() {
+        window.saveTeacherAttendance = function() {
             var date = document.getElementById('teacherAttDate').value;
             if(!date) return;
 
@@ -2049,7 +2088,7 @@
             }).catch(function(e) {
                 alert("Error: " + e.message);
             });
-        }
+        };
 
         function loadSubjectsManagement() {
             var tbody = document.getElementById('subjectsTableBody');
