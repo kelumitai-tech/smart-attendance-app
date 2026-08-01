@@ -70,10 +70,10 @@
         .success-msg { background: #e7f5e7; color: #2e7d32; display: none; }
         .info-box { background: #e3f2fd; padding: 12px; border-radius: 6px; color: #1565c0; margin-bottom: 15px; font-size: 0.9em; border-left: 4px solid #1976d2; }
         
-        /* TABS - Mobile Optimized */
+        /* TABS - MOBILE RESPONSIVE WRAP */
         .app-main { display: none; }
         .nav-tabs { display: flex; gap: 5px; border-bottom: 2px solid #e0e0e0; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
-        .nav-tab { padding: 8px 5px; border: none; background: none; cursor: pointer; font-weight: 600; color: #666; border-bottom: 3px solid transparent; font-size: 13px; flex: 1 1 30%; text-align: center; white-space: nowrap; }
+        .nav-tab { padding: 8px 10px; border: none; background: none; cursor: pointer; font-weight: 600; color: #666; border-bottom: 3px solid transparent; font-size: 13px; flex: 1 1 auto; min-width: 100px; text-align: center; white-space: nowrap; }
         .nav-tab.active { color: #005A9C; border-bottom-color: #005A9C; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -91,6 +91,10 @@
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e0e0e0; white-space: nowrap; vertical-align: middle; }
         th { background: #005A9C; color: white; position: sticky; top: 0; }
         
+        /* ACTION BUTTON GROUP - For Approve/Reject side-by-side */
+        .action-btns { display: flex; gap: 6px; flex-wrap: wrap; min-width: 140px; }
+        .action-btns .btn { flex: 1; margin-bottom: 0; padding: 6px; font-size: 12px; }
+
         /* DASHBOARD STATS */
         .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .stats-card h2 { font-size: 2.2em; margin: 5px 0; }
@@ -118,7 +122,7 @@
             .btn { padding: 14px; font-size: 16px; }
             
             .nav-tabs { gap: 10px; justify-content: flex-start; margin-bottom: 30px; }
-            .nav-tab { padding: 12px 20px; font-size: 15px; flex: 0 1 auto; }
+            .nav-tab { padding: 12px 20px; font-size: 15px; }
             
             .card { padding: 25px; margin-bottom: 20px; }
             .card h3 { font-size: 1.3em; margin-bottom: 20px; }
@@ -202,7 +206,7 @@
             </div>
 
             <div class="footer-credit">
-                Developer - Kelum Konara | 0714469232
+                Developer - Kelum Koonara | Smart soft | 0714469232
             </div>
         </div>
 
@@ -375,7 +379,6 @@
                         </div>
                     </div>
                     
-                    <!-- DYNAMIC OPTIONAL SUBJECTS FOR STUDENT -->
                     <div class="form-group" id="optionalSubjectsGroup" style="display:none; background: #e8f4fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; margin-top: 10px;">
                         <label style="color: #005A9C; margin-bottom: 10px; font-size: 1.05em;">📚 Select Optional / A/L Subjects for this Student</label>
                         <div id="optionalSubjectsList" class="checkbox-grid">
@@ -649,7 +652,7 @@
             </div>
 
             <div class="footer-credit">
-                Developer - Kelum Konara | 0714469232
+                Developer - Kelum Koonara | Smart soft | 0714469232
             </div>
         </div>
     </div>
@@ -792,7 +795,7 @@
         }
 
         // ==========================================
-        // AUTHENTICATION & LOGIN FLOW (Zero-Delay)
+        // AUTHENTICATION & ZERO-DELAY LOGIN FLOW
         // ==========================================
         function checkAuthState() {
             auth.onAuthStateChanged(function(user) {
@@ -801,29 +804,7 @@
 
                 if (user && !isRegistering) {
                     if(logoutBtn) logoutBtn.style.display = 'block';
-                    
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('appContent').style.display = 'block';
-                    
-                    applyRoleUI('subjectTeacher', ''); // Temporary fallback UI
-                    showTab('attendance'); 
-                    loadClassAndSubjectDropdowns();
-                    
-                    db.ref('users/' + user.uid).once('value').then(function(snapshot) {
-                        if (snapshot.exists()) {
-                            var userData = snapshot.val();
-                            applyRoleUI(userData.role || 'subjectTeacher', userData.name || '');
-                            
-                            // Auto-fill Leave request details
-                            if(userData.teacher_id) document.getElementById('leaveReqTid').value = userData.teacher_id;
-                            if(userData.name) document.getElementById('leaveReqName').value = userData.name;
-                        }
-                    }).catch(function(e) {
-                        applyRoleUI('subjectTeacher', '');
-                    });
-                    
-                    setTimeout(updateDatabaseSubjectsQuietly, 2000); 
-
+                    renderAppInstantly(user); 
                 } else if (!user) {
                     if(logoutBtn) logoutBtn.style.display = 'none';
                     if(loginBtn){ loginBtn.innerHTML = '🔐 Login'; loginBtn.disabled = false; }
@@ -832,11 +813,37 @@
             });
         }
 
+        function renderAppInstantly(user) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+
+            applyRoleUI('subjectTeacher', '');
+            showTab('attendance'); 
+
+            db.ref('users/' + user.uid).once('value').then(function(snapshot) {
+                if (snapshot.exists()) {
+                    var userData = snapshot.val();
+                    applyRoleUI(userData.role || 'subjectTeacher', userData.name || '');
+                    
+                    if(userData.teacher_id) document.getElementById('leaveReqTid').value = userData.teacher_id;
+                    if(userData.name) document.getElementById('leaveReqName').value = userData.name;
+                } else {
+                    db.ref('users/' + user.uid).set({ email: user.email, role: 'subjectTeacher' });
+                    applyRoleUI('subjectTeacher', '');
+                }
+            }).catch(function(e) {
+                applyRoleUI('subjectTeacher', '');
+            });
+
+            loadClassAndSubjectDropdowns();
+            setTimeout(initializeDatabaseSubjectsQuietly, 1500); 
+        }
+
         function applyRoleUI(role, userName) {
             appUserRole = role;
             var normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
-            var displayRole = 'Subject Teacher';
             
+            var displayRole = 'Subject Teacher';
             if (normalizedRole.indexOf('principal') !== -1 || normalizedRole.indexOf('admin') !== -1) displayRole = 'Principal (Admin)';
             else if (normalizedRole.indexOf('class') !== -1) displayRole = 'Class Teacher';
             
@@ -851,13 +858,13 @@
             }
             
             var restrictedEls = document.querySelectorAll('.principal-only, .class-teacher-only');
-            for (var i = 0; i < restrictedEls.length; i++) restrictedEls[i].style.display = 'none';
+            for(var i=0; i<restrictedEls.length; i++) restrictedEls[i].style.display = 'none';
             
             if (normalizedRole.indexOf('principal') !== -1 || normalizedRole.indexOf('admin') !== -1) {
-                for (var i = 0; i < restrictedEls.length; i++) restrictedEls[i].style.display = 'block';
+                for(var i=0; i<restrictedEls.length; i++) restrictedEls[i].style.display = 'block';
             } else if (normalizedRole.indexOf('class') !== -1) {
                 var classEls = document.querySelectorAll('.class-teacher-only');
-                for (var i = 0; i < classEls.length; i++) classEls[i].style.display = 'block';
+                for(var i=0; i<classEls.length; i++) classEls[i].style.display = 'block';
             }
         }
 
@@ -912,7 +919,7 @@
             var errorMsg = document.getElementById('registerError');
             var btn = document.getElementById('confirmRegisterBtn');
             
-            var finalRole = 'subjectTeacher';
+            var finalRole = 'subjectTeacher'; 
             
             if (!tid || !name || !email || !password || password.length < 6) {
                 errorMsg.textContent = 'Please fill all fields correctly (Password min 6 chars)';
@@ -944,17 +951,7 @@
             }).then(function() {
                 isRegistering = false;
                 alert('Registration successful! Welcome ' + name);
-                
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('appContent').style.display = 'block';
-                
-                applyRoleUI(finalRole, name);
-                
-                document.getElementById('leaveReqTid').value = tid;
-                document.getElementById('leaveReqName').value = name;
-                
-                showTab('attendance');
-                loadClassAndSubjectDropdowns();
+                renderAppInstantly(auth.currentUser);
             }).catch(function(error) {
                 isRegistering = false;
                 errorMsg.textContent = error.message;
@@ -971,10 +968,10 @@
         function showTab(tabName) {
             try {
                 var contents = document.querySelectorAll('.tab-content');
-                for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
+                for(var i=0; i<contents.length; i++) contents[i].classList.remove('active');
                 
                 var tabs = document.querySelectorAll('.nav-tab');
-                for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+                for(var i=0; i<tabs.length; i++) tabs[i].classList.remove('active');
                 
                 var tabEl = document.getElementById(tabName);
                 if(tabEl) tabEl.classList.add('active');
@@ -1002,7 +999,7 @@
         // ==========================================
         // SILENT DATABASE SYNC
         // ==========================================
-        function updateDatabaseSubjectsQuietly() {
+        function initializeDatabaseSubjectsQuietly() {
             var subRef = db.ref('subjects');
             subRef.once('value').then(function(snapshot) {
                 var needsUpdate = false;
@@ -1122,8 +1119,10 @@
                         <td>${req.date}</td>
                         <td style="white-space:normal;"><strong>${req.type}</strong><br><small style="color:#666;">${req.reason}</small></td>
                         <td>
-                            <button onclick="updateLeaveStatus('${req.req_id}', 'Approved', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-secondary btn-small" style="margin-bottom:5px;">Approve</button><br>
-                            <button onclick="updateLeaveStatus('${req.req_id}', 'Rejected')" class="btn btn-danger btn-small">Reject</button>
+                            <div class="action-btns">
+                                <button onclick="updateLeaveStatus('${req.req_id}', 'Approved', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-secondary btn-small">Approve</button>
+                                <button onclick="updateLeaveStatus('${req.req_id}', 'Rejected', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-danger btn-small">Reject</button>
+                            </div>
                         </td>
                     </tr>`;
                 });
@@ -1435,13 +1434,11 @@
                 }
             }
 
-            // Immediately load hardcoded list to avoid any delay
             allSubjectsList = defaultSlSubjects.slice();
             filterSubjectsDropdown('selectClass', 'selectSubject');
             filterSubjectsDropdown('reportClass', 'reportSubject');
             filterSubjectsDropdown('viewClass', 'viewSubject');
 
-            // Then silently pull from DB if available
             db.ref('subjects').once('value').then(function(snap) {
                 if (snap.exists()) {
                     allSubjectsList = [];
@@ -1830,379 +1827,6 @@
                 tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
             });
         }
-
-        function updateDashboardStats() {
-            db.ref('students').once('value').then(function(stSnap) {
-                var stCount = 0;
-                if(stSnap.exists()) stSnap.forEach(function() { stCount++; });
-                document.getElementById('totalStudentsCount').textContent = stCount;
-            }).catch(function(){});
-
-            var today = new Date().toISOString().split('T')[0];
-            db.ref('teacher_attendance/' + today).once('value').then(function(tAttSnap) {
-                var pCount = 0;
-                var aCount = 0;
-                var absentHtml = '';
-
-                if(tAttSnap.exists()) {
-                    tAttSnap.forEach(function(tSnap) {
-                        var rec = tSnap.val();
-                        if(rec.status === 'Present') {
-                            pCount++;
-                        } else {
-                            aCount++;
-                            absentHtml += `
-                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
-                                <strong>${rec.name}</strong><br>
-                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
-                            </div>`;
-                        }
-                    });
-                }
-
-                document.getElementById('presentTeachersCount').textContent = pCount;
-                document.getElementById('absentTeachersCount').textContent = aCount;
-
-                if(aCount === 0) {
-                    absentHtml = "<p style='color: green; font-size:0.9em;'>✅ All assigned teachers are present today (or no records marked).</p>";
-                }
-                
-                var absentListDiv = document.getElementById('absentTeachersList');
-                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
-            }).catch(function(){});
-        }
-
-        // ==========================================
-        // TEACHER / SUBJECT MANAGEMENT
-        // ==========================================
-        function saveNewTeacher() {
-            var tid = document.getElementById('addTeacherId').value.trim();
-            var tname = document.getElementById('addTeacherName').value.trim();
-            var msg = document.getElementById('teacherSuccessMsg');
-
-            if(!tid || !tname) {
-                alert("Teacher ID and Name are required!");
-                return;
-            }
-
-            var safeTid = getSafeKey(tid);
-
-            db.ref('teachers/' + safeTid).set({
-                teacher_id: tid,
-                name: tname
-            }).then(function() {
-                msg.textContent = "Teacher added successfully!";
-                msg.style.display = 'block';
-                setTimeout(function(){ msg.style.display='none'; }, 3000);
-                
-                document.getElementById('addTeacherId').value = '';
-                document.getElementById('addTeacherName').value = '';
-                loadTeachersAndLeaves();
-            }).catch(function(e) {
-                alert("Error adding teacher: " + e.message);
-            });
-        }
-
-        function loadTeachersAndLeaves() {
-            var tbody = document.getElementById('teacherListTbody');
-            if(!tbody) return;
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Loading...</td></tr>";
-
-            var today = new Date();
-            var currentYear = today.getFullYear().toString();
-            var currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
-            var monthPrefix = currentYear + '-' + currentMonth;
-
-            var p1 = db.ref('teachers').once('value');
-            var p2 = db.ref('teacher_attendance').once('value');
-
-            Promise.all([p1, p2]).then(function(results) {
-                var teachersSnap = results[0];
-                var attSnap = results[1];
-
-                if(!teachersSnap.exists()){
-                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No teachers found.</td></tr>";
-                    return;
-                }
-
-                var attData = {}; 
-                
-                if(attSnap.exists()){
-                    attSnap.forEach(function(dateSnap) {
-                        var d = dateSnap.key; 
-                        var isCurrentYear = d.indexOf(currentYear) === 0;
-                        var isCurrentMonth = d.indexOf(monthPrefix) === 0;
-                        
-                        if(isCurrentYear) {
-                            dateSnap.forEach(function(tSnap) {
-                                var safeTid = tSnap.key; 
-                                var status = tSnap.val().status; 
-                                
-                                if(!attData[safeTid]) attData[safeTid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
-                                
-                                if(status === 'Casual Leave') {
-                                    attData[safeTid].year.Casual++;
-                                    if(isCurrentMonth) attData[safeTid].month.Casual++;
-                                } else if (status === 'Sick Leave') {
-                                    attData[safeTid].year.Sick++;
-                                    if(isCurrentMonth) attData[safeTid].month.Sick++;
-                                } else if (status === 'Duty Leave') {
-                                    attData[safeTid].year.Duty++;
-                                    if(isCurrentMonth) attData[safeTid].month.Duty++;
-                                }
-                            });
-                        }
-                    });
-                }
-
-                var html = '';
-                teachersSnap.forEach(function(child) {
-                    var t = child.val();
-                    var tid = t.teacher_id;
-                    var safeTid = child.key;
-                    var stats = attData[safeTid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
-                    
-                    var monthStr = 'C:<strong>'+stats.month.Casual+'</strong> | S:<strong>'+stats.month.Sick+'</strong> | D:<strong>'+stats.month.Duty+'</strong>';
-                    var yearStr = 'C:<strong>'+stats.year.Casual+'</strong> | S:<strong>'+stats.year.Sick+'</strong> | D:<strong>'+stats.year.Duty+'</strong>';
-                    
-                    html += `<tr>
-                        <td><strong>${t.name}</strong><br><small style="color:#666;">${tid}</small></td>
-                        <td style="font-size: 0.85em;">${monthStr}</td>
-                        <td style="font-size: 0.85em;">${yearStr}</td>
-                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Del</button></td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-            }).catch(function(e) {
-                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading teachers</td></tr>";
-            });
-        }
-
-        window.deleteTeacher = function(safeTid) {
-            if(confirm("Are you sure you want to remove this teacher?")) {
-                db.ref('teachers/' + safeTid).remove().then(function() {
-                    loadTeachersAndLeaves();
-                }).catch(function(e) {
-                    alert("Error: " + e.message);
-                });
-            }
-        };
-
-        window.filterTeachers = function() {
-            var input = document.getElementById('searchTeacherInput');
-            if(!input) return;
-            var filter = input.value.toLowerCase();
-            var rows = document.querySelectorAll('#teacherListTbody tr');
-            
-            for(var i=0; i<rows.length; i++) {
-                var row = rows[i];
-                if(row.cells.length >= 1) {
-                    var text = row.cells[0].innerText.toLowerCase();
-                    if(text.indexOf(filter) !== -1) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                }
-            }
-        };
-
-        function loadTeacherAttendanceSheet() {
-            var date = document.getElementById('teacherAttDate').value;
-            if(!date) { alert("Please select date!"); return; }
-
-            document.getElementById('teacherAttendanceDiv').style.display = 'block';
-            var tbody = document.getElementById('teacherAttTbody');
-            tbody.innerHTML = "<tr><td colspan='2'>Loading...</td></tr>";
-
-            var p1 = db.ref('teachers').once('value');
-            var p2 = db.ref('teacher_attendance/' + date).once('value');
-
-            Promise.all([p1, p2]).then(function(results) {
-                var tSnap = results[0];
-                var attSnap = results[1];
-
-                if(!tSnap.exists()){
-                    tbody.innerHTML = "<tr><td colspan='2'>No teachers registered yet.</td></tr>";
-                    return;
-                }
-
-                var existingAtt = attSnap.exists() ? attSnap.val() : {};
-                var html = '';
-
-                tSnap.forEach(function(child) {
-                    var t = child.val();
-                    var tid = t.teacher_id;
-                    var safeTid = child.key;
-                    var currentStatus = existingAtt[safeTid] ? existingAtt[safeTid].status : 'Present';
-
-                    html += `
-                        <tr data-safetid="${safeTid}" data-tid="${tid}">
-                            <td class="t-name"><strong>${t.name}</strong><br><small>${tid}</small></td>
-                            <td>
-                                <select class="t-status" style="padding: 5px; border-radius: 4px; width: 100%;">
-                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present (පැමිණ ඇත)</option>
-                                    <option value="Casual Leave" ${currentStatus==='Casual Leave'?'selected':''}>Absent - Casual Leave (අනියම් නිවාඩු)</option>
-                                    <option value="Sick Leave" ${currentStatus==='Sick Leave'?'selected':''}>Absent - Sick Leave (අසනීප නිවාඩු)</option>
-                                    <option value="Duty Leave" ${currentStatus==='Duty Leave'?'selected':''}>Absent - Duty Leave (රාජකාරී නිවාඩු)</option>
-                                </select>
-                            </td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-            }).catch(function(e) {
-                tbody.innerHTML = "<tr><td colspan='2' style='color:red;'>Error fetching data.</td></tr>";
-            });
-        }
-
-        window.saveTeacherAttendance = function() {
-            var date = document.getElementById('teacherAttDate').value;
-            if(!date) return;
-
-            var rows = document.querySelectorAll('#teacherAttTbody tr');
-            if(rows.length === 0) return;
-
-            var updates = {};
-            for(var i=0; i<rows.length; i++) {
-                var row = rows[i];
-                var safeTid = row.getAttribute('data-safestudentid') || row.getAttribute('data-safetid');
-                var tid = row.getAttribute('data-tid');
-                
-                if(safeTid) {
-                    var tname = row.querySelector('.t-name strong').innerText;
-                    var status = row.querySelector('.t-status').value;
-                    updates['teacher_attendance/' + date + '/' + safeTid] = {
-                        teacher_id: tid,
-                        name: tname,
-                        status: status,
-                        date: date
-                    };
-                }
-            }
-
-            db.ref().update(updates).then(function() {
-                alert("Teacher Attendance Saved Successfully!");
-                loadTeachersAndLeaves(); 
-                updateDashboardStats();
-            }).catch(function(e) {
-                alert("Error: " + e.message);
-            });
-        };
-
-        function loadSubjectsManagement() {
-            var tbody = document.getElementById('subjectsTableBody');
-            var countSpan = document.getElementById('subjectCount');
-            if(!tbody) return;
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>Loading subjects...</td></tr>";
-            
-            db.ref('subjects').once('value').then(function(snapshot) {
-                if(!snapshot.exists()) {
-                    tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>No subjects found.</td></tr>";
-                    if(countSpan) countSpan.textContent = 0;
-                    return;
-                }
-                var html = '';
-                var idx = 1;
-                snapshot.forEach(function(child) {
-                    var key = child.key;
-                    var val = child.val();
-                    var subName = val.name || val;
-                    var subCat = val.category || 'Other';
-                    
-                    html += `
-                        <tr>
-                            <td>${idx++}</td>
-                            <td style="font-size: 0.85em; color: #555;">${subCat}</td>
-                            <td style="white-space: normal;"><strong>${subName}</strong></td>
-                            <td>
-                                <button onclick="editSubject('${key}', '${subName}', '${subCat}')" class="btn btn-warning btn-small" style="margin-bottom:5px;">Edit</button>
-                                <button onclick="deleteSubject('${key}')" class="btn btn-danger btn-small">Del</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-                if(countSpan) countSpan.textContent = idx - 1;
-            }).catch(function(error) {
-                tbody.innerHTML = "<tr><td colspan='4' style='text-align: center; color: red;'>Error loading subjects.</td></tr>";
-            });
-        }
-
-        function saveSubject() {
-            var catInput = document.getElementById('subjectCategoryInput');
-            var nameInput = document.getElementById('subjectNameInput');
-            var editKeyInput = document.getElementById('editSubjectKey');
-            var successMsg = document.getElementById('subjectSuccess');
-            
-            var subCat = catInput.value;
-            var subName = nameInput.value.trim();
-            var editKey = editKeyInput.value.trim();
-
-            if(!subName) {
-                alert("කරුණාකර විෂය නම ඇතුළත් කරන්න!");
-                return;
-            }
-
-            var promise;
-            if(editKey) {
-                promise = db.ref('subjects/' + editKey).update({ name: subName, category: subCat });
-            } else {
-                var newRef = db.ref('subjects').push();
-                promise = newRef.set({ name: subName, category: subCat });
-            }
-
-            promise.then(function() {
-                successMsg.textContent = editKey ? "විෂය සාර්ථකව යාවත්කාලීන කරන ලදී!" : "විෂය සාර්ථකව එකතු කරන ලදී!";
-                successMsg.style.display = 'block';
-                setTimeout(function(){ successMsg.style.display = 'none'; }, 3000);
-                resetSubjectForm();
-                loadSubjectsManagement();
-                loadClassAndSubjectDropdowns();
-            }).catch(function(error) {
-                alert("දෝෂයක් ඇතිවිය: " + error.message);
-            });
-        }
-
-        window.editSubject = function(key, name, category) {
-            document.getElementById('editSubjectKey').value = key;
-            document.getElementById('subjectNameInput').value = name;
-            
-            var catSelect = document.getElementById('subjectCategoryInput');
-            var catFound = false;
-            for(var i=0; i<catSelect.options.length; i++){
-                if(catSelect.options[i].value === category) {
-                    catSelect.selectedIndex = i;
-                    catFound = true; break;
-                }
-            }
-            if(!catFound) catSelect.value = "Other";
-
-            document.getElementById('subjectFormTitle').textContent = "Edit Subject";
-            document.getElementById('saveSubjectBtn').textContent = "💾 Update Subject";
-            document.getElementById('cancelEditBtn').style.display = 'block';
-            document.getElementById('subjectNameInput').focus();
-        };
-
-        function resetSubjectForm() {
-            document.getElementById('editSubjectKey').value = '';
-            document.getElementById('subjectNameInput').value = '';
-            document.getElementById('subjectCategoryInput').selectedIndex = 0;
-            document.getElementById('subjectFormTitle').textContent = "Add New Subject";
-            document.getElementById('saveSubjectBtn').textContent = "💾 Save Subject";
-            document.getElementById('cancelEditBtn').style.display = 'none';
-        }
-
-        window.deleteSubject = function(key) {
-            if(confirm("මෙම විෂය ඉවත් කිරීමට අවශ්‍ය බව විශ්වාසද?")) {
-                db.ref('subjects/' + key).remove().then(function() {
-                    loadSubjectsManagement();
-                    loadClassAndSubjectDropdowns();
-                }).catch(function(error) {
-                    alert("විෂය මැකීමේදී දෝෂයක් ඇතිවිය: " + error.message);
-                });
-            }
-        };
 
         function downloadPdfReport() {
             var date = document.getElementById('reportDate').value;
