@@ -281,7 +281,7 @@
                 </div>
             </div>
 
-            <!-- Leave Request Tab (For Teachers) -->
+            <!-- Leave Request Tab -->
             <div class="tab-content" id="requestLeave">
                 <div class="card">
                     <h3>📝 Submit Online Leave Request</h3>
@@ -366,11 +366,9 @@
                         </div>
                     </div>
                     
-                    <!-- DYNAMIC OPTIONAL SUBJECTS FOR STUDENT -->
                     <div class="form-group" id="optionalSubjectsGroup" style="display:none; background: #e8f4fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; margin-top: 10px;">
                         <label style="color: #005A9C; margin-bottom: 10px; font-size: 1.05em;">📚 Select Optional / A/L Subjects for this Student</label>
                         <div id="optionalSubjectsList" class="checkbox-grid">
-                            <!-- Checkboxes injected dynamically -->
                         </div>
                     </div>
 
@@ -431,7 +429,7 @@
                 </div>
             </div>
 
-            <!-- View Attendance Tab (Admin Only) -->
+            <!-- View Attendance Tab -->
             <div class="tab-content" id="viewAttendance">
                 <div class="card">
                     <h3>👀 View Raw Attendance Records</h3>
@@ -476,10 +474,8 @@
                 </div>
             </div>
 
-            <!-- Teachers & Leaves Management Tab (Admin Only) -->
+            <!-- Teachers Tab -->
             <div class="tab-content" id="teachers">
-                
-                <!-- Pending Leave Approvals Card -->
                 <div class="card" style="border-left: 4px solid #f44336;">
                     <h3 style="color: #f44336;">🔔 Pending Leave Requests</h3>
                     <div class="table-responsive">
@@ -621,7 +617,7 @@
                 </div>
             </div>
 
-            <!-- Dashboard Placeholder -->
+            <!-- Dashboard -->
             <div class="tab-content" id="dashboard">
                 <div class="card"><h3>🎯 Principal Dashboard</h3>
                     <div class="grid-3">
@@ -647,7 +643,7 @@
 
     <script>
         // =======================================================
-        // HELPER: Sanitize Keys for Firebase
+        // HELPER: Sanitize Keys
         // =======================================================
         function getSafeKey(str) {
             if (!str) return "";
@@ -655,7 +651,7 @@
         }
 
         // =======================================================
-        // FIREBASE SETTINGS (ASIA-SOUTHEAST1)
+        // FIREBASE SETTINGS
         // =======================================================
         const firebaseConfig = {
           apiKey: "AIzaSyAwfkSONh_Ljh6k_sETEbaXDu5ZaRuol1g",
@@ -668,17 +664,15 @@
         };
 
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.database(); 
+        var auth = firebase.auth();
+        var db = firebase.database(); 
 
-        let appUserRole = 'subjectTeacher'; 
-        let isRegistering = false; 
+        var appUserRole = 'subjectTeacher'; 
+        var isRegistering = false; 
+        var allSubjectsList = []; 
 
-        let allSubjectsList = []; 
-
-        const defaultSlSubjects = [
+        var defaultSlSubjects = [
             { category: "General (පොදු)", name: "🏫 Daily Attendance (දෛනික පැමිණීම)" },
-            
             { category: "Grades 6 - 9 (Core)", name: "සිංහල භාෂාව හා සාහිත්‍යය" },
             { category: "Grades 6 - 9 (Core)", name: "දෙමළ භාෂාව හා සාහිත්‍යය" },
             { category: "Grades 6 - 9 (Core)", name: "ඉංග්‍රීසි භාෂාව" },
@@ -693,21 +687,18 @@
             { category: "Grades 6 - 9 (Core)", name: "පුරවැසි අධ්‍යාපනය" },
             { category: "Grades 6 - 9 (Core)", name: "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය" },
             { category: "Grades 6 - 9 (Core)", name: "ව්‍යවහාරික තාක්ෂණවේදය (PTS)" },
-
             { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "සංගීතය" },
             { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "නැටුම්" },
             { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "චිත්‍ර" },
             { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "නාට්‍ය හා රංග කලාව" },
             { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "දෙමළ සාහිත්‍යය" },
             { category: "සෞන්දර්ය විෂයයන් (Aesthetics)", name: "ඉංග්‍රීසි සාහිත්‍යය" },
-
             { category: "Grades 10 - 11 (Core)", name: "සිංහල භාෂාව හා සාහිත්‍යය (O/L)" },
             { category: "Grades 10 - 11 (Core)", name: "ගණිතය (O/L)" },
             { category: "Grades 10 - 11 (Core)", name: "විද්‍යාව (O/L)" },
             { category: "Grades 10 - 11 (Core)", name: "ඉතිහාසය (O/L)" },
             { category: "Grades 10 - 11 (Core)", name: "ආගම (O/L)" },
             { category: "Grades 10 - 11 (Core)", name: "ඉංග්‍රීසි (O/L)" },
-            
             { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
             { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "ව්‍යාපාර හා ගිණුම්කරණ අධ්‍යයනය" },
             { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "කෘෂිකර්මය" },
@@ -715,29 +706,24 @@
             { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "පුරවැසි අධ්‍යාපනය (O/L කාණ්ඩ)" },
             { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "භූගෝල විද්‍යාව (O/L කාණ්ඩ)" },
             { category: "Grades 10 - 11 (කාණ්ඩ විෂයයන්)", name: "සෞඛ්‍ය හා ශාරීරික අධ්‍යාපනය (O/L කාණ්ඩ)" },
-
             { category: "A/L - විද්‍යා ධාරාව", name: "සංයුක්ත ගණිතය" },
             { category: "A/L - විද්‍යා ධාරාව", name: "භෞතික විද්‍යාව" },
             { category: "A/L - විද්‍යා ධාරාව", name: "රසායන විද්‍යාව" },
             { category: "A/L - විද්‍යා ධාරාව", name: "ජීව විද්‍යාව" },
             { category: "A/L - විද්‍යා ධාරාව", name: "කෘෂි විද්‍යාව" },
-            
             { category: "A/L - තාක්ෂණ ධාරාව", name: "තාක්ෂණය සඳහා විද්‍යාව (SFT)" },
             { category: "A/L - තාක්ෂණ ධාරාව", name: "ඉංජිනේරු තාක්ෂණවේදය (ET)" },
             { category: "A/L - තාක්ෂණ ධාරාව", name: "ජීව පද්ධති තාක්ෂණවේදය (BST)" },
             { category: "A/L - තාක්ෂණ ධාරාව", name: "තොරතුරු හා සන්නිවේදන තාක්ෂණය (ICT)" },
-
             { category: "A/L - වාණිජ ධාරාව", name: "ආර්ථික විද්‍යාව" },
             { category: "A/L - වාණිජ ධාරාව", name: "ව්‍යාපාර අධ්‍යයනය" },
             { category: "A/L - වාණිජ ධාරාව", name: "ගිණුම්කරණය" },
             { category: "A/L - වාණිජ ධාරාව", name: "ව්‍යාපාර සංඛ්‍යානය" },
-
             { category: "A/L - කලා ධාරාව", name: "රාජ්‍ය විද්‍යාව" },
             { category: "A/L - කලා ධාරාව", name: "තර්කශාස්ත්‍රය හා විද්‍යා දර්ශනය" },
             { category: "A/L - කලා ධාරාව", name: "භූගෝල විද්‍යාව (A/L)" },
             { category: "A/L - කලා ධාරාව", name: "බෞද්ධ සංස්කෘතිය" },
             { category: "A/L - කලා ධාරාව", name: "ඉතිහාසය (A/L)" },
-
             { category: "A/L - Common", name: "සාමාන්‍ය ඉංග්‍රීසි" },
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
@@ -777,7 +763,8 @@
             for (var i = 0; i < navTabs.length; i++) {
                 navTabs[i].addEventListener('click', function(e) {
                     e.preventDefault();
-                    showTab(this.getAttribute('data-tab'));
+                    var tabId = this.getAttribute('data-tab');
+                    showTab(tabId);
                 });
             }
         }
@@ -791,6 +778,9 @@
             }
         }
 
+        // ==========================================
+        // AUTHENTICATION & LOGIN FLOW (Zero-Delay)
+        // ==========================================
         function checkAuthState() {
             auth.onAuthStateChanged(function(user) {
                 var loginBtn = document.getElementById('loginBtn');
@@ -798,7 +788,26 @@
 
                 if (user && !isRegistering) {
                     if(logoutBtn) logoutBtn.style.display = 'block';
-                    applyRoleUIInstantly(user); 
+                    
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('appContent').style.display = 'block';
+                    
+                    applyRoleUI('subjectTeacher'); // Temporary fallback UI
+                    showTab('attendance'); 
+                    
+                    db.ref('users/' + user.uid).once('value').then(function(snapshot) {
+                        if (snapshot.exists()) {
+                            applyRoleUI(snapshot.val().role || 'subjectTeacher');
+                        } else {
+                            applyRoleUI('subjectTeacher');
+                        }
+                    }).catch(function(e) {
+                        applyRoleUI('subjectTeacher');
+                    });
+                    
+                    loadClassAndSubjectDropdowns();
+                    setTimeout(updateDatabaseSubjectsQuietly, 2000); // Do background DB updates later
+
                 } else if (!user) {
                     if(logoutBtn) logoutBtn.style.display = 'none';
                     if(loginBtn){ loginBtn.innerHTML = '🔐 Login'; loginBtn.disabled = false; }
@@ -807,43 +816,19 @@
             });
         }
 
-        function applyRoleUIInstantly(user) {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('appContent').style.display = 'block';
-
-            // Show temporary view
-            configureAppByRole('subjectTeacher');
-            showTab('attendance'); 
-
-            // Get Real Role
-            db.ref('users/' + user.uid).once('value').then(function(snapshot) {
-                if (snapshot.exists()) {
-                    configureAppByRole(snapshot.val().role);
-                } else {
-                    db.ref('users/' + user.uid).set({ email: user.email, role: 'subjectTeacher' });
-                    configureAppByRole('subjectTeacher');
-                }
-            }).catch(function(e) {
-                console.error("Using fallback role:", e);
-                configureAppByRole('subjectTeacher');
-            });
-
-            // Load Subjects (Offline/Hardcoded first, then DB)
-            loadClassAndSubjectDropdowns();
-            setTimeout(initializeDatabaseSubjects, 1000);
-        }
-
-        function configureAppByRole(role) {
+        function applyRoleUI(role) {
             appUserRole = role;
             var normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
-            
             var displayRole = 'Subject Teacher';
+            
             if (normalizedRole.indexOf('principal') !== -1 || normalizedRole.indexOf('admin') !== -1) displayRole = 'Principal (Admin)';
             else if (normalizedRole.indexOf('class') !== -1) displayRole = 'Class Teacher';
             
             var badge = document.getElementById('roleBadge');
-            badge.style.display = 'block';
-            badge.textContent = displayRole;
+            if(badge) {
+                badge.style.display = 'block';
+                badge.textContent = displayRole;
+            }
             
             var restrictedEls = document.querySelectorAll('.principal-only, .class-teacher-only');
             for (var i = 0; i < restrictedEls.length; i++) restrictedEls[i].style.display = 'none';
@@ -859,7 +844,8 @@
         function showLoginScreen() {
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('appContent').style.display = 'none';
-            document.getElementById('roleBadge').style.display = 'none';
+            var badge = document.getElementById('roleBadge');
+            if(badge) badge.style.display = 'none';
             showLoginForm();
         }
 
@@ -922,8 +908,14 @@
                 var roleDisplayName = "Subject Teacher";
                 if(finalRole === 'principal') roleDisplayName = "Principal (Admin)";
                 else if(finalRole === 'classTeacher') roleDisplayName = "Class Teacher";
+                
                 alert('Registration successful! (Registered as ' + roleDisplayName + ')');
-                applyRoleUIInstantly(auth.currentUser);
+                
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContent').style.display = 'block';
+                applyRoleUI(finalRole);
+                showTab('attendance');
+                loadClassAndSubjectDropdowns();
             }).catch(function(error) {
                 isRegistering = false;
                 errorMsg.textContent = error.message;
@@ -964,27 +956,26 @@
                     loadMyLeaveRequests();
                 }
             } catch (e) {
-                console.error("Tab Error: ", e);
+                console.log(e);
             }
         }
 
-        async function initializeDatabaseSubjects() {
-            try {
-                var subRef = db.ref('subjects');
-                var snapshot = await subRef.once('value');
+        // ==========================================
+        // SILENT DATABASE SYNC
+        // ==========================================
+        function updateDatabaseSubjectsQuietly() {
+            var subRef = db.ref('subjects');
+            subRef.once('value').then(function(snapshot) {
                 var needsUpdate = false;
-
                 if (!snapshot.exists()) {
                     needsUpdate = true;
                 } else {
                     var data = snapshot.val();
-                    var hasOldData = false;
                     for (var key in data) {
                         if (typeof data[key] === 'string' || !data[key].category || data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11") {
-                            hasOldData = true; break;
+                            needsUpdate = true; break;
                         }
                     }
-                    if (hasOldData) needsUpdate = true;
                 }
 
                 if (needsUpdate) {
@@ -993,17 +984,15 @@
                         var key = 'sub_' + (i + 1);
                         subjectsObj[key] = { name: defaultSlSubjects[i].name, category: defaultSlSubjects[i].category };
                     }
-                    await subRef.set(subjectsObj);
+                    subRef.set(subjectsObj).catch(function(){}); // fail silently
                 }
-            } catch (err) {
-                console.log("DB Rules blocked subject sync.");
-            }
+            }).catch(function(){}); 
         }
 
         // ==========================================
         // ONLINE LEAVE REQUESTS
         // ==========================================
-        async function submitLeaveRequest() {
+        function submitLeaveRequest() {
             var tid = document.getElementById('leaveReqTid').value.trim();
             var name = document.getElementById('leaveReqName').value.trim();
             var date = document.getElementById('leaveReqDate').value;
@@ -1021,41 +1010,40 @@
 
             var safeTid = getSafeKey(tid);
             var reqRef = db.ref('leave_requests').push();
-            try {
-                await reqRef.set({
-                    req_id: reqRef.key,
-                    teacher_id: tid,
-                    safe_tid: safeTid,
-                    name: name,
-                    date: date,
-                    type: type,
-                    reason: reason,
-                    status: 'Pending',
-                    email: auth.currentUser.email
-                });
+            
+            reqRef.set({
+                req_id: reqRef.key,
+                teacher_id: tid,
+                safe_tid: safeTid,
+                name: name,
+                date: date,
+                type: type,
+                reason: reason,
+                status: 'Pending',
+                email: auth.currentUser.email
+            }).then(function() {
                 msg.textContent = "Leave request submitted successfully!";
                 msg.style.display = 'block';
                 setTimeout(function(){ msg.style.display='none'; }, 3000);
                 
                 document.getElementById('leaveReqReason').value = '';
                 loadMyLeaveRequests();
-            } catch(e) {
+            }).catch(function(e) {
                 alert("Error: " + e.message);
-            } finally {
+            }).finally(function() {
                 btn.innerHTML = 'Submit Leave Request';
                 btn.disabled = false;
-            }
+            });
         }
 
-        async function loadMyLeaveRequests() {
+        function loadMyLeaveRequests() {
             var tbody = document.getElementById('myLeavesTbody');
             if(!tbody) return;
             tbody.innerHTML = "<tr><td colspan='4' class='loading'>Loading...</td></tr>";
             var userEmail = auth.currentUser ? auth.currentUser.email : null;
             if(!userEmail) return;
 
-            try {
-                var snap = await db.ref('leave_requests').orderByChild('email').equalTo(userEmail).once('value');
+            db.ref('leave_requests').orderByChild('email').equalTo(userEmail).once('value').then(function(snap) {
                 if(!snap.exists()) {
                     tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No requests found.</td></tr>";
                     return;
@@ -1072,18 +1060,17 @@
                     </tr>`;
                 });
                 tbody.innerHTML = html;
-            } catch(e) {
+            }).catch(function() {
                 tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading data.</td></tr>";
-            }
+            });
         }
 
-        async function loadPendingLeaves() {
+        function loadPendingLeaves() {
             var tbody = document.getElementById('pendingLeavesTbody');
             if(!tbody) return;
             tbody.innerHTML = "<tr><td colspan='4' class='loading'>Loading...</td></tr>";
 
-            try {
-                var snap = await db.ref('leave_requests').orderByChild('status').equalTo('Pending').once('value');
+            db.ref('leave_requests').orderByChild('status').equalTo('Pending').once('value').then(function(snap) {
                 if(!snap.exists()) {
                     tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No pending requests.</td></tr>";
                     return;
@@ -1102,30 +1089,29 @@
                     </tr>`;
                 });
                 tbody.innerHTML = html;
-            } catch(e) {
+            }).catch(function() {
                 tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading requests.</td></tr>";
-            }
+            });
         }
 
-        async function updateLeaveStatus(reqId, status, safeTid, tid, name, date, type) {
+        function updateLeaveStatus(reqId, status, safeTid, tid, name, date, type) {
             if(confirm('Are you sure you want to ' + status + ' this request?')) {
-                try {
-                    await db.ref('leave_requests/' + reqId).update({ status: status });
-                    
+                db.ref('leave_requests/' + reqId).update({ status: status }).then(function() {
                     if(status === 'Approved') {
-                        await db.ref('teacher_attendance/' + date + '/' + safeTid).set({
+                        return db.ref('teacher_attendance/' + date + '/' + safeTid).set({
                             teacher_id: tid,
                             name: name,
                             status: type,
                             date: date
                         });
-                        loadTeachersAndLeaves(); 
-                        updateDashboardStats();
                     }
+                }).then(function() {
+                    loadTeachersAndLeaves(); 
+                    updateDashboardStats();
                     loadPendingLeaves();
-                } catch(e) {
+                }).catch(function(e) {
                     alert("Error: " + e.message);
-                }
+                });
             }
         }
 
@@ -1186,7 +1172,7 @@
         // ==========================================
         // STUDENT FUNCTIONS
         // ==========================================
-        async function addStudent() {
+        function addStudent() {
             var studentId = document.getElementById('studentId').value.trim();
             var name = document.getElementById('studentName').value.trim();
             var grade = document.getElementById('studentGrade').value;
@@ -1206,15 +1192,13 @@
 
             var safeStudentId = getSafeKey(studentId);
 
-            try {
-                await db.ref('students/' + safeStudentId).set({
-                    student_id: studentId,
-                    name: name,
-                    grade: grade,
-                    gender: gender,
-                    optional_subjects: optSubs 
-                });
-
+            db.ref('students/' + safeStudentId).set({
+                student_id: studentId,
+                name: name,
+                grade: grade,
+                gender: gender,
+                optional_subjects: optSubs 
+            }).then(function() {
                 successMsg.textContent = "Student successfully added!";
                 successMsg.style.display = 'block';
                 setTimeout(function() { successMsg.style.display = 'none'; }, 3000);
@@ -1225,19 +1209,18 @@
                 for (var i = 0; i < allChks.length; i++) allChks[i].checked = false;
                 document.getElementById('optionalSubjectsGroup').style.display = 'none';
                 loadStudents();
-            } catch (error) {
+            }).catch(function(error) {
                 alert("Error: " + error.message);
-            }
+            });
         }
 
-        async function loadStudents() {
+        function loadStudents() {
             var tbody = document.getElementById('studentTableBody');
             var countSpan = document.getElementById('studentCount');
             if(!tbody) return;
             tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px;'>Loading students...</td></tr>";
             
-            try {
-                var snapshot = await db.ref('students').once('value');
+            db.ref('students').once('value').then(function(snapshot) {
                 if (!snapshot.exists()) {
                     tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 20px;'>No students found.</td></tr>";
                     if(countSpan) countSpan.textContent = 0;
@@ -1263,19 +1246,18 @@
                 });
                 tbody.innerHTML = html;
                 if(countSpan) countSpan.textContent = index - 1;
-            } catch (error) {
+            }).catch(function(error) {
                 tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>Error fetching data.</td></tr>";
-            }
+            });
         }
 
-        async function deleteStudent(studentKey) {
+        function deleteStudent(studentKey) {
             if(confirm("Are you sure you want to delete this student?")) {
-                try {
-                    await db.ref('students/' + studentKey).remove();
+                db.ref('students/' + studentKey).remove().then(function() {
                     loadStudents();
-                } catch (error) {
+                }).catch(function(error) {
                     alert("Error deleting student.");
-                }
+                });
             }
         }
 
@@ -1414,13 +1396,13 @@
                 }
             }
 
-            // Provide default first to avoid hanging UI
+            // Immediately load hardcoded list to avoid any delay
             allSubjectsList = defaultSlSubjects.slice();
             filterSubjectsDropdown('selectClass', 'selectSubject');
             filterSubjectsDropdown('reportClass', 'reportSubject');
             filterSubjectsDropdown('viewClass', 'viewSubject');
 
-            // Then silently pull from DB if available
+            // Fetch subjects and bind dynamic filtering softly in background
             db.ref('subjects').once('value').then(function(snap) {
                 if (snap.exists()) {
                     allSubjectsList = [];
@@ -1435,23 +1417,21 @@
                     filterSubjectsDropdown('reportClass', 'reportSubject');
                     filterSubjectsDropdown('viewClass', 'viewSubject');
                 }
-            }).catch(function(e) {
-                // Ignore silent failure
-            });
+            }).catch(function(e){});
 
             var sc = document.getElementById('selectClass');
             if(sc && !sc.dataset.bound) {
-                sc.addEventListener('change', function() { filterSubjectsDropdown('selectClass', 'selectSubject'); });
+                sc.addEventListener('change', function(){ filterSubjectsDropdown('selectClass', 'selectSubject') });
                 sc.dataset.bound = "true";
             }
             var rc = document.getElementById('reportClass');
             if(rc && !rc.dataset.bound) {
-                rc.addEventListener('change', function() { filterSubjectsDropdown('reportClass', 'reportSubject'); });
+                rc.addEventListener('change', function(){ filterSubjectsDropdown('reportClass', 'reportSubject') });
                 rc.dataset.bound = "true";
             }
             var vc = document.getElementById('viewClass');
             if(vc && !vc.dataset.bound) {
-                vc.addEventListener('change', function() { filterSubjectsDropdown('viewClass', 'viewSubject'); });
+                vc.addEventListener('change', function(){ filterSubjectsDropdown('viewClass', 'viewSubject') });
                 vc.dataset.bound = "true";
             }
         }
@@ -1468,7 +1448,7 @@
             }
         }
 
-        async function loadAttendanceSheet() {
+        function loadAttendanceSheet() {
             var selectedClass = document.getElementById('selectClass').value;
             var selectedSubject = document.getElementById('selectSubject').value;
             var selectedPeriod = document.getElementById('selectPeriod').value;
@@ -1483,16 +1463,17 @@
             var tbody = document.getElementById('attendanceTbody');
             tbody.innerHTML = "<tr><td colspan='3'>Loading...</td></tr>";
             
-            try {
-                var safeClass = getSafeKey(selectedClass);
-                var safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
-                var safeSubject = getSafeKey(selectedSubject);
-                var attPath = 'attendance/' + date + '/' + safeClass + '/' + safePeriod + '/' + safeSubject;
-                
-                const [studentsSnap, attSnap] = await Promise.all([
-                    db.ref('students').orderByChild('grade').equalTo(selectedClass).once('value'),
-                    db.ref(attPath).once('value')
-                ]);
+            var safeClass = getSafeKey(selectedClass);
+            var safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
+            var safeSubject = getSafeKey(selectedSubject);
+            var attPath = 'attendance/' + date + '/' + safeClass + '/' + safePeriod + '/' + safeSubject;
+            
+            var studentsPromise = db.ref('students').orderByChild('grade').equalTo(selectedClass).once('value');
+            var attPromise = db.ref(attPath).once('value');
+
+            Promise.all([studentsPromise, attPromise]).then(function(results) {
+                var studentsSnap = results[0];
+                var attSnap = results[1];
 
                 if(!studentsSnap.exists()){
                     tbody.innerHTML = "<tr><td colspan='3'>මෙම පන්තියේ සිසුන් හමු නොවීය.</td></tr>";
@@ -1560,12 +1541,12 @@
                 }
 
                 document.getElementById('markAllStatus').value = ""; 
-            } catch (error) {
+            }).catch(function(error) {
                 tbody.innerHTML = "<tr><td colspan='3'>දත්ත ලබා ගැනීමේදී දෝෂයක් ඇතිවිය.</td></tr>";
-            }
+            });
         }
 
-        async function saveAttendance() {
+        function saveAttendance() {
             var selectedClass = document.getElementById('selectClass').value;
             var selectedSubject = document.getElementById('selectSubject').value;
             var selectedPeriod = document.getElementById('selectPeriod').value;
@@ -1589,7 +1570,6 @@
                 var row = rows[i];
                 var safeStudentId = row.getAttribute('data-safestudentid');
                 var studentId = row.getAttribute('data-studentid');
-                
                 var stNameEl = row.querySelector('.st-name');
                 var statusEl = row.querySelector('.att-status');
                 
@@ -1620,19 +1600,21 @@
                 }
             }
 
-            try {
-                await db.ref().update(updates);
+            db.ref().update(updates).then(function() {
                 if(hasValidData) {
                     alert("පැමිණීම සාර්ථකව සුරකින ලදී!");
                 } else {
                     alert("සියලුම සිසුන් N/A (අදාළ නොවේ) බැවින් කිසිදු දත්තයක් සේව් නොවීය.");
                 }
-            } catch(err) {
+            }).catch(function(err) {
                 alert("දෝෂයක් ඇතිවිය: " + err.message);
-            }
+            });
         }
 
-        async function generateReportSummary() {
+        // ==========================================
+        // REPORTS & DASHBOARDS
+        // ==========================================
+        function generateReportSummary() {
             var date = document.getElementById('reportDate').value;
             var clsFilter = document.getElementById('reportClass').value;
             var subjFilter = document.getElementById('reportSubject').value;
@@ -1645,8 +1627,7 @@
 
             output.innerHTML = "<div class='loading'>වාර්තාව සකස් කරමින් පවතී...</div>";
 
-            try {
-                var snapshot = await db.ref('attendance/' + date).once('value');
+            db.ref('attendance/' + date).once('value').then(function(snapshot) {
                 if(!snapshot.exists()) {
                     output.innerHTML = "<div class='info-box'>මෙම දිනය සඳහා පැමිණීමේ වාර්තා කිසිවක් හමු නොවීය.</div>";
                     return;
@@ -1748,12 +1729,12 @@
                 `;
 
                 output.innerHTML = tableHtml;
-            } catch(err) {
+            }).catch(function(err) {
                 output.innerHTML = "<div class='error-msg' style='display:block;'>වාර්තාව සැකසීමේදී දෝෂයක් ඇතිවිය.</div>";
-            }
+            });
         }
 
-        async function viewRawAttendance() {
+        function viewRawAttendance() {
             var date = document.getElementById('viewDate').value;
             var clsFilter = document.getElementById('viewClass').value;
             var subjFilter = document.getElementById('viewSubject').value;
@@ -1766,8 +1747,7 @@
 
             tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>Loading records...</td></tr>";
 
-            try {
-                var snapshot = await db.ref('attendance/' + date).once('value');
+            db.ref('attendance/' + date).once('value').then(function(snapshot) {
                 if(!snapshot.exists()) {
                     tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>දත්ත හමු නොවීය.</td></tr>";
                     return;
@@ -1807,12 +1787,385 @@
 
                 if(!html) html = "<tr><td colspan='6' style='text-align: center;'>ගැලපෙන දත්ත හමු නොවීය.</td></tr>";
                 tbody.innerHTML = html;
-            } catch(err) {
+            }).catch(function(err) {
                 tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
-            }
+            });
         }
 
-        async function downloadPdfReport() {
+        function updateDashboardStats() {
+            db.ref('students').once('value').then(function(stSnap) {
+                var stCount = 0;
+                if(stSnap.exists()) stSnap.forEach(function() { stCount++; });
+                document.getElementById('totalStudentsCount').textContent = stCount;
+            }).catch(function(){});
+
+            var today = new Date().toISOString().split('T')[0];
+            db.ref('teacher_attendance/' + today).once('value').then(function(tAttSnap) {
+                var pCount = 0;
+                var aCount = 0;
+                var absentHtml = '';
+
+                if(tAttSnap.exists()) {
+                    tAttSnap.forEach(function(tSnap) {
+                        var rec = tSnap.val();
+                        if(rec.status === 'Present') {
+                            pCount++;
+                        } else {
+                            aCount++;
+                            absentHtml += `
+                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
+                                <strong>${rec.name}</strong><br>
+                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
+                            </div>`;
+                        }
+                    });
+                }
+
+                document.getElementById('presentTeachersCount').textContent = pCount;
+                document.getElementById('absentTeachersCount').textContent = aCount;
+
+                if(aCount === 0) {
+                    absentHtml = "<p style='color: green; font-size:0.9em;'>✅ All assigned teachers are present today (or no records marked).</p>";
+                }
+                
+                var absentListDiv = document.getElementById('absentTeachersList');
+                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
+            }).catch(function(){});
+        }
+
+        // ==========================================
+        // TEACHER / SUBJECT MANAGEMENT
+        // ==========================================
+        function saveNewTeacher() {
+            var tid = document.getElementById('addTeacherId').value.trim();
+            var tname = document.getElementById('addTeacherName').value.trim();
+            var msg = document.getElementById('teacherSuccessMsg');
+
+            if(!tid || !tname) {
+                alert("Teacher ID and Name are required!");
+                return;
+            }
+
+            var safeTid = getSafeKey(tid);
+
+            db.ref('teachers/' + safeTid).set({
+                teacher_id: tid,
+                name: tname
+            }).then(function() {
+                msg.textContent = "Teacher added successfully!";
+                msg.style.display = 'block';
+                setTimeout(function(){ msg.style.display='none'; }, 3000);
+                
+                document.getElementById('addTeacherId').value = '';
+                document.getElementById('addTeacherName').value = '';
+                loadTeachersAndLeaves();
+            }).catch(function(e) {
+                alert("Error adding teacher: " + e.message);
+            });
+        }
+
+        function loadTeachersAndLeaves() {
+            var tbody = document.getElementById('teacherListTbody');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Loading...</td></tr>";
+
+            var today = new Date();
+            var currentYear = today.getFullYear().toString();
+            var currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
+            var monthPrefix = currentYear + '-' + currentMonth;
+
+            var p1 = db.ref('teachers').once('value');
+            var p2 = db.ref('teacher_attendance').once('value');
+
+            Promise.all([p1, p2]).then(function(results) {
+                var teachersSnap = results[0];
+                var attSnap = results[1];
+
+                if(!teachersSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No teachers found.</td></tr>";
+                    return;
+                }
+
+                var attData = {}; 
+                
+                if(attSnap.exists()){
+                    attSnap.forEach(function(dateSnap) {
+                        var d = dateSnap.key; 
+                        var isCurrentYear = d.indexOf(currentYear) === 0;
+                        var isCurrentMonth = d.indexOf(monthPrefix) === 0;
+                        
+                        if(isCurrentYear) {
+                            dateSnap.forEach(function(tSnap) {
+                                var safeTid = tSnap.key; 
+                                var status = tSnap.val().status; 
+                                
+                                if(!attData[safeTid]) attData[safeTid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                                
+                                if(status === 'Casual Leave') {
+                                    attData[safeTid].year.Casual++;
+                                    if(isCurrentMonth) attData[safeTid].month.Casual++;
+                                } else if (status === 'Sick Leave') {
+                                    attData[safeTid].year.Sick++;
+                                    if(isCurrentMonth) attData[safeTid].month.Sick++;
+                                } else if (status === 'Duty Leave') {
+                                    attData[safeTid].year.Duty++;
+                                    if(isCurrentMonth) attData[safeTid].month.Duty++;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                var html = '';
+                teachersSnap.forEach(function(child) {
+                    var t = child.val();
+                    var tid = t.teacher_id;
+                    var safeTid = child.key;
+                    var stats = attData[safeTid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                    
+                    var monthStr = 'C:<strong>'+stats.month.Casual+'</strong> | S:<strong>'+stats.month.Sick+'</strong> | D:<strong>'+stats.month.Duty+'</strong>';
+                    var yearStr = 'C:<strong>'+stats.year.Casual+'</strong> | S:<strong>'+stats.year.Sick+'</strong> | D:<strong>'+stats.year.Duty+'</strong>';
+                    
+                    html += `<tr>
+                        <td><strong>${t.name}</strong><br><small style="color:#666;">${tid}</small></td>
+                        <td style="font-size: 0.85em;">${monthStr}</td>
+                        <td style="font-size: 0.85em;">${yearStr}</td>
+                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Del</button></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            }).catch(function(e) {
+                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading teachers</td></tr>";
+            });
+        }
+
+        window.deleteTeacher = function(safeTid) {
+            if(confirm("Are you sure you want to remove this teacher?")) {
+                db.ref('teachers/' + safeTid).remove().then(function() {
+                    loadTeachersAndLeaves();
+                }).catch(function(e) {
+                    alert("Error: " + e.message);
+                });
+            }
+        };
+
+        window.filterTeachers = function() {
+            var input = document.getElementById('searchTeacherInput');
+            if(!input) return;
+            var filter = input.value.toLowerCase();
+            var rows = document.querySelectorAll('#teacherListTbody tr');
+            
+            for(var i=0; i<rows.length; i++) {
+                var row = rows[i];
+                if(row.cells.length >= 1) {
+                    var text = row.cells[0].innerText.toLowerCase();
+                    if(text.indexOf(filter) !== -1) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            }
+        };
+
+        function loadTeacherAttendanceSheet() {
+            var date = document.getElementById('teacherAttDate').value;
+            if(!date) { alert("Please select date!"); return; }
+
+            document.getElementById('teacherAttendanceDiv').style.display = 'block';
+            var tbody = document.getElementById('teacherAttTbody');
+            tbody.innerHTML = "<tr><td colspan='2'>Loading...</td></tr>";
+
+            var p1 = db.ref('teachers').once('value');
+            var p2 = db.ref('teacher_attendance/' + date).once('value');
+
+            Promise.all([p1, p2]).then(function(results) {
+                var tSnap = results[0];
+                var attSnap = results[1];
+
+                if(!tSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='2'>No teachers registered yet.</td></tr>";
+                    return;
+                }
+
+                var existingAtt = attSnap.exists() ? attSnap.val() : {};
+                var html = '';
+
+                tSnap.forEach(function(child) {
+                    var t = child.val();
+                    var tid = t.teacher_id;
+                    var safeTid = child.key;
+                    var currentStatus = existingAtt[safeTid] ? existingAtt[safeTid].status : 'Present';
+
+                    html += `
+                        <tr data-safetid="${safeTid}" data-tid="${tid}">
+                            <td class="t-name"><strong>${t.name}</strong><br><small>${tid}</small></td>
+                            <td>
+                                <select class="t-status" style="padding: 5px; border-radius: 4px; width: 100%;">
+                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present (පැමිණ ඇත)</option>
+                                    <option value="Casual Leave" ${currentStatus==='Casual Leave'?'selected':''}>Absent - Casual Leave (අනියම් නිවාඩු)</option>
+                                    <option value="Sick Leave" ${currentStatus==='Sick Leave'?'selected':''}>Absent - Sick Leave (අසනීප නිවාඩු)</option>
+                                    <option value="Duty Leave" ${currentStatus==='Duty Leave'?'selected':''}>Absent - Duty Leave (රාජකාරී නිවාඩු)</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }).catch(function(e) {
+                tbody.innerHTML = "<tr><td colspan='2' style='color:red;'>Error fetching data.</td></tr>";
+            });
+        }
+
+        function saveTeacherAttendance() {
+            var date = document.getElementById('teacherAttDate').value;
+            if(!date) return;
+
+            var rows = document.querySelectorAll('#teacherAttTbody tr');
+            if(rows.length === 0) return;
+
+            var updates = {};
+            for(var i=0; i<rows.length; i++) {
+                var row = rows[i];
+                var safeTid = row.getAttribute('data-safestudentid') || row.getAttribute('data-safetid');
+                var tid = row.getAttribute('data-tid');
+                
+                if(safeTid) {
+                    var tname = row.querySelector('.t-name strong').innerText;
+                    var status = row.querySelector('.t-status').value;
+                    updates['teacher_attendance/' + date + '/' + safeTid] = {
+                        teacher_id: tid,
+                        name: tname,
+                        status: status,
+                        date: date
+                    };
+                }
+            }
+
+            db.ref().update(updates).then(function() {
+                alert("Teacher Attendance Saved Successfully!");
+                loadTeachersAndLeaves(); 
+                updateDashboardStats();
+            }).catch(function(e) {
+                alert("Error: " + e.message);
+            });
+        }
+
+        function loadSubjectsManagement() {
+            var tbody = document.getElementById('subjectsTableBody');
+            var countSpan = document.getElementById('subjectCount');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>Loading subjects...</td></tr>";
+            
+            db.ref('subjects').once('value').then(function(snapshot) {
+                if(!snapshot.exists()) {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>No subjects found.</td></tr>";
+                    if(countSpan) countSpan.textContent = 0;
+                    return;
+                }
+                var html = '';
+                var idx = 1;
+                snapshot.forEach(function(child) {
+                    var key = child.key;
+                    var val = child.val();
+                    var subName = val.name || val;
+                    var subCat = val.category || 'Other';
+                    
+                    html += `
+                        <tr>
+                            <td>${idx++}</td>
+                            <td style="font-size: 0.85em; color: #555;">${subCat}</td>
+                            <td style="white-space: normal;"><strong>${subName}</strong></td>
+                            <td>
+                                <button onclick="editSubject('${key}', '${subName}', '${subCat}')" class="btn btn-warning btn-small" style="margin-bottom:5px;">Edit</button>
+                                <button onclick="deleteSubject('${key}')" class="btn btn-danger btn-small">Del</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+                if(countSpan) countSpan.textContent = idx - 1;
+            }).catch(function(error) {
+                tbody.innerHTML = "<tr><td colspan='4' style='text-align: center; color: red;'>Error loading subjects.</td></tr>";
+            });
+        }
+
+        function saveSubject() {
+            var catInput = document.getElementById('subjectCategoryInput');
+            var nameInput = document.getElementById('subjectNameInput');
+            var editKeyInput = document.getElementById('editSubjectKey');
+            var successMsg = document.getElementById('subjectSuccess');
+            
+            var subCat = catInput.value;
+            var subName = nameInput.value.trim();
+            var editKey = editKeyInput.value.trim();
+
+            if(!subName) {
+                alert("කරුණාකර විෂය නම ඇතුළත් කරන්න!");
+                return;
+            }
+
+            var promise;
+            if(editKey) {
+                promise = db.ref('subjects/' + editKey).update({ name: subName, category: subCat });
+            } else {
+                var newRef = db.ref('subjects').push();
+                promise = newRef.set({ name: subName, category: subCat });
+            }
+
+            promise.then(function() {
+                successMsg.textContent = editKey ? "විෂය සාර්ථකව යාවත්කාලීන කරන ලදී!" : "විෂය සාර්ථකව එකතු කරන ලදී!";
+                successMsg.style.display = 'block';
+                setTimeout(function(){ successMsg.style.display = 'none'; }, 3000);
+                resetSubjectForm();
+                loadSubjectsManagement();
+                loadClassAndSubjectDropdowns();
+            }).catch(function(error) {
+                alert("දෝෂයක් ඇතිවිය: " + error.message);
+            });
+        }
+
+        window.editSubject = function(key, name, category) {
+            document.getElementById('editSubjectKey').value = key;
+            document.getElementById('subjectNameInput').value = name;
+            
+            var catSelect = document.getElementById('subjectCategoryInput');
+            var catFound = false;
+            for(var i=0; i<catSelect.options.length; i++){
+                if(catSelect.options[i].value === category) {
+                    catSelect.selectedIndex = i;
+                    catFound = true; break;
+                }
+            }
+            if(!catFound) catSelect.value = "Other";
+
+            document.getElementById('subjectFormTitle').textContent = "Edit Subject";
+            document.getElementById('saveSubjectBtn').textContent = "💾 Update Subject";
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            document.getElementById('subjectNameInput').focus();
+        };
+
+        function resetSubjectForm() {
+            document.getElementById('editSubjectKey').value = '';
+            document.getElementById('subjectNameInput').value = '';
+            document.getElementById('subjectCategoryInput').selectedIndex = 0;
+            document.getElementById('subjectFormTitle').textContent = "Add New Subject";
+            document.getElementById('saveSubjectBtn').textContent = "💾 Save Subject";
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        window.deleteSubject = function(key) {
+            if(confirm("මෙම විෂය ඉවත් කිරීමට අවශ්‍ය බව විශ්වාසද?")) {
+                db.ref('subjects/' + key).remove().then(function() {
+                    loadSubjectsManagement();
+                    loadClassAndSubjectDropdowns();
+                }).catch(function(error) {
+                    alert("විෂය මැකීමේදී දෝෂයක් ඇතිවිය: " + error.message);
+                });
+            }
+        };
+
+        function downloadPdfReport() {
             var date = document.getElementById('reportDate').value;
             var clsFilter = document.getElementById('reportClass').value;
             var subjFilter = document.getElementById('reportSubject').value;
@@ -1822,8 +2175,7 @@
                 return;
             }
 
-            try {
-                var snapshot = await db.ref('attendance/' + date).once('value');
+            db.ref('attendance/' + date).once('value').then(function(snapshot) {
                 if(!snapshot.exists()) {
                     alert("මෙම දිනය සඳහා වාර්තා කිසිවක් නොමැත!");
                     return;
@@ -1838,9 +2190,9 @@
                 
                 doc.setFontSize(10);
                 doc.setFont("helvetica", "normal");
-                doc.text(`Date: ${date}`, 14, 28);
-                if(clsFilter) doc.text(`Class: ${clsFilter}`, 14, 34);
-                if(subjFilter) doc.text(`Subject: ${subjFilter}`, 14, clsFilter ? 40 : 34);
+                doc.text('Date: ' + date, 14, 28);
+                if(clsFilter) doc.text('Class: ' + clsFilter, 14, 34);
+                if(subjFilter) doc.text('Subject: ' + subjFilter, 14, clsFilter ? 40 : 34);
 
                 var tableData = [];
                 var index = 1;
@@ -1858,7 +2210,7 @@
 
                             subSnap.forEach(function(stSnap) {
                                 var rec = stSnap.val();
-                                var pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : `Period ${rec.period || periodName}`;
+                                var pNameDisplay = rec.period === 'Daily Attendance' ? 'Daily' : 'Period ' + (rec.period || periodName);
                                 tableData.push([
                                     index++,
                                     rec.student_id,
@@ -1890,10 +2242,10 @@
                     styles: { fontSize: 9 }
                 });
 
-                doc.save(`Attendance_Report_${date}.pdf`);
-            } catch(err) {
+                doc.save('Attendance_Report_' + date + '.pdf');
+            }).catch(function(err) {
                 alert("PDF සැකසීමේදී දෝෂයක් ඇතිවිය: " + err.message);
-            }
+            });
         }
     </script>
 </body>
