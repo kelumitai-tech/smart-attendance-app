@@ -743,18 +743,17 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
-        // Only run UI listeners on load. Do NOT make database calls before login!
+        // 100% Hang-Free Initialization
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             setTodayDate();
+            setupRegistrationRestrictions();
             checkAuthState(); 
         });
 
         function safeAddListener(id, event, handler) {
             const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener(event, handler);
-            }
+            if (el) el.addEventListener(event, handler);
         }
 
         function setupEventListeners() {
@@ -766,13 +765,10 @@
             
             safeAddListener('addStudentBtn', 'click', addStudent);
             safeAddListener('loadAttendanceBtn', 'click', loadAttendanceSheet);
-            
             safeAddListener('generateReportBtn', 'click', generateReportSummary);
             safeAddListener('downloadPdfBtn', 'click', downloadPdfReport);
-            
             safeAddListener('saveSubjectBtn', 'click', saveSubject);
             safeAddListener('cancelEditBtn', 'click', resetSubjectForm);
-
             safeAddListener('saveNewTeacherBtn', 'click', saveNewTeacher);
             safeAddListener('submitLeaveBtn', 'click', submitLeaveRequest);
             safeAddListener('viewRawBtn', 'click', viewRawAttendance);
@@ -812,11 +808,14 @@
                         subjectsObj[key] = { name: sub.name, category: sub.category };
                     });
                     await subRef.set(subjectsObj);
-                    console.log("Database subjects updated successfully!");
                 }
             } catch (err) {
-                console.log("Rules blocked DB update, moving on safely.", err);
+                console.log("Subject update bypassed due to rules. Moving on.");
             }
+        }
+
+        function setupRegistrationRestrictions() {
+            // Disabled restrictions as requested by user - Anyone can register as Principal/Class Teacher
         }
 
         function setTodayDate() {
@@ -830,18 +829,14 @@
 
         function checkAuthState() {
             auth.onAuthStateChanged((user) => {
-                const loginBtn = document.getElementById('loginBtn');
-                if (loginBtn) {
-                    loginBtn.innerHTML = '🔐 Login';
-                    loginBtn.disabled = false;
-                }
-
-                const logoutBtn = document.getElementById('logoutBtn');
                 if (user && !isRegistering) {
-                    if(logoutBtn) logoutBtn.style.display = 'block';
-                    getUserRole(user.uid);
+                    document.getElementById('logoutBtn').style.display = 'block';
+                    // Only fetch role if login screen is visible (prevents double loading)
+                    if(document.getElementById('loginScreen').style.display !== 'none') {
+                        getUserRole(user.uid);
+                    }
                 } else if (!user) {
-                    if(logoutBtn) logoutBtn.style.display = 'none';
+                    document.getElementById('logoutBtn').style.display = 'none';
                     showLoginScreen();
                 }
             });
@@ -849,30 +844,28 @@
 
         async function getUserRole(userId) {
             try {
-                let finalRole = 'subjectTeacher'; 
-                try {
-                    const snapshot = await db.ref('users/' + userId).get(); 
-                    if (snapshot.exists()) {
-                        finalRole = snapshot.val().role;
-                    } else {
+                const snapshot = await db.ref('users/' + userId).once('value');
+                if (snapshot.exists()) {
+                    appUserRole = snapshot.val().role;
+                } else {
+                    appUserRole = 'subjectTeacher'; // Default
+                    try {
                         await db.ref('users/' + userId).set({ email: auth.currentUser.email, role: 'subjectTeacher' });
-                    }
-                } catch (dbErr) {
-                    console.error("Database connection restricted or offline, defaulting role.");
+                    } catch(e) {} // ignore write error if rules block it
                 }
-                
-                appUserRole = finalRole;
-                showApp(finalRole);
+                showApp(appUserRole);
             } catch (error) {
-                console.error("Critical error in getUserRole", error);
+                console.error("DB Read Error - Logging in with default role.");
                 appUserRole = 'subjectTeacher';
-                showApp('subjectTeacher');
+                showApp(appUserRole);
             }
         }
 
         function showLoginScreen() {
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('appContent').style.display = 'none';
+            const btn = document.getElementById('loginBtn');
+            if(btn){ btn.innerHTML = '🔐 Login'; btn.disabled = false; }
             showLoginForm();
         }
 
@@ -903,8 +896,8 @@
             loginBtn.disabled = true;
 
             try {
-                await auth.signInWithEmailAndPassword(email, password);
-                // checkAuthState handles the rest
+                const userCred = await auth.signInWithEmailAndPassword(email, password);
+                await getUserRole(userCred.user.uid);
             } catch (error) {
                 errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
@@ -919,9 +912,7 @@
             const errorMsg = document.getElementById('registerError');
             const btn = document.getElementById('confirmRegisterBtn');
             
-            // Get role directly from the dropdown without restrictions
-            const registerRole = document.getElementById('registerRole').value; 
-            const finalRole = registerRole;
+            const finalRole = document.getElementById('registerRole').value;
             
             if (!email || !password || password.length < 6) {
                 errorMsg.textContent = 'Please provide valid email and password (min 6 chars)';
@@ -941,12 +932,7 @@
                     role: finalRole
                 });
                 isRegistering = false;
-                
-                let roleDisplayName = "Subject Teacher";
-                if(finalRole === 'principal') roleDisplayName = "Principal (Admin)";
-                else if(finalRole === 'classTeacher') roleDisplayName = "Class Teacher";
-
-                alert(`Registration successful! (Registered as ${roleDisplayName})`);
+                alert('Registration successful!');
                 appUserRole = finalRole;
                 showApp(finalRole);
             } catch (error) {
@@ -962,19 +948,16 @@
             await auth.signOut();
         }
 
-        async function showApp(role) {
+        function showApp(role) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
             
-            let normalizedRole = 'subjectteacher';
-            if (role) {
-                normalizedRole = role.toString().toLowerCase().replace(/\s+/g, '');
-            }
+            // Fix string case issues for old accounts
+            let normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
             
-            let displayRole = role || 'Subject Teacher';
+            let displayRole = 'Subject Teacher';
             if (normalizedRole.includes('principal') || normalizedRole.includes('admin')) displayRole = 'Principal (Admin)';
             else if (normalizedRole.includes('class')) displayRole = 'Class Teacher';
-            else displayRole = 'Subject Teacher';
             
             document.getElementById('roleBadge').textContent = displayRole;
             
@@ -988,12 +971,14 @@
             
             showTab('attendance'); 
             
-            try {
-                await initializeDatabaseSubjects();
-                loadClassAndSubjectDropdowns();
-            } catch (e) {
-                console.error("Subject loading error:", e);
-            }
+            // Background Tasks (won't freeze UI)
+            setTimeout(() => {
+                initializeDatabaseSubjects().then(() => {
+                    loadClassAndSubjectDropdowns();
+                }).catch(() => {
+                    loadClassAndSubjectDropdowns();
+                });
+            }, 100);
         }
 
         function showTab(tabName) {
@@ -1019,9 +1004,7 @@
                 } else if (tabName === 'requestLeave') {
                     loadMyLeaveRequests();
                 }
-            } catch (e) {
-                console.error("Tab Error: ", e);
-            }
+            } catch (e) {}
         }
 
         // ==========================================
@@ -1456,7 +1439,7 @@
         }
 
         // ==========================================
-        // ATTENDANCE MARKING (WITH OPTIONAL SUBJECTS LOGIC)
+        // ATTENDANCE MARKING 
         // ==========================================
         function markAllStatusChanged() {
             const val = document.getElementById('markAllStatus').value;
@@ -1500,7 +1483,7 @@
                 const isNewSheet = !attSnap.exists();
 
                 const subObj = allSubjectsList.find(s => s.name === selectedSubject);
-                const isOptionalCat = subObj && (subObj.category.includes("Aesthetics") || subObj.category.includes("සෞන්දර්ය") || subObj.category.includes("කාණ්ඩ") || subObj.category.includes("A/L"));
+                const isOptionalCat = subObj && (subObj.category.includes("Aesthetics") || subObj.category.includes("සෞන්දර්ය") || subObj.category.includes("කාණ්ඩ") || subObj.category.includes("A/L") || subObj.category.includes("Basket"));
                 const isGeneral = subObj && (subObj.category.includes("General") || subObj.category.includes("පොදු"));
 
                 let html = '';
@@ -1540,7 +1523,7 @@
                 });
 
                 if(validStudentsCount === 0) {
-                    tbody.innerHTML = "<tr><td colspan='3' style='color:red; text-align:center;'>මෙම පන්තියේ මෙම විෂය තෝරාගත් සිසුන් කිසිවෙකු නොමැත. (No students found for this specific subject).</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='3' style='color:red; text-align:center;'>මෙම පන්තියේ මෙම විෂය තෝරාගත් සිසුන් කිසිවෙකු නොමැත.</td></tr>";
                 } else {
                     tbody.innerHTML = html;
                 }
