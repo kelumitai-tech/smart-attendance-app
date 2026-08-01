@@ -20,164 +20,117 @@
     <style>
         /* BASE RESET */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 10px; color: #333;}
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 10px; }
         
-        .container { background: transparent; max-width: 1200px; width: 100%; margin: 0 auto; overflow: hidden; }
+        .container { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-width: 1200px; width: 100%; margin: 0 auto; overflow: hidden; }
         
         /* HEADER - Mobile Optimized */
-        .header { background: linear-gradient(135deg, #005A9C 0%, #0077cc 100%); color: white; padding: 25px 15px; text-align: center; position: relative; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); margin-bottom: 20px;}
-        .header h1 { font-size: 1.6em; margin-bottom: 5px; margin-top: 30px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
-        .header p { opacity: 0.9; font-size: 0.9em; }
+        .header { background: linear-gradient(135deg, #005A9C 0%, #0077cc 100%); color: white; padding: 20px 15px; text-align: center; position: relative; }
+        .header h1 { font-size: 1.5em; margin-bottom: 5px; margin-top: 35px; }
+        .header p { opacity: 0.9; font-size: 0.85em; }
         
-        .role-badge { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-size: 0.75em; border: 1px solid white; white-space: nowrap; display: none; font-weight: bold; backdrop-filter: blur(5px);}
-        .logout-btn { position: absolute; top: 15px; right: 15px; padding: 6px 15px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.8em; transition: all 0.3s; backdrop-filter: blur(5px);}
-        .logout-btn:hover { background: white; color: #005A9C; box-shadow: 0 2px 8px rgba(0,0,0,0.2);}
+        .role-badge { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 0.75em; border: 1px solid white; white-space: nowrap; display: none; }
+        .logout-btn { position: absolute; top: 15px; right: 15px; padding: 5px 12px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8em; transition: all 0.3s; }
+        .logout-btn:hover { background: white; color: #005A9C; }
         
-        /* CONTENT AREA & LOGIN */
-        .content { padding: 0; }
-        .login-box { max-width: 450px; margin: 20px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        /* CONTENT AREA */
+        .content { padding: 15px; }
+        .login-box { max-width: 400px; margin: 0 auto; }
         
         /* FORMS */
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 6px; color: #444; font-weight: 600; font-size: 0.9em; }
-        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 14px; background: #fdfdfd; outline: none; transition: border 0.3s, box-shadow 0.3s; }
-        .form-group input:focus, .form-group select:focus { border-color: #005A9C; box-shadow: 0 0 0 3px rgba(0,90,156,0.1); background: white;}
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9em; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; background: white; outline: none; transition: border 0.3s; }
+        .form-group input:focus, .form-group select:focus { border-color: #005A9C; }
         
         /* CHECKBOX GRID FOR OPTIONAL SUBJECTS */
-        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 10px; }
-        .checkbox-grid label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; cursor: pointer; color: #444; background: white; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; transition: all 0.2s;}
-        .checkbox-grid label:hover { border-color: #005A9C; background: #f0f7ff;}
-        .checkbox-grid input[type="checkbox"] { width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: #005A9C;}
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+        .checkbox-grid label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: normal; cursor: pointer; color: #444; }
+        .checkbox-grid input[type="checkbox"] { width: 16px; height: 16px; margin: 0; cursor: pointer; }
 
         /* OPTGROUP STYLING */
-        select optgroup { font-weight: bold; color: #005A9C; background: #e3f2fd; font-size: 14px; }
+        select optgroup { font-weight: bold; color: #005A9C; background: #e3f2fd; font-size: 15px; }
         select option { font-weight: normal; color: #333; background: #fff; font-size: 14px; }
 
         /* BUTTONS */
-        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-bottom: 10px; display: inline-flex; align-items: center; justify-content: center;}
+        .btn { padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-bottom: 10px; }
         .btn-full { width: 100%; }
-        .btn-primary { background: linear-gradient(to right, #005A9C, #0077cc); color: white; box-shadow: 0 4px 6px rgba(0,90,156,0.2);}
-        .btn-primary:hover { background: linear-gradient(to right, #004a80, #005A9C); transform: translateY(-1px); box-shadow: 0 6px 10px rgba(0,90,156,0.3);}
-        .btn-secondary { background: #4CAF50; color: white; box-shadow: 0 4px 6px rgba(76,175,80,0.2);}
-        .btn-secondary:hover { background: #43a047; transform: translateY(-1px); box-shadow: 0 6px 10px rgba(76,175,80,0.3);}
-        .btn-danger { background: #f44336; color: white; box-shadow: 0 4px 6px rgba(244,67,54,0.2);}
-        .btn-danger:hover { background: #e53935; transform: translateY(-1px); box-shadow: 0 6px 10px rgba(244,67,54,0.3);}
-        .btn-warning { background: #ff9800; color: white; box-shadow: 0 4px 6px rgba(255,152,0,0.2);}
-        .btn-small { padding: 6px 12px; font-size: 13px; margin-bottom: 0; border-radius: 6px;}
-        .pdf-btn { background: #d32f2f; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.3s; box-shadow: 0 4px 6px rgba(211,47,47,0.2);}
-        .pdf-btn:hover { background: #b71c1c; transform: translateY(-1px); box-shadow: 0 6px 10px rgba(211,47,47,0.3);}
+        .btn-primary { background: #005A9C; color: white; }
+        .btn-primary:hover { background: #004a80; }
+        .btn-secondary { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-small { padding: 6px 12px; font-size: 13px; margin-bottom: 0; }
+        .pdf-btn { background: #d32f2f; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.3s; }
+        .pdf-btn:hover { background: #b71c1c; }
         
         /* MESSAGES */
-        .error-msg, .success-msg { padding: 12px; border-radius: 8px; margin-top: 10px; text-align: center; font-size: 0.9em; font-weight: 500;}
-        .error-msg { background: #ffebee; color: #c62828; display: none; border-left: 4px solid #c62828;}
-        .success-msg { background: #e8f5e9; color: #2e7d32; display: none; border-left: 4px solid #2e7d32;}
-        .info-box { background: #e3f2fd; padding: 12px 15px; border-radius: 8px; color: #1565c0; margin-bottom: 18px; font-size: 0.9em; border-left: 4px solid #1976d2; line-height: 1.5;}
+        .error-msg, .success-msg { padding: 10px; border-radius: 6px; margin-top: 10px; text-align: center; font-size: 0.9em; }
+        .error-msg { background: #fee; color: #c00; display: none; }
+        .success-msg { background: #e7f5e7; color: #2e7d32; display: none; }
+        .info-box { background: #e3f2fd; padding: 12px; border-radius: 6px; color: #1565c0; margin-bottom: 15px; font-size: 0.9em; border-left: 4px solid #1976d2; }
         
         /* TABS - Mobile Optimized */
         .app-main { display: none; }
-        .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);}
-        .nav-tab { padding: 10px 15px; border: none; background: #f5f7fa; cursor: pointer; font-weight: 600; color: #555; border-radius: 8px; font-size: 13px; flex: 1 1 calc(25% - 8px); text-align: center; white-space: nowrap; transition: all 0.2s;}
-        .nav-tab:hover { background: #e3f2fd; color: #005A9C; }
-        .nav-tab.active { background: #005A9C; color: white; box-shadow: 0 2px 8px rgba(0,90,156,0.3);}
+        .nav-tabs { display: flex; gap: 5px; border-bottom: 2px solid #e0e0e0; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
+        .nav-tab { padding: 8px 5px; border: none; background: none; cursor: pointer; font-weight: 600; color: #666; border-bottom: 3px solid transparent; font-size: 13px; flex: 1 1 30%; text-align: center; white-space: nowrap; }
+        .nav-tab.active { color: #005A9C; border-bottom-color: #005A9C; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease;}
+        .tab-content.active { display: block; }
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
         /* CARDS & GRIDS */
-        .card { background: #ffffff; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #eef0f5; box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: box-shadow 0.3s;}
-        .card:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
-        .card h3 { color: #005A9C; margin-bottom: 18px; font-size: 1.25em; border-bottom: 2px solid #f0f4f8; padding-bottom: 8px;}
+        .card { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee; }
+        .card h3 { color: #005A9C; margin-bottom: 15px; font-size: 1.2em; }
         
         /* Grid mobile first */
-        .grid-2, .grid-3 { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .grid-2, .grid-3 { display: grid; grid-template-columns: 1fr; gap: 10px; }
         
-        /* ENHANCED ATTRACTIVE TABLES */
-        .table-responsive { 
-            overflow-x: auto; 
-            -webkit-overflow-scrolling: touch; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
-            border: 1px solid #d1d5db; /* Outer border */
-            background: white;
-            margin-bottom: 10px;
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            background: white; 
-            font-size: 14px; 
-            min-width: 500px; 
-        }
-        th, td { 
-            padding: 12px 15px; 
-            text-align: left; 
-            border: 1px solid #e5e7eb; /* Beautiful inner cell borders */
-            white-space: nowrap; 
-            vertical-align: middle; 
-        }
-        th { 
-            background: #005A9C; 
-            color: white; 
-            position: sticky; 
-            top: 0; 
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            z-index: 10;
-        }
-        /* Zebra Striping */
-        tbody tr:nth-child(even) {
-            background-color: #f8fafc;
-        }
-        /* Hover effect */
-        tbody tr:hover {
-            background-color: #eff6ff;
-            transition: background-color 0.2s ease;
-        }
+        /* TABLES - Mobile Optimized */
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; min-width: 500px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e0e0e0; white-space: nowrap; vertical-align: middle; }
+        th { background: #005A9C; color: white; position: sticky; top: 0; }
         
         /* DASHBOARD STATS */
-        .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 6px 15px rgba(0,0,0,0.15); transition: transform 0.3s;}
-        .stats-card:hover { transform: translateY(-3px); }
-        .stats-card h2 { font-size: 2.5em; margin: 10px 0 5px 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.2);}
-        .stats-card p { font-size: 1.05em; opacity: 0.9; margin: 0; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;}
+        .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .stats-card h2 { font-size: 2.2em; margin: 5px 0; }
+        .stats-card p { font-size: 1em; opacity: 0.9; margin: 0; }
         
         /* UTILS */
-        .loading { text-align: center; padding: 30px; color: #666; font-weight: bold; font-size: 1.1em;}
+        .loading { text-align: center; padding: 20px; color: #666; font-weight: bold; }
         .restricted-option { color: #999; font-style: italic; }
-        .footer-credit { text-align: center; padding: 20px; color: #fafafa; font-size: 0.85em; margin-top: 10px; font-weight: 500;}
-        .search-bar { width: 100%; padding: 12px; border: 1px solid #005A9C; border-radius: 8px; font-size: 15px; margin-bottom: 20px; background: #f4f9ff;}
-        .search-bar:focus { background: white; box-shadow: 0 0 0 3px rgba(0,90,156,0.15); }
-
-        /* ACTION BUTTON GROUP (For nicely aligning Approve/Reject) */
-        .action-btn-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
+        .footer-credit { text-align: center; padding: 15px; color: #888; font-size: 0.85em; border-top: 1px solid #eee; margin-top: 20px; }
+        .search-bar { width: 100%; padding: 10px; border: 1px solid #005A9C; border-radius: 6px; font-size: 15px; margin-bottom: 15px; }
 
         /* ================= MEDIA QUERIES (TABLETS & DESKTOP) ================= */
         @media (min-width: 768px) {
             body { padding: 20px; }
-            .header { padding: 30px; margin-bottom: 30px;}
-            .header h1 { font-size: 2.2em; margin-top: 0; }
+            .container { border-radius: 20px; }
+            .header { padding: 30px; }
+            .header h1 { font-size: 2em; margin-top: 0; }
             .header p { font-size: 1em; }
             .role-badge { top: 20px; left: 20px; padding: 8px 16px; font-size: 0.85em; border: 2px solid white; }
             .logout-btn { top: 20px; right: 20px; padding: 8px 20px; font-size: 0.9em; border: 2px solid white; }
             
-            .nav-tabs { gap: 12px; justify-content: flex-start; margin-bottom: 25px; padding: 15px;}
-            .nav-tab { padding: 12px 20px; font-size: 14px; flex: 0 1 auto; }
+            .content { padding: 30px; }
+            .form-group { margin-bottom: 20px; }
+            .form-group input, .form-group select { padding: 12px; font-size: 16px; }
+            .btn { padding: 14px; font-size: 16px; }
             
-            .card { padding: 30px; margin-bottom: 25px; }
-            .card h3 { font-size: 1.4em; margin-bottom: 25px; }
+            .nav-tabs { gap: 10px; justify-content: flex-start; margin-bottom: 30px; }
+            .nav-tab { padding: 12px 20px; font-size: 15px; flex: 0 1 auto; }
             
-            .grid-2 { grid-template-columns: 1fr 1fr; gap: 25px; }
-            .grid-3 { grid-template-columns: 1fr 1fr 1fr; gap: 25px; }
+            .card { padding: 25px; margin-bottom: 20px; }
+            .card h3 { font-size: 1.3em; margin-bottom: 20px; }
+            
+            .grid-2 { grid-template-columns: 1fr 1fr; gap: 20px; }
+            .grid-3 { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
             
             table { font-size: 15px; min-width: 100%; }
-            th, td { padding: 14px 18px; white-space: normal; }
+            th, td { padding: 12px; white-space: normal; }
             
             .stats-card { padding: 30px; }
-            .stats-card h2 { font-size: 3.5em; }
+            .stats-card h2 { font-size: 3em; margin: 10px 0; }
         }
     </style>
 </head>
@@ -193,11 +146,11 @@
         <!-- Login Screen -->
         <div class="content" id="loginScreen">
             <div class="login-box">
-                <h2 style="text-align: center; margin-bottom: 25px; color: #005A9C;">Welcome Back</h2>
+                <h2 style="text-align: center; margin-bottom: 25px; color: #333;">Welcome Back</h2>
                 
                 <!-- Registration Form -->
                 <div id="registrationForm" style="display: none;">
-                    <h3 style="text-align: center; margin-bottom: 15px; color: #333;">Teacher Registration</h3>
+                    <h3 style="text-align: center; margin-bottom: 15px; color: #005A9C;">Teacher Registration</h3>
                     
                     <div class="info-box">
                         Please register using your official details. This account will automatically be set as a <strong>Subject Teacher</strong>.
@@ -242,7 +195,7 @@
                     <div class="error-msg" id="loginError"></div>
                     
                     <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
-                        <h3 style="text-align: center; margin-bottom: 15px; color: #555; font-size: 1.1em;">New User?</h3>
+                        <h3 style="text-align: center; margin-bottom: 10px; color: #333; font-size: 1.1em;">New User?</h3>
                         <button class="btn btn-secondary btn-full" id="showRegisterBtn">📝 Register Here</button>
                     </div>
                 </div>
@@ -271,7 +224,7 @@
             <!-- Attendance Tab -->
             <div class="tab-content active" id="attendance">
                 <div class="card">
-                    <h3>📋 Mark Attendance</h3>
+                    <h3>Mark Attendance</h3>
                     <div class="info-box">Select class first to filter relevant subjects. "N/A" option is available for Basket/Aesthetic subjects to skip students not in your class.</div>
                     <div class="grid-3">
                         <div class="form-group">
@@ -309,16 +262,16 @@
                     <button class="btn btn-primary btn-full" id="loadAttendanceBtn">Load Attendance Sheet</button>
                 </div>
                 <div class="card" id="attendanceSheetCard" style="display:none;">
-                    <h3>📝 Attendance Sheet</h3>
+                    <h3>Attendance Sheet</h3>
                     <div class="table-responsive">
                         <table id="attendanceTable">
                             <thead>
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
-                                    <th style="min-width: 160px;">
+                                    <th style="min-width: 150px;">
                                         Status<br>
-                                        <select id="markAllStatus" onchange="markAllStatusChanged()" style="font-size: 0.9em; padding: 6px; color: #333; border-radius: 6px; margin-top: 6px; width: 100%; border: 1px solid #ccc;">
+                                        <select id="markAllStatus" onchange="markAllStatusChanged()" style="font-size: 0.85em; padding: 3px; color: black; border-radius: 4px; margin-top: 4px; width: 100%;">
                                             <option value="">-- Mark All As --</option>
                                             <option value="Present">All Present</option>
                                             <option value="Absent">All Absent</option>
@@ -332,7 +285,7 @@
                         </table>
                     </div>
                     <div style="margin-top: 15px;">
-                        <button class="btn btn-secondary btn-full" onclick="saveAttendance()">💾 Save Attendance</button>
+                        <button class="btn btn-primary btn-full" onclick="saveAttendance()">💾 Save Attendance</button>
                     </div>
                 </div>
             </div>
@@ -340,8 +293,8 @@
             <!-- Leave Request Tab (For Teachers) -->
             <div class="tab-content" id="requestLeave">
                 <div class="card">
-                    <h3>📩 Submit Online Leave Request</h3>
-                    <div class="info-box">Request leave online. Principals can review and approve these requests directly from their dashboard.</div>
+                    <h3>📝 Submit Online Leave Request</h3>
+                    <div class="info-box">Request leave online. Principals can review and approve these requests.</div>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Your Teacher ID</label>
@@ -395,7 +348,7 @@
             <!-- Students Tab -->
             <div class="tab-content" id="students">
                 <div class="card">
-                    <h3>👥 Add New Student</h3>
+                    <h3>Add New Student</h3>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Student ID</label>
@@ -403,7 +356,7 @@
                         </div>
                         <div class="form-group">
                             <label>Student Name</label>
-                            <input type="text" id="studentName" placeholder="Enter full name">
+                            <input type="text" id="studentName" placeholder="Enter name">
                         </div>
                     </div>
                     <div class="grid-2">
@@ -423,8 +376,8 @@
                     </div>
                     
                     <!-- DYNAMIC OPTIONAL SUBJECTS FOR STUDENT -->
-                    <div class="form-group" id="optionalSubjectsGroup" style="display:none; background: #f8fafc; padding: 18px; border-radius: 8px; border: 1px solid #bfdbfe; margin-top: 10px;">
-                        <label style="color: #005A9C; margin-bottom: 12px; font-size: 1.05em; border-bottom: 1px solid #bfdbfe; padding-bottom: 8px;">📚 Select Optional / A/L Subjects for this Student</label>
+                    <div class="form-group" id="optionalSubjectsGroup" style="display:none; background: #e8f4fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; margin-top: 10px;">
+                        <label style="color: #005A9C; margin-bottom: 10px; font-size: 1.05em;">📚 Select Optional / A/L Subjects for this Student</label>
                         <div id="optionalSubjectsList" class="checkbox-grid">
                             <!-- Checkboxes injected dynamically -->
                         </div>
@@ -435,7 +388,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>📋 Student List (<span id="studentCount">0</span>)</h3>
+                    <h3>Student List (<span id="studentCount">0</span>)</h3>
                     <div class="table-responsive">
                         <table>
                             <thead>
@@ -480,7 +433,7 @@
                         </div>
                     </div>
                     <div class="grid-2">
-                        <button class="btn btn-secondary btn-full" id="generateReportBtn">📈 Generate Summary</button>
+                        <button class="btn btn-primary btn-full" id="generateReportBtn">📈 Generate Summary</button>
                         <button class="pdf-btn" id="downloadPdfBtn" style="margin-top:0;">📄 Download PDF</button>
                     </div>
                     <div id="reportOutput" style="margin-top: 15px;"></div>
@@ -510,7 +463,7 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-full" id="viewRawBtn">🔍 Search Records</button>
+                    <button class="btn btn-secondary btn-full" id="viewRawBtn">🔍 Search Records</button>
                     
                     <div class="table-responsive" style="margin-top: 15px;">
                         <table>
@@ -536,16 +489,16 @@
             <div class="tab-content" id="teachers">
                 
                 <!-- Pending Leave Approvals Card -->
-                <div class="card" style="border-top: 4px solid #f44336;">
-                    <h3 style="color: #d32f2f;">🔔 Pending Leave Requests</h3>
+                <div class="card" style="border-left: 4px solid #f44336;">
+                    <h3 style="color: #f44336;">🔔 Pending Leave Requests</h3>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Teacher Details</th>
+                                    <th>Teacher</th>
                                     <th>Date</th>
                                     <th>Type & Reason</th>
-                                    <th style="text-align: center;">Action</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="pendingLeavesTbody">
@@ -556,7 +509,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>👨‍🏫 Add New Teacher Manually</h3>
+                    <h3>👨‍🏫 Add New Teacher</h3>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Teacher ID</label>
@@ -624,7 +577,7 @@
             <!-- Subjects Management Tab -->
             <div class="tab-content" id="subjects">
                 <div class="card">
-                    <h3 id="subjectFormTitle">📚 Add New Subject</h3>
+                    <h3 id="subjectFormTitle">Add New Subject</h3>
                     <div class="info-box">Subjects are categorized into Grade levels for easy filtering.</div>
                     
                     <input type="hidden" id="editSubjectKey" value="">
@@ -658,7 +611,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>📋 Subjects List (<span id="subjectCount">0</span>)</h3>
+                    <h3>Subjects List (<span id="subjectCount">0</span>)</h3>
                     <div class="table-responsive">
                         <table>
                             <thead>
@@ -686,7 +639,7 @@
                         <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"><p>Absent Teachers</p><h2 id="absentTeachersCount">0</h2></div>
                     </div>
                     
-                    <div class="card" style="margin-top: 15px; border-top: 4px solid #ef5350;">
+                    <div class="card" style="margin-top: 15px; background: #fff; border: 1px solid #ffcdd2;">
                         <h3 style="color: #c62828; font-size:1.1em;">📌 Today's Absent Teachers & Reasons</h3>
                         <div id="absentTeachersList" style="margin-top: 10px;">
                             <p class="loading">Loading data...</p>
@@ -788,7 +741,6 @@
             { category: "A/L - Common", name: "පොදු සාමාන්‍ය පරීක්ෂණය (GIT)" }
         ];
 
-        // Ensure everything runs AFTER page loads, no hanging DB calls
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             setTodayDate();
@@ -797,7 +749,9 @@
 
         function safeAddListener(id, event, handler) {
             var el = document.getElementById(id);
-            if (el) el.addEventListener(event, handler);
+            if (el) {
+                el.addEventListener(event, handler);
+            }
         }
 
         function setupEventListeners() {
@@ -818,59 +772,28 @@
             safeAddListener('viewRawBtn', 'click', viewRawAttendance);
             safeAddListener('loadTeacherAttBtn', 'click', loadTeacherAttendanceSheet);
             
-            // Replaced .forEach with standard for-loop to prevent silent crashes on older Mobile WebViews
             var navTabs = document.querySelectorAll('.nav-tab');
             for (var i = 0; i < navTabs.length; i++) {
                 navTabs[i].addEventListener('click', function(e) {
                     e.preventDefault();
-                    showTab(this.getAttribute('data-tab'));
+                    var tabId = this.getAttribute('data-tab');
+                    showTab(tabId);
                 });
-            }
-        }
-
-        // We load this ONLY AFTER login so it never freezes the login screen
-        async function initializeDatabaseSubjects() {
-            try {
-                var subRef = db.ref('subjects');
-                var snapshot = await subRef.once('value');
-                var needsUpdate = false;
-
-                if (!snapshot.exists()) {
-                    needsUpdate = true;
-                } else {
-                    var data = snapshot.val();
-                    var hasOldData = false;
-                    for (var key in data) {
-                        if (typeof data[key] === 'string' || !data[key].category || data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11") {
-                            hasOldData = true; break;
-                        }
-                    }
-                    if (hasOldData) needsUpdate = true;
-                }
-
-                if (needsUpdate) {
-                    var subjectsObj = {};
-                    for(var i=0; i<defaultSlSubjects.length; i++) {
-                        var sub = defaultSlSubjects[i];
-                        var key = 'sub_' + (i + 1);
-                        subjectsObj[key] = { name: sub.name, category: sub.category };
-                    }
-                    await subRef.set(subjectsObj);
-                }
-            } catch (err) {
-                console.log("Subject Sync bypassed. Error:", err);
             }
         }
 
         function setTodayDate() {
             var today = new Date().toISOString().split('T')[0];
             var ids = ['startDate', 'reportDate', 'viewDate', 'teacherAttDate', 'leaveReqDate'];
-            for(var i=0; i<ids.length; i++) {
+            for (var i = 0; i < ids.length; i++) {
                 var el = document.getElementById(ids[i]);
                 if (el) el.value = today;
             }
         }
 
+        // ==========================================
+        // AUTHENTICATION & LOGIN FLOW (Zero-Delay)
+        // ==========================================
         function checkAuthState() {
             auth.onAuthStateChanged(function(user) {
                 var loginBtn = document.getElementById('loginBtn');
@@ -878,8 +801,29 @@
 
                 if (user && !isRegistering) {
                     if(logoutBtn) logoutBtn.style.display = 'block';
-                    // Render app FIRST so user sees UI instantly
-                    renderAppInstantly(user);
+                    
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('appContent').style.display = 'block';
+                    
+                    applyRoleUI('subjectTeacher', ''); // Temporary fallback UI
+                    showTab('attendance'); 
+                    loadClassAndSubjectDropdowns();
+                    
+                    db.ref('users/' + user.uid).once('value').then(function(snapshot) {
+                        if (snapshot.exists()) {
+                            var userData = snapshot.val();
+                            applyRoleUI(userData.role || 'subjectTeacher', userData.name || '');
+                            
+                            // Auto-fill Leave request details
+                            if(userData.teacher_id) document.getElementById('leaveReqTid').value = userData.teacher_id;
+                            if(userData.name) document.getElementById('leaveReqName').value = userData.name;
+                        }
+                    }).catch(function(e) {
+                        applyRoleUI('subjectTeacher', '');
+                    });
+                    
+                    setTimeout(updateDatabaseSubjectsQuietly, 2000); 
+
                 } else if (!user) {
                     if(logoutBtn) logoutBtn.style.display = 'none';
                     if(loginBtn){ loginBtn.innerHTML = '🔐 Login'; loginBtn.disabled = false; }
@@ -888,45 +832,11 @@
             });
         }
 
-        function renderAppInstantly(user) {
-            // Instantly show the app screen
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('appContent').style.display = 'block';
-
-            // Show a temporary generic role to prevent freezing while fetching real role
-            applyRoleUI('subjectTeacher', '');
-            showTab('attendance'); 
-
-            // Safely fetch real role in the background
-            db.ref('users/' + user.uid).once('value').then(function(snapshot) {
-                if (snapshot.exists()) {
-                    var userData = snapshot.val();
-                    applyRoleUI(userData.role || 'subjectTeacher', userData.name || '');
-                    
-                    // Auto-fill Leave request details if available
-                    if(userData.teacher_id) document.getElementById('leaveReqTid').value = userData.teacher_id;
-                    if(userData.name) document.getElementById('leaveReqName').value = userData.name;
-
-                } else {
-                    // Provide default role if none exists
-                    db.ref('users/' + user.uid).set({ email: user.email, role: 'subjectTeacher' });
-                    applyRoleUI('subjectTeacher', '');
-                }
-            }).catch(function(e) {
-                console.error("Role load failed, using basic role:", e);
-                applyRoleUI('subjectTeacher', '');
-            });
-
-            // Safely load Subjects in the background
-            loadClassAndSubjectDropdowns();
-            setTimeout(initializeDatabaseSubjects, 1500); 
-        }
-
         function applyRoleUI(role, userName) {
             appUserRole = role;
             var normalizedRole = role ? role.toString().toLowerCase().replace(/\s+/g, '') : 'subjectteacher';
-            
             var displayRole = 'Subject Teacher';
+            
             if (normalizedRole.indexOf('principal') !== -1 || normalizedRole.indexOf('admin') !== -1) displayRole = 'Principal (Admin)';
             else if (normalizedRole.indexOf('class') !== -1) displayRole = 'Class Teacher';
             
@@ -940,16 +850,14 @@
                 }
             }
             
-            // Hide all restricted
             var restrictedEls = document.querySelectorAll('.principal-only, .class-teacher-only');
-            for(var i=0; i<restrictedEls.length; i++) restrictedEls[i].style.display = 'none';
+            for (var i = 0; i < restrictedEls.length; i++) restrictedEls[i].style.display = 'none';
             
-            // Unhide based on permission
             if (normalizedRole.indexOf('principal') !== -1 || normalizedRole.indexOf('admin') !== -1) {
-                for(var i=0; i<restrictedEls.length; i++) restrictedEls[i].style.display = 'block';
+                for (var i = 0; i < restrictedEls.length; i++) restrictedEls[i].style.display = 'block';
             } else if (normalizedRole.indexOf('class') !== -1) {
                 var classEls = document.querySelectorAll('.class-teacher-only');
-                for(var i=0; i<classEls.length; i++) classEls[i].style.display = 'block';
+                for (var i = 0; i < classEls.length; i++) classEls[i].style.display = 'block';
             }
         }
 
@@ -987,7 +895,6 @@
             loginBtn.innerHTML = '⏳ Logging in...';
             loginBtn.disabled = true;
 
-            // Direct call to Firebase Auth
             auth.signInWithEmailAndPassword(email, password).catch(function(error) {
                 errorMsg.textContent = 'Login failed: ' + error.message;
                 errorMsg.style.display = 'block';
@@ -1005,7 +912,7 @@
             var errorMsg = document.getElementById('registerError');
             var btn = document.getElementById('confirmRegisterBtn');
             
-            var finalRole = 'subjectTeacher'; // Enforced rule
+            var finalRole = 'subjectTeacher';
             
             if (!tid || !name || !email || !password || password.length < 6) {
                 errorMsg.textContent = 'Please fill all fields correctly (Password min 6 chars)';
@@ -1037,7 +944,17 @@
             }).then(function() {
                 isRegistering = false;
                 alert('Registration successful! Welcome ' + name);
-                renderAppInstantly(auth.currentUser);
+                
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContent').style.display = 'block';
+                
+                applyRoleUI(finalRole, name);
+                
+                document.getElementById('leaveReqTid').value = tid;
+                document.getElementById('leaveReqName').value = name;
+                
+                showTab('attendance');
+                loadClassAndSubjectDropdowns();
             }).catch(function(error) {
                 isRegistering = false;
                 errorMsg.textContent = error.message;
@@ -1054,10 +971,10 @@
         function showTab(tabName) {
             try {
                 var contents = document.querySelectorAll('.tab-content');
-                for(var i=0; i<contents.length; i++) contents[i].classList.remove('active');
+                for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
                 
                 var tabs = document.querySelectorAll('.nav-tab');
-                for(var i=0; i<tabs.length; i++) tabs[i].classList.remove('active');
+                for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
                 
                 var tabEl = document.getElementById(tabName);
                 if(tabEl) tabEl.classList.add('active');
@@ -1078,8 +995,37 @@
                     loadMyLeaveRequests();
                 }
             } catch (e) {
-                console.error("Tab Error: ", e);
+                console.log(e);
             }
+        }
+
+        // ==========================================
+        // SILENT DATABASE SYNC
+        // ==========================================
+        function updateDatabaseSubjectsQuietly() {
+            var subRef = db.ref('subjects');
+            subRef.once('value').then(function(snapshot) {
+                var needsUpdate = false;
+                if (!snapshot.exists()) {
+                    needsUpdate = true;
+                } else {
+                    var data = snapshot.val();
+                    for (var key in data) {
+                        if (typeof data[key] === 'string' || !data[key].category || data[key].category === "Grades 6 - 9" || data[key].category === "Grades 10 - 11") {
+                            needsUpdate = true; break;
+                        }
+                    }
+                }
+
+                if (needsUpdate) {
+                    var subjectsObj = {};
+                    for (var i = 0; i < defaultSlSubjects.length; i++) {
+                        var key = 'sub_' + (i + 1);
+                        subjectsObj[key] = { name: defaultSlSubjects[i].name, category: defaultSlSubjects[i].category };
+                    }
+                    subRef.set(subjectsObj).catch(function(){}); 
+                }
+            }).catch(function(){}); 
         }
 
         // ==========================================
@@ -1176,10 +1122,8 @@
                         <td>${req.date}</td>
                         <td style="white-space:normal;"><strong>${req.type}</strong><br><small style="color:#666;">${req.reason}</small></td>
                         <td>
-                            <div class="action-btn-group">
-                                <button onclick="updateLeaveStatus('${req.req_id}', 'Approved', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-secondary btn-small" style="margin:0; padding: 6px 12px;">Approve</button>
-                                <button onclick="updateLeaveStatus('${req.req_id}', 'Rejected')" class="btn btn-danger btn-small" style="margin:0; padding: 6px 12px;">Reject</button>
-                            </div>
+                            <button onclick="updateLeaveStatus('${req.req_id}', 'Approved', '${req.safe_tid}', '${req.teacher_id}', '${req.name}', '${req.date}', '${req.type}')" class="btn btn-secondary btn-small" style="margin-bottom:5px;">Approve</button><br>
+                            <button onclick="updateLeaveStatus('${req.req_id}', 'Rejected')" class="btn btn-danger btn-small">Reject</button>
                         </td>
                     </tr>`;
                 });
@@ -1556,7 +1500,7 @@
             
             document.getElementById('attendanceSheetCard').style.display = 'block';
             var tbody = document.getElementById('attendanceTbody');
-            tbody.innerHTML = "<tr><td colspan='3' class='loading'>Loading...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='3'>Loading...</td></tr>";
             
             var safeClass = getSafeKey(selectedClass);
             var safePeriod = selectedPeriod === "Daily Attendance" ? "Daily_Attendance" : "Period_" + selectedPeriod;
@@ -1571,7 +1515,7 @@
                 var attSnap = results[1];
 
                 if(!studentsSnap.exists()){
-                    tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>මෙම පන්තියේ සිසුන් හමු නොවීය.</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan='3'>මෙම පන්තියේ සිසුන් හමු නොවීය.</td></tr>";
                     return;
                 }
                 
@@ -1619,7 +1563,7 @@
                             <td>${st.student_id}</td>
                             <td class="st-name" style="white-space:normal;">${st.name}</td>
                             <td>
-                                <select class="att-status" style="padding:8px; border-radius:6px; width:100%; border: 1px solid #ccc;">
+                                <select class="att-status" style="padding:5px; border-radius:4px; width:100%;">
                                     <option value="Present" ${selPres}>Present</option>
                                     <option value="Absent" ${selAbs}>Absent</option>
                                     <option value="N/A" ${selNA}>N/A (අදාළ නොවේ)</option>
@@ -1637,7 +1581,7 @@
 
                 document.getElementById('markAllStatus').value = ""; 
             }).catch(function(error) {
-                tbody.innerHTML = "<tr><td colspan='3' style='color:red;'>දත්ත ලබා ගැනීමේදී දෝෂයක් ඇතිවිය.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='3'>දත්ත ලබා ගැනීමේදී දෝෂයක් ඇතිවිය.</td></tr>";
             });
         }
 
@@ -1840,7 +1784,7 @@
                 return;
             }
 
-            tbody.innerHTML = "<tr><td colspan='6' class='loading'>Loading records...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>Loading records...</td></tr>";
 
             db.ref('attendance/' + date).once('value').then(function(snapshot) {
                 if(!snapshot.exists()) {
@@ -1886,6 +1830,379 @@
                 tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: red;'>දෝෂයක්: " + err.message + "</td></tr>";
             });
         }
+
+        function updateDashboardStats() {
+            db.ref('students').once('value').then(function(stSnap) {
+                var stCount = 0;
+                if(stSnap.exists()) stSnap.forEach(function() { stCount++; });
+                document.getElementById('totalStudentsCount').textContent = stCount;
+            }).catch(function(){});
+
+            var today = new Date().toISOString().split('T')[0];
+            db.ref('teacher_attendance/' + today).once('value').then(function(tAttSnap) {
+                var pCount = 0;
+                var aCount = 0;
+                var absentHtml = '';
+
+                if(tAttSnap.exists()) {
+                    tAttSnap.forEach(function(tSnap) {
+                        var rec = tSnap.val();
+                        if(rec.status === 'Present') {
+                            pCount++;
+                        } else {
+                            aCount++;
+                            absentHtml += `
+                            <div style="background: #ffebee; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #c62828;">
+                                <strong>${rec.name}</strong><br>
+                                <span style="font-size: 0.9em; color: #c62828;">Reason: ${rec.status}</span>
+                            </div>`;
+                        }
+                    });
+                }
+
+                document.getElementById('presentTeachersCount').textContent = pCount;
+                document.getElementById('absentTeachersCount').textContent = aCount;
+
+                if(aCount === 0) {
+                    absentHtml = "<p style='color: green; font-size:0.9em;'>✅ All assigned teachers are present today (or no records marked).</p>";
+                }
+                
+                var absentListDiv = document.getElementById('absentTeachersList');
+                if(absentListDiv) absentListDiv.innerHTML = absentHtml;
+            }).catch(function(){});
+        }
+
+        // ==========================================
+        // TEACHER / SUBJECT MANAGEMENT
+        // ==========================================
+        function saveNewTeacher() {
+            var tid = document.getElementById('addTeacherId').value.trim();
+            var tname = document.getElementById('addTeacherName').value.trim();
+            var msg = document.getElementById('teacherSuccessMsg');
+
+            if(!tid || !tname) {
+                alert("Teacher ID and Name are required!");
+                return;
+            }
+
+            var safeTid = getSafeKey(tid);
+
+            db.ref('teachers/' + safeTid).set({
+                teacher_id: tid,
+                name: tname
+            }).then(function() {
+                msg.textContent = "Teacher added successfully!";
+                msg.style.display = 'block';
+                setTimeout(function(){ msg.style.display='none'; }, 3000);
+                
+                document.getElementById('addTeacherId').value = '';
+                document.getElementById('addTeacherName').value = '';
+                loadTeachersAndLeaves();
+            }).catch(function(e) {
+                alert("Error adding teacher: " + e.message);
+            });
+        }
+
+        function loadTeachersAndLeaves() {
+            var tbody = document.getElementById('teacherListTbody');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Loading...</td></tr>";
+
+            var today = new Date();
+            var currentYear = today.getFullYear().toString();
+            var currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
+            var monthPrefix = currentYear + '-' + currentMonth;
+
+            var p1 = db.ref('teachers').once('value');
+            var p2 = db.ref('teacher_attendance').once('value');
+
+            Promise.all([p1, p2]).then(function(results) {
+                var teachersSnap = results[0];
+                var attSnap = results[1];
+
+                if(!teachersSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No teachers found.</td></tr>";
+                    return;
+                }
+
+                var attData = {}; 
+                
+                if(attSnap.exists()){
+                    attSnap.forEach(function(dateSnap) {
+                        var d = dateSnap.key; 
+                        var isCurrentYear = d.indexOf(currentYear) === 0;
+                        var isCurrentMonth = d.indexOf(monthPrefix) === 0;
+                        
+                        if(isCurrentYear) {
+                            dateSnap.forEach(function(tSnap) {
+                                var safeTid = tSnap.key; 
+                                var status = tSnap.val().status; 
+                                
+                                if(!attData[safeTid]) attData[safeTid] = { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                                
+                                if(status === 'Casual Leave') {
+                                    attData[safeTid].year.Casual++;
+                                    if(isCurrentMonth) attData[safeTid].month.Casual++;
+                                } else if (status === 'Sick Leave') {
+                                    attData[safeTid].year.Sick++;
+                                    if(isCurrentMonth) attData[safeTid].month.Sick++;
+                                } else if (status === 'Duty Leave') {
+                                    attData[safeTid].year.Duty++;
+                                    if(isCurrentMonth) attData[safeTid].month.Duty++;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                var html = '';
+                teachersSnap.forEach(function(child) {
+                    var t = child.val();
+                    var tid = t.teacher_id;
+                    var safeTid = child.key;
+                    var stats = attData[safeTid] || { year: {Casual:0, Sick:0, Duty:0}, month: {Casual:0, Sick:0, Duty:0} };
+                    
+                    var monthStr = 'C:<strong>'+stats.month.Casual+'</strong> | S:<strong>'+stats.month.Sick+'</strong> | D:<strong>'+stats.month.Duty+'</strong>';
+                    var yearStr = 'C:<strong>'+stats.year.Casual+'</strong> | S:<strong>'+stats.year.Sick+'</strong> | D:<strong>'+stats.year.Duty+'</strong>';
+                    
+                    html += `<tr>
+                        <td><strong>${t.name}</strong><br><small style="color:#666;">${tid}</small></td>
+                        <td style="font-size: 0.85em;">${monthStr}</td>
+                        <td style="font-size: 0.85em;">${yearStr}</td>
+                        <td><button onclick="deleteTeacher('${safeTid}')" class="btn btn-danger btn-small">Del</button></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            }).catch(function(e) {
+                tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Error loading teachers</td></tr>";
+            });
+        }
+
+        window.deleteTeacher = function(safeTid) {
+            if(confirm("Are you sure you want to remove this teacher?")) {
+                db.ref('teachers/' + safeTid).remove().then(function() {
+                    loadTeachersAndLeaves();
+                }).catch(function(e) {
+                    alert("Error: " + e.message);
+                });
+            }
+        };
+
+        window.filterTeachers = function() {
+            var input = document.getElementById('searchTeacherInput');
+            if(!input) return;
+            var filter = input.value.toLowerCase();
+            var rows = document.querySelectorAll('#teacherListTbody tr');
+            
+            for(var i=0; i<rows.length; i++) {
+                var row = rows[i];
+                if(row.cells.length >= 1) {
+                    var text = row.cells[0].innerText.toLowerCase();
+                    if(text.indexOf(filter) !== -1) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            }
+        };
+
+        function loadTeacherAttendanceSheet() {
+            var date = document.getElementById('teacherAttDate').value;
+            if(!date) { alert("Please select date!"); return; }
+
+            document.getElementById('teacherAttendanceDiv').style.display = 'block';
+            var tbody = document.getElementById('teacherAttTbody');
+            tbody.innerHTML = "<tr><td colspan='2'>Loading...</td></tr>";
+
+            var p1 = db.ref('teachers').once('value');
+            var p2 = db.ref('teacher_attendance/' + date).once('value');
+
+            Promise.all([p1, p2]).then(function(results) {
+                var tSnap = results[0];
+                var attSnap = results[1];
+
+                if(!tSnap.exists()){
+                    tbody.innerHTML = "<tr><td colspan='2'>No teachers registered yet.</td></tr>";
+                    return;
+                }
+
+                var existingAtt = attSnap.exists() ? attSnap.val() : {};
+                var html = '';
+
+                tSnap.forEach(function(child) {
+                    var t = child.val();
+                    var tid = t.teacher_id;
+                    var safeTid = child.key;
+                    var currentStatus = existingAtt[safeTid] ? existingAtt[safeTid].status : 'Present';
+
+                    html += `
+                        <tr data-safetid="${safeTid}" data-tid="${tid}">
+                            <td class="t-name"><strong>${t.name}</strong><br><small>${tid}</small></td>
+                            <td>
+                                <select class="t-status" style="padding: 5px; border-radius: 4px; width: 100%;">
+                                    <option value="Present" ${currentStatus==='Present'?'selected':''}>Present (පැමිණ ඇත)</option>
+                                    <option value="Casual Leave" ${currentStatus==='Casual Leave'?'selected':''}>Absent - Casual Leave (අනියම් නිවාඩු)</option>
+                                    <option value="Sick Leave" ${currentStatus==='Sick Leave'?'selected':''}>Absent - Sick Leave (අසනීප නිවාඩු)</option>
+                                    <option value="Duty Leave" ${currentStatus==='Duty Leave'?'selected':''}>Absent - Duty Leave (රාජකාරී නිවාඩු)</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }).catch(function(e) {
+                tbody.innerHTML = "<tr><td colspan='2' style='color:red;'>Error fetching data.</td></tr>";
+            });
+        }
+
+        window.saveTeacherAttendance = function() {
+            var date = document.getElementById('teacherAttDate').value;
+            if(!date) return;
+
+            var rows = document.querySelectorAll('#teacherAttTbody tr');
+            if(rows.length === 0) return;
+
+            var updates = {};
+            for(var i=0; i<rows.length; i++) {
+                var row = rows[i];
+                var safeTid = row.getAttribute('data-safestudentid') || row.getAttribute('data-safetid');
+                var tid = row.getAttribute('data-tid');
+                
+                if(safeTid) {
+                    var tname = row.querySelector('.t-name strong').innerText;
+                    var status = row.querySelector('.t-status').value;
+                    updates['teacher_attendance/' + date + '/' + safeTid] = {
+                        teacher_id: tid,
+                        name: tname,
+                        status: status,
+                        date: date
+                    };
+                }
+            }
+
+            db.ref().update(updates).then(function() {
+                alert("Teacher Attendance Saved Successfully!");
+                loadTeachersAndLeaves(); 
+                updateDashboardStats();
+            }).catch(function(e) {
+                alert("Error: " + e.message);
+            });
+        };
+
+        function loadSubjectsManagement() {
+            var tbody = document.getElementById('subjectsTableBody');
+            var countSpan = document.getElementById('subjectCount');
+            if(!tbody) return;
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>Loading subjects...</td></tr>";
+            
+            db.ref('subjects').once('value').then(function(snapshot) {
+                if(!snapshot.exists()) {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align: center;'>No subjects found.</td></tr>";
+                    if(countSpan) countSpan.textContent = 0;
+                    return;
+                }
+                var html = '';
+                var idx = 1;
+                snapshot.forEach(function(child) {
+                    var key = child.key;
+                    var val = child.val();
+                    var subName = val.name || val;
+                    var subCat = val.category || 'Other';
+                    
+                    html += `
+                        <tr>
+                            <td>${idx++}</td>
+                            <td style="font-size: 0.85em; color: #555;">${subCat}</td>
+                            <td style="white-space: normal;"><strong>${subName}</strong></td>
+                            <td>
+                                <button onclick="editSubject('${key}', '${subName}', '${subCat}')" class="btn btn-warning btn-small" style="margin-bottom:5px;">Edit</button>
+                                <button onclick="deleteSubject('${key}')" class="btn btn-danger btn-small">Del</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+                if(countSpan) countSpan.textContent = idx - 1;
+            }).catch(function(error) {
+                tbody.innerHTML = "<tr><td colspan='4' style='text-align: center; color: red;'>Error loading subjects.</td></tr>";
+            });
+        }
+
+        function saveSubject() {
+            var catInput = document.getElementById('subjectCategoryInput');
+            var nameInput = document.getElementById('subjectNameInput');
+            var editKeyInput = document.getElementById('editSubjectKey');
+            var successMsg = document.getElementById('subjectSuccess');
+            
+            var subCat = catInput.value;
+            var subName = nameInput.value.trim();
+            var editKey = editKeyInput.value.trim();
+
+            if(!subName) {
+                alert("කරුණාකර විෂය නම ඇතුළත් කරන්න!");
+                return;
+            }
+
+            var promise;
+            if(editKey) {
+                promise = db.ref('subjects/' + editKey).update({ name: subName, category: subCat });
+            } else {
+                var newRef = db.ref('subjects').push();
+                promise = newRef.set({ name: subName, category: subCat });
+            }
+
+            promise.then(function() {
+                successMsg.textContent = editKey ? "විෂය සාර්ථකව යාවත්කාලීන කරන ලදී!" : "විෂය සාර්ථකව එකතු කරන ලදී!";
+                successMsg.style.display = 'block';
+                setTimeout(function(){ successMsg.style.display = 'none'; }, 3000);
+                resetSubjectForm();
+                loadSubjectsManagement();
+                loadClassAndSubjectDropdowns();
+            }).catch(function(error) {
+                alert("දෝෂයක් ඇතිවිය: " + error.message);
+            });
+        }
+
+        window.editSubject = function(key, name, category) {
+            document.getElementById('editSubjectKey').value = key;
+            document.getElementById('subjectNameInput').value = name;
+            
+            var catSelect = document.getElementById('subjectCategoryInput');
+            var catFound = false;
+            for(var i=0; i<catSelect.options.length; i++){
+                if(catSelect.options[i].value === category) {
+                    catSelect.selectedIndex = i;
+                    catFound = true; break;
+                }
+            }
+            if(!catFound) catSelect.value = "Other";
+
+            document.getElementById('subjectFormTitle').textContent = "Edit Subject";
+            document.getElementById('saveSubjectBtn').textContent = "💾 Update Subject";
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            document.getElementById('subjectNameInput').focus();
+        };
+
+        function resetSubjectForm() {
+            document.getElementById('editSubjectKey').value = '';
+            document.getElementById('subjectNameInput').value = '';
+            document.getElementById('subjectCategoryInput').selectedIndex = 0;
+            document.getElementById('subjectFormTitle').textContent = "Add New Subject";
+            document.getElementById('saveSubjectBtn').textContent = "💾 Save Subject";
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        window.deleteSubject = function(key) {
+            if(confirm("මෙම විෂය ඉවත් කිරීමට අවශ්‍ය බව විශ්වාසද?")) {
+                db.ref('subjects/' + key).remove().then(function() {
+                    loadSubjectsManagement();
+                    loadClassAndSubjectDropdowns();
+                }).catch(function(error) {
+                    alert("විෂය මැකීමේදී දෝෂයක් ඇතිවිය: " + error.message);
+                });
+            }
+        };
 
         function downloadPdfReport() {
             var date = document.getElementById('reportDate').value;
